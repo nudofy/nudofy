@@ -1,13 +1,27 @@
+# Dependencias
 node_modules/
+
+# Expo
 .expo/
 dist/
 web-build/
+
+# Variables de entorno — NUNCA commitear
 .env
-*.orig.*
+.env.local
+.env.*.local
+
+# Credenciales de firma (iOS / Android)
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
 *.orig.*
-web-build/
+
+# Assets generados (se regeneran con: node generate-assets.js)
+# assets/   ← descomenta si prefieres no versionar los PNG
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
