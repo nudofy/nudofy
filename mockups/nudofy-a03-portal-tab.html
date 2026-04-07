@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-03 Ficha cliente · Pestaña Portal</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.sb{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.sb-t{font-size:15px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:13px 18px 11px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer}
+.tb-title{font-size:16px;font-weight:500;color:#1a1a1a;flex:1}
+.edit-btn{font-size:13px;color:#534AB7;font-weight:500;cursor:pointer}
+
+.client-header{background:#fff;padding:16px 18px;display:flex;align-items:center;gap:14px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.client-avatar{width:46px;height:46px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#3C3489;flex-shrink:0}
+.client-name{font-size:15px;font-weight:500;color:#1a1a1a}
+.client-type{font-size:11px;color:#534AB7;margin-top:2px}
+
+.tab-bar{background:#fff;border-bottom:0.5px solid #efefef;display:flex;padding:0 16px;flex-shrink:0}
+.tab{flex:1;padding:10px 0;font-size:11px;font-weight:500;color:#bbb;text-align:center;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#534AB7;border-bottom-color:#534AB7}
+
+.portal-content{padding:14px}
+.access-card{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:10px}
+.access-header{padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid #f5f5f5}
+.access-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.access-body{flex:1}
+.access-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.access-sub{font-size:11px;color:#999;margin-top:2px}
+.access-status{font-size:10px;padding:3px 9px;border-radius:7px;font-weight:500;flex-shrink:0}
+.status-active{background:#EAF3DE;color:#3B6D11}
+.status-pending{background:#FAEEDA;color:#854F0B}
+.access-detail{padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+.detail-label{font-size:11px;color:#999}
+.detail-value{font-size:11px;font-weight:500;color:#1a1a1a}
+.invite-btn{width:calc(100% - 28px);margin:0 14px 10px;padding:13px;border-radius:13px;background:#534AB7;color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.reinvite-btn{width:calc(100% - 28px);margin:0 14px 10px;padding:11px;border-radius:13px;background:#fff;color:#534AB7;font-size:13px;font-weight:500;border:1.5px solid #534AB7;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+
+.sec-lbl{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+
+.catalogs-block{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:10px}
+.cat-row{padding:11px 14px;display:flex;align-items:center;gap:11px;border-bottom:0.5px solid #f8f8f8}
+.cat-row:last-child{border-bottom:none}
+.cat-logo{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0}
+.cat-body{flex:1}
+.cat-name{font-size:12px;font-weight:500;color:#1a1a1a}
+.cat-sub{font-size:10px;color:#999;margin-top:2px}
+.toggle{width:38px;height:22px;border-radius:11px;position:relative;flex-shrink:0;cursor:pointer}
+.toggle.on{background:#534AB7}
+.toggle.off{background:#e0e0e0}
+.toggle-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:2px}
+.toggle.on .toggle-knob{left:18px}
+.toggle.off .toggle-knob{left:2px}
+
+.sub-cat-row{padding:8px 14px 8px 52px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #f8f8f8;background:#fafafa}
+.sub-cat-row:last-child{border-bottom:none}
+.sub-cat-name{font-size:11px;color:#555;flex:1}
+.sub-toggle{width:32px;height:18px;border-radius:9px;position:relative;flex-shrink:0;cursor:pointer}
+.sub-toggle.on{background:#534AB7}
+.sub-toggle.off{background:#e0e0e0}
+.sub-toggle-knob{width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px}
+.sub-toggle.on .sub-toggle-knob{left:16px}
+.sub-toggle.off .sub-toggle-knob{left:2px}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:13px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+    <div class="scr">
+
+      <div class="tb">
+        <div class="back">← Clientes</div>
+        <div class="tb-title">Ficha de cliente</div>
+        <div class="edit-btn">Editar</div>
+      </div>
+
+      <div class="client-header">
+        <div class="client-avatar">JG</div>
+        <div>
+          <div class="client-name">Juguetería El Globo</div>
+          <div class="client-type">Juguetería · Madrid</div>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab">Ficha</div>
+        <div class="tab">Pedidos</div>
+        <div class="tab">Notas</div>
+        <div class="tab active">Portal</div>
+      </div>
+
+      <div class="portal-content">
+
+        <div class="access-card">
+          <div class="access-header">
+            <div class="access-icon" style="background:#EAF3DE">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#3B6D11" stroke-width="1.3"/><path d="M6 9l2 2 4-4" stroke="#3B6D11" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="access-body">
+              <div class="access-title">Acceso al portal</div>
+              <div class="access-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="751c1b131a3512191a171a1f001200100110065b1006">[email&#160;protected]</a></div>
+            </div>
+            <span class="access-status status-active">Activo</span>
+          </div>
+          <div class="access-detail">
+            <span class="detail-label">Último acceso</span>
+            <span class="detail-value">Hoy · 8:45</span>
+          </div>
+          <div class="access-detail" style="border-top:0.5px solid #f5f5f5">
+            <span class="detail-label">Miembro desde</span>
+            <span class="detail-value">12 ene 2026</span>
+          </div>
+        </div>
+
+        <button class="reinvite-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="#534AB7" stroke-width="1.2"/><path d="M1 5l6 4 6-4" stroke="#534AB7" stroke-width="1.2"/></svg>
+          Reenviar invitación
+        </button>
+
+        <div class="sec-lbl">Catálogos visibles para este cliente</div>
+
+        <div class="catalogs-block">
+          <div class="cat-row">
+            <div class="cat-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="cat-body">
+              <div class="cat-name">Lego</div>
+              <div class="cat-sub">2 catálogos activos</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="sub-cat-row">
+            <div class="sub-cat-name">Primavera — Verano 2026</div>
+            <div class="sub-toggle on"><div class="sub-toggle-knob"></div></div>
+          </div>
+          <div class="sub-cat-row">
+            <div class="sub-cat-name">Navidad 2025</div>
+            <div class="sub-toggle on"><div class="sub-toggle-knob"></div></div>
+          </div>
+
+          <div class="cat-row">
+            <div class="cat-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="cat-body">
+              <div class="cat-name">Chicco</div>
+              <div class="cat-sub">1 catálogo activo</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="sub-cat-row">
+            <div class="sub-cat-name">Catálogo 2026</div>
+            <div class="sub-toggle on"><div class="sub-toggle-knob"></div></div>
+          </div>
+
+          <div class="cat-row">
+            <div class="cat-logo" style="background:#FAEEDA;color:#633806">P</div>
+            <div class="cat-body">
+              <div class="cat-name">Pilot Pen</div>
+              <div class="cat-sub">Sin acceso</div>
+            </div>
+            <div class="toggle off"><div class="toggle-knob"></div></div>
+          </div>
+
+          <div class="cat-row">
+            <div class="cat-logo" style="background:#FAECE7;color:#712B13">B</div>
+            <div class="cat-body">
+              <div class="cat-name">Bosch Tools</div>
+              <div class="cat-sub">Sin acceso</div>
+            </div>
+            <div class="toggle off"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="bn">
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+      <div class="ni act"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" fill="#534AB7"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Clientes</div><div class="nd"></div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Pedidos</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#bbb"/><circle cx="10" cy="5" r="1.5" fill="#bbb"/><circle cx="10" cy="15" r="1.5" fill="#bbb"/></svg></div><div class="ni-lbl">Más</div></div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">A-03 · Pestaña Portal <span class="sp-badge">Agente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Estado de acceso</div>
+      <div class="sp-item">Badge: Activo (verde) / Pendiente (ámbar) / Sin acceso (gris)</div>
+      <div class="sp-item">Email con el que accede el cliente</div>
+      <div class="sp-item">Fecha y hora del último acceso al portal</div>
+      <div class="sp-item">Fecha desde que es miembro</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Invitación</div>
+      <div class="sp-item">Si el cliente nunca ha accedido → botón "Enviar invitación" en morado</div>
+      <div class="sp-item">Si ya tiene acceso → botón "Reenviar invitación" en secundario</div>
+      <div class="sp-item">La invitación llega por email con enlace directo al portal</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Catálogos visibles</div>
+      <div class="sp-item">Lista de todos los proveedores del agente</div>
+      <div class="sp-item">Toggle por proveedor para dar o quitar acceso completo</div>
+      <div class="sp-item">Al expandir un proveedor activo aparecen sus catálogos individuales con toggle propio</div>
+      <div class="sp-item">Si el toggle del proveedor está en off el cliente no ve ningún catálogo de ese proveedor</div>
+      <div class="sp-item">Cambios se aplican inmediatamente — el cliente lo ve al instante</div>
+    </div>
+
+    <div class="sp-note">
+      El agente controla exactamente qué ve cada cliente. Una juguetería solo verá Lego y Chicco; una ferretería solo verá Bosch

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-03 Ficha de agente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+.topbar{background:#1a1a1a;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.hamburger{width:34px;height:34px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:7px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.back-link{font-size:13px;color:#AFA9EC;cursor:pointer;white-space:nowrap}
+.topbar-center{font-size:14px;font-weight:500;color:#fff;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.btn-primary{padding:7px 14px;border-radius:9px;background:#534AB7;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer;white-space:nowrap}
+.btn-danger{padding:7px 14px;border-radius:9px;background:transparent;color:#F09595;font-size:12px;font-weight:500;border:1px solid #5a2020;cursor:pointer;white-space:nowrap}
+
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+
+.content{padding:20px 24px;max-width:1100px;margin:0 auto}
+
+/* Cabecera agente */
+.agent-header{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;padding:18px 22px;display:flex;align-items:center;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.agent-av{width:52px;height:52px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500;color:#3C3489;flex-shrink:0}
+.agent-info{flex:1;min-width:180px}
+.agent-name{font-size:17px;font-weight:500;color:#1a1a1a}
+.agent-contact{font-size:12px;color:#999;margin-top:3px}
+.agent-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11px;padding:3px 10px;border-radius:7px;font-weight:500;white-space:nowrap}
+.tag-pro{background:#EEEDFE;color:#3C3489}
+.tag-basic{background:#F1EFE8;color:#5F5E5A}
+.tag-agency{background:#E6F1FB;color:#0C447C}
+.tag-active{background:#EAF3DE;color:#3B6D11}
+.meta-txt{font-size:11px;color:#bbb}
+.company-link{font-size:11px;color:#534AB7;cursor:pointer;text-decoration:underline}
+
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border-radius:10px;border:0.5px solid #e8e8e8;padding:13px 16px}
+.kpi-label{font-size:11px;color:#999;margin-bottom:4px}
+.kpi-value{font-size:20px;font-weight:500;color:#1a1a1a}
+.kpi-sub{font-size:11px;color:#bbb;margin-top:3px}
+
+/* Grid 2 col */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden}
+.card-header{padding:13px 18px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.card-edit{font-size:12px;color:#534AB7;cursor:pointer}
+.field-row{padding:10px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f8f8f8;gap:12px}
+.field-row:last-child{border-bottom:none}
+.field-label{font-size:12px;color:#bbb;flex-shrink:0}
+.field-value{font-size:12px;font-weight:500;color:#1a1a1a;text-align:right;word-break:break-all}
+.field-value.purple{color:#534AB7}
+.field-value.link{color:#534AB7;cursor:pointer;text-decoration:underline}
+
+/* Selector de plan */
+.plan-selector{padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
+.plan-opt{border:1.5px solid #e8e8e8;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:center}
+.plan-opt:hover{border-color:#AFA9EC}
+.plan-opt.selected{border-color:#534AB7;background:#EEEDFE}
+.plan-opt-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.plan-opt-price{font-size:11px;color:#999;margin-top:3px}
+.plan-opt.selected .plan-opt-name{color:#3C3489}
+
+/* Tabla facturas */
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:9px 18px;font-size:11px;font-weight:500;color:#999;border-bottom:0.5px solid #f0f0f0;background:#fafafa}
+.table td{padding:10px 18px;border-bottom:0.5px solid #f8f8f8;color:#1a1a1a}
+.table tr:last-child td{border-bottom:none}
+.tag-paid{background:#EAF3DE;color:#3B6D11;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500}
+.tag-unpaid{background:#FAEEDA;color:#854F0B;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500}
+.dl-btn{font-size:11px;color:#534AB7;cursor:pointer}
+
+/* Spec */
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:20px;margin-top:14px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>Dashboard</div>
+    <div class="nav-item active" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Agentes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Planes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/></svg>Facturación</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Configuración</div>
+  </div>
+  <div class="drawer-footer"><div class="df-av">NX</div><div class="df-name">Admin Nudofy</div></div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span><span class="logo-sub">Admin</span>
+    </div>
+    <span class="back-link" onclick="history.back()">← Agentes</span>
+  </div>
+  <div class="topbar-center">Ficha de agente</div>
+  <div class="topbar-right">
+    <button class="btn-danger">Suspender</button>
+    <button class="btn-primary">Guardar cambios</button>
+    <div class="user-av">NX</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- CABECERA -->
+  <div class="agent-header">
+    <div class="agent-av">JG</div>
+    <div class="agent-info">
+      <div class="agent-name">Jorge García</div>
+      <div class="agent-contact"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d2b8bda0b5b792bcb7aabdb3a2a2fcb1bdbf">[email&#160;protected]</a> · +34 612 345 678</div>
+      <div class="agent-meta">
+        <span class="tag tag-pro">Plan Pro</span>
+        <span class="tag tag-active">Activo</span>
+        <span class="meta-txt">Alta: 12 ene 2026</span>
+        <span class="meta-txt">Último acceso: hoy 9:41</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Clientes activos</div><div class="kpi-value">8</div><div class="kpi-sub">2 nuevos este mes</div></div>
+    <div class="kpi"><div class="kpi-label">Pedidos este mes</div><div class="kpi-value">23</div><div class="kpi-sub">8.340 € generados</div></div>
+    <div class="kpi"><div class="kpi-label">Proveedores</div><div class="kpi-value">6</div><div class="kpi-sub">5 activos · 1 inactivo</div></div>
+    <div class="kpi"><div class="kpi-label">Facturado a Nudofy</div><div class="kpi-value">75 €</div><div class="kpi-sub">3 meses · al día</div></div>
+  </div>
+
+  <!-- DATOS + PLAN -->
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Datos personales</div><div class="card-edit">Editar</div></div>
+      <div class="field-row"><span class="field-label">Nombre</span><span class="field-value">Jorge García</span></div>
+      <div class="field-row"><span class="field-label">Email</span><span class="field-value"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3c56534e5b597c525944535d4c4c125f5351">[email&#160;protected]</a></span></div>
+      <div class="field-row"><span class="field-label">Teléfono</span><span class="field-value">+34 612 345 678</span></div>
+      <div class="field-row"><span class="field-label">Empresa</span><span class="field-value">Comercial García S.L.</span></div>
+      <div class="field-row"><span class="field-label">NIF</span><span class="field-value">B-12345678</span></div>
+      <div class="field-row">
+        <span class="field-label">Pertenece a</span>
+        <span class="field-value" style="color:#bbb;font-style:italic">Agente individual</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Método de pago</span>
+        <span class="field-value" style="color:#534AB7">Tarjeta ···4242</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Plan y facturación</div></div>
+      <div class="plan-selector">
+        <div class="plan-opt" onclick="selectPlan(this)">
+          <div class="plan-opt-name">Básico</div>
+          <div class="plan-opt-price">15 €/mes</div>
+          <div class="plan-opt-price">100 prod · 20 cli</div>
+        </div>
+        <div class="plan-opt selected" onclick="selectPlan(this)">
+          <div class="plan-opt-name">Pro</div>
+          <div class="plan-opt-price">25 €/mes</div>
+          <div class="plan-opt-price">2.000 prod · 200 cli</div>
+        </div>
+        <div class="plan-opt" onclick="selectPlan(this)">
+          <div class="plan-opt-name">Agencia</div>
+          <div class="plan-opt-price">45 € base</div>
+          <div class="plan-opt-price">+15 €/agente</div>
+        </div>
+      </div>
+      <div class="field-row"><span class="field-label">Renovación</span><span class="field-value">6 may 2026</span></div>
+      <div class="field-row"><span class="field-label">Total facturado</span><span class="field-value purple">75 €</span></div>
+    </div>
+
+  </div>
+
+  <!-- USO DEL PLAN -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><div class="card-title">Uso del plan actual</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0">
+      <div class="field-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div style="display:flex;justify-content:space-between;width:100%"><span class="field-label">Productos</span><span style="font-size:12px;font-weight:500;color:#1a1a1a">340 / 2.000</span></div>
+        <div style="width:100%;height:5px;background:#f0f0f0;border-radius:3px"><div style="width:17%;height:5px;background:#534AB7;border-radius:3px"></div></div>
+      </div>
+      <div class="field-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div style="display:flex;justify-content:space-between;width:100%"><span class="field-label">Clientes</span><span style="font-size:12px;font-weight:500;color:#1a1a1a">8 / 200</span></div>
+        <div style="width:100%;height:5px;background:#f0f0f0;border-radius:3px"><div style="width:4%;height:5px;background:#534AB7;border-radius:3px"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL FACTURAS -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><div class="card-title">Historial de facturas</div></div>
+    <div style="overflow-x:auto">
+      <table class="table">
+        <thead><tr><th>Nº Factura</th><th>Concepto</th><th>Periodo</th><th>Importe</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0156</td>
+            <td>Plan Pro · 1 agente</td>
+            <td>Abril 2026</td>
+            <td style="font-weight:500">25,00 €</td>
+            <td><span class="tag-paid">Pagada</span></td>
+            <td><span class="dl-btn">Descargar PDF</span></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0098</td>
+            <td>Plan Pro · 1 agente</td>
+            <td>Marzo 2026</td>
+            <td style="font-weight:500">25,00 €</td>
+            <td><span class="tag-paid">Pagada</span></td>
+            <td><span class="dl-btn">Descargar PDF</span></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0041</td>
+            <td>Plan Pro · 1 agente</td>
+            <td>Febrero 2026</td>
+            <td style="font-weight:500">25,00 €</td>
+            <td><span class="tag-paid">Pagada</span></td>
+            <td><span class="dl-btn">Descargar PDF</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-03 · Ficha de agente <span class="sp-badge">Admin</span></div>
+    <div class="sp-grid">
+      <div>
+        <div class="sp-lbl">Datos personales</div>
+        <div class="sp-item">Nombre, email, teléfono, empresa y NIF</div>
+        <div class="sp-item">Campo "Pertenece a" — muestra si es agente individual o el nombre de la empresa a la que pertenece con enlace a ADM-07</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Plan y uso</div>
+        <div class="sp-item">Selector de plan con precios y límites actualizados: 15 € / 25 € / 45 €+</div>
+        <div class="sp-item">Barras de uso de productos y clientes vs límite del plan</div>
+        <div class="sp-item">Fecha de renovación y total facturado</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Facturas</div>
+        <div class="sp-item">Historial completo con número, concepto, periodo, importe y estado</div>
+        <div class="sp-item">Descarga de PDF de cada factura</div>
+        <div class="sp-item">Precios actualizados a 25 €/mes Plan Pro</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+function openMenu(){document.getElementById('drawer').classList.add('open');document.getElementById('overlay'

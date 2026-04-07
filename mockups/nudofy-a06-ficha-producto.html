@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-06 Ficha de producto</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.status-bar{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:500;color:#1a1a1a}
+.status-icons{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.screen{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.topbar{background:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:14px;color:#534AB7;cursor:pointer}
+.topbar-info{flex:1}
+.topbar-prov{font-size:13px;font-weight:500;color:#1a1a1a}
+.topbar-cat{font-size:11px;color:#999;margin-top:1px}
+
+.prod-image{background:#f0f0ee;height:220px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.prod-emoji{font-size:80px}
+.prod-badge{position:absolute;top:14px;left:14px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:8px}
+.badge-new{background:#EEEDFE;color:#3C3489}
+.badge-promo{background:#FAEEDA;color:#854F0B}
+.img-dots{position:absolute;bottom:12px;display:flex;gap:5px}
+.img-dot{width:6px;height:6px;border-radius:50%;background:#ccc}
+.img-dot.active{background:#534AB7;width:16px;border-radius:4px}
+
+.prod-info{background:#fff;padding:18px 18px 16px;border-bottom:0.5px solid #efefef}
+.prod-name{font-size:18px;font-weight:500;color:#1a1a1a;line-height:1.3}
+.prod-ref-row{display:flex;align-items:center;gap:10px;margin-top:6px}
+.prod-ref{font-size:12px;color:#999}
+.prod-ean{font-size:12px;color:#999}
+.prod-sep{width:3px;height:3px;border-radius:50%;background:#ddd}
+.prod-price{font-size:26px;font-weight:500;color:#534AB7;margin-top:12px}
+.prod-price-sub{font-size:12px;color:#999;margin-top:2px}
+
+.prod-desc{background:#fff;padding:14px 18px;border-bottom:0.5px solid #efefef}
+.desc-text{font-size:13px;color:#555;line-height:1.6}
+
+.prod-details{background:#fff;padding:14px 18px;border-bottom:0.5px solid #efefef}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.detail-item{background:#f7f7f5;border-radius:10px;padding:10px 12px}
+.detail-label{font-size:10px;color:#999;margin-bottom:3px}
+.detail-value{font-size:13px;font-weight:500;color:#1a1a1a}
+
+.prod-action{background:#fff;padding:16px 18px 20px;flex-shrink:0}
+.in-pedido-banner{background:#EAF3DE;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.in-pedido-text{font-size:12px;color:#3B6D11;font-weight:500;flex:1}
+.in-pedido-qty{font-size:12px;color:#3B6D11}
+.qty-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.qty-label{font-size:13px;color:#555;flex:1}
+.qty-controls{display:flex;align-items:center;gap:10px}
+.qty-btn{width:34px;height:34px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;font-size:18px;color:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:500}
+.qty-val{font-size:16px;font-weight:500;color:#1a1a1a;min-width:24px;text-align:center}
+.add-btn{width:100%;padding:15px;border-radius:14px;background:#534AB7;color:#fff;font-size:16px;font-weight:500;border:none;cursor:pointer;text-align:center}
+.add-btn:hover{background:#3C3489}
+
+.bottom-nav{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.nav-item-label{font-size:10px;color:#bbb}
+.nav-item.active .nav-item-label{color:#534AB7}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:2px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.spec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.spec-section{margin-bottom:14px}
+.spec-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.spec-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;font-size:12px;color:#444;line-height:1.4}
+.spec-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.spec-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>100%</span></div>
+    </div>
+    <div class="screen">
+
+      <div class="topbar">
+        <div class="back">← Catálogo</div>
+        <div class="topbar-info">
+          <div class="topbar-prov">Lego</div>
+          <div class="topbar-cat">Primavera — Verano 2026</div>
+        </div>
+      </div>
+
+      <div class="prod-image">
+        <div class="prod-emoji">🚔</div>
+        <span class="prod-badge badge-new">Novedad</span>
+        <div class="img-dots">
+          <div class="img-dot active"></div>
+          <div class="img-dot"></div>
+          <div class="img-dot"></div>
+        </div>
+      </div>
+
+      <div class="prod-info">
+        <div class="prod-name">City Police Station Set</div>
+        <div class="prod-ref-row">
+          <span class="prod-ref">Ref. LG-60316</span>
+          <div class="prod-sep"></div>
+          <span class="prod-ean">EAN: 5702016888&shy;13</span>
+        </div>
+        <div class="prod-price">49,99 €</div>
+        <div class="prod-price-sub">Precio de tarifa · IVA no incluido</div>
+      </div>
+
+      <div class="prod-desc">
+        <div class="desc-text">Set de construcción con comisaría de policía, 2 coches patrulla y 5 minifiguras. Incluye accesorios de detective y celda de prisionero. Compatible con toda la línea City.</div>
+      </div>
+
+      <div class="prod-details">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Categoría</div>
+            <div class="detail-value">City</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Edad recomendada</div>
+            <div class="detail-value">+6 años</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Piezas</div>
+            <div class="detail-value">743 piezas</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Pedido mínimo</div>
+            <div class="detail-value">2 uds.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prod-action">
+        <button class="add-btn" style="background:#fff;color:#534AB7;border:1.5px solid #534AB7;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13V9M5.5 13V6M9 13V8M12.5 13V3" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Ver estadísticas de este producto
+        </button>
+      </div>
+
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg>
+        </div>
+        <div class="nav-item-label">Inicio</div>
+      </div>
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="nav-item-label">Clientes</div>
+      </div>
+      <div class="nav-item active">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" fill="#534AB7"/><rect x="11" y="2" width="7" height="5" rx="1.5" fill="#534AB7" opacity=".5"/><rect x="2" y="13" width="7" height="5" rx="1.5" fill="#534AB7" opacity=".5"/><rect x="11" y="9" width="7" height="9" rx="1.5" fill="#534AB7" opacity=".5"/></svg>
+        </div>
+        <div class="nav-item-label" style="color:#534AB7">Catálogos</div>
+        <div class="nav-dot"></div>
+      </div>
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="nav-item-label">Pedidos</div>
+      </div>
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#bbb"/><circle cx="10" cy="5" r="1.5" fill="#bbb"/><circle cx="10" cy="15" r="1.5" fill="#bbb"/></svg>
+        </div>
+        <div class="nav-item-label">Más</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">
+      A-06 · Ficha de producto
+      <span class="spec-badge">Agente</span>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Cabecera</div>
+      <div class="spec-item">Flecha "← Catálogo" para volver al grid de productos</div>
+      <div class="spec-item">Nombre del proveedor y catálogo activo</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Imagen</div>
+      <div class="spec-item">Foto grande del producto importada del catálogo</div>
+      <div class="spec-item">Dots de paginación si hay varias fotos</div>
+      <div class="spec-item">Badge "Novedad" o "Promo" si el producto lo tiene marcado</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Datos principales</div>
+      <div class="spec-item">Nombre completo del producto</div>
+      <div class="spec-item">Referencia del proveedor</div>
+      <div class="spec-item">EAN / código de barras</div>
+      <div class="spec-item">Precio de tarifa con indicación de IVA no incluido</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Descripción</div>
+      <div class="spec-item">Texto descriptivo del producto importado del catálogo</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Detalles en grid</div>
+      <div class="spec-item">Categoría</div>
+      <div class="spec-item">Edad recomendada (si aplica según sector)</div>
+      <div class="spec-item">Campo libre adicional según el tipo de producto (piezas, peso, talla...)</div>
+      <div class="spec-item">Pedido mínimo de ese producto si lo tiene</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Acción</div>
+      <div class="spec-item">Botón "Ver estadísticas de este producto" → abre vista de estadísticas del producto</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Estadísticas del producto</div>
+      <div class="spec-item">Total de unidades vendidas históricas</div>
+      <div class="spec-item">Ventas por periodo (mes, trimestre, año)</div>
+      <div class="spec-item">Qué clientes lo han comprado y cuántas veces</div>
+      <div class="spec-item">Último pedido en el que apareció</div>
+    </div>
+
+    <div class="spec-note">
+      Los campos del grid de detalles son flexibles según el sector. Un agente de moda verá talla y color; uno de alimentación verá formato y caducidad. Se configuran al importar el catálogo.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

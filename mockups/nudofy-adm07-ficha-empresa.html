@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-07 Ficha de empresa</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+
+/* TOPBAR — solo 3 elementos: hamburger, logo, avatar */
+.topbar{background:#1a1a1a;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.hamburger{width:34px;height:34px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0;flex-shrink:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:7px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff;flex-shrink:0}
+
+/* DRAWER */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+
+/* CONTENIDO */
+.content{padding:16px;max-width:800px;margin:0 auto}
+
+/* Breadcrumb + acciones debajo del topbar */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.breadcrumb{font-size:13px;color:#534AB7;cursor:pointer}
+.page-title{font-size:16px;font-weight:500;color:#1a1a1a;flex:1;margin-left:8px}
+.page-actions{display:flex;gap:8px}
+.btn-danger{padding:7px 14px;border-radius:9px;background:#fff;color:#A32D2D;font-size:12px;font-weight:500;border:1.5px solid #F09595;cursor:pointer;white-space:nowrap}
+.btn-primary{padding:7px 14px;border-radius:9px;background:#534AB7;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer;white-space:nowrap}
+
+/* Cabecera empresa */
+.company-header{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;padding:16px;display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.company-av{width:48px;height:48px;border-radius:12px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:#0C447C;flex-shrink:0}
+.company-info{flex:1;min-width:0}
+.company-name{font-size:16px;font-weight:500;color:#1a1a1a}
+.company-contact{font-size:12px;color:#999;margin-top:3px;word-break:break-all}
+.company-meta{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11px;padding:3px 9px;border-radius:7px;font-weight:500;white-space:nowrap}
+.tag-agency{background:#E6F1FB;color:#0C447C}
+.tag-active{background:#EAF3DE;color:#3B6D11}
+.meta-txt{font-size:11px;color:#bbb}
+
+/* KPIs 2x2 */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:10px;border:0.5px solid #e8e8e8;padding:13px 14px}
+.kpi-label{font-size:11px;color:#999;margin-bottom:4px}
+.kpi-value{font-size:18px;font-weight:500;color:#1a1a1a}
+.kpi-sub{font-size:11px;color:#bbb;margin-top:3px;line-height:1.4}
+
+/* Sugerencia upgrade */
+.upgrade-banner{background:#E6F1FB;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:12px}
+.ub-icon{width:34px;height:34px;border-radius:9px;background:#185FA5;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.ub-body{flex:1}
+.ub-title{font-size:13px;font-weight:500;color:#0C447C}
+.ub-sub{font-size:12px;color:#185FA5;margin-top:3px;line-height:1.4}
+.ub-btn{margin-top:10px;padding:8px 16px;border-radius:9px;background:#185FA5;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer;display:inline-block}
+
+/* Cards */
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden;margin-bottom:12px}
+.card-header{padding:12px 16px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.card-action{font-size:12px;color:#534AB7;cursor:pointer;display:flex;align-items:center;gap:4px}
+.field-row{padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f8f8f8;gap:12px}
+.field-row:last-child{border-bottom:none}
+.field-label{font-size:12px;color:#bbb;flex-shrink:0}
+.field-value{font-size:12px;font-weight:500;color:#1a1a1a;text-align:right}
+.field-value.purple{color:#534AB7}
+
+/* Barras de uso */
+.usage-row{padding:10px 16px;border-bottom:0.5px solid #f8f8f8}
+.usage-row:last-child{border-bottom:none}
+.usage-top{display:flex;justify-content:space-between;margin-bottom:5px}
+.usage-label{font-size:12px;color:#555}
+.usage-val{font-size:12px;font-weight:500;color:#1a1a1a}
+.usage-bar-wrap{height:5px;background:#f0f0f0;border-radius:3px}
+.usage-bar{height:5px;border-radius:3px}
+.bar-green{background:#3B6D11}
+.bar-amber{background:#BA7517}
+.bar-red{background:#A32D2D}
+
+/* Agentes */
+.agent-row{padding:12px 16px;display:flex;align-items:center;gap:11px;border-bottom:0.5px solid #f8f8f8}
+.agent-row:last-child{border-bottom:none}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.agent-body{flex:1;min-width:0}
+.agent-name{font-size:13px;font-weight:500;color:#1a1a1a;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.agent-email{font-size:11px;color:#bbb;margin-top:1px}
+.agent-stats{font-size:11px;color:#999;margin-top:2px}
+.tag-admin{background:#EEEDFE;color:#3C3489;font-size:9px;padding:2px 7px;border-radius:5px;font-weight:500}
+.tag-agent-role{background:#F1EFE8;color:#5F5E5A;font-size:9px;padding:2px 7px;border-radius:5px;font-weight:500}
+.act-btn{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid #e8e8e8;background:#fff;color:#534AB7;cursor:pointer;flex-shrink:0}
+
+/* Tabla facturas */
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
+.table th{text-align:left;padding:9px 16px;font-size:11px;font-weight:500;color:#999;border-bottom:0.5px solid #f0f0f0;background:#fafafa;white-space:nowrap}
+.table td{padding:10px 16px;border-bottom:0.5px solid #f8f8f8;color:#1a1a1a}
+.table tr:last-child td{border-bottom:none}
+.tag-paid{background:#EAF3DE;color:#3B6D11;font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500}
+.dl-btn{font-size:11px;color:#534AB7;cursor:pointer;white-space:nowrap}
+
+/* Spec */
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:18px;margin-top:4px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;margin-top:10px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>Dashboard</div>
+    <div class="nav-item active" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Agentes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Planes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/></svg>Facturación</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Configuración</div>
+  </div>
+  <div class="drawer-footer"><div class="df-av">NX</div><div class="df-name">Admin Nudofy</div></div>
+</div>
+
+<!-- TOPBAR: solo hamburger + logo + avatar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span><span class="logo-sub">Admin</span>
+    </div>
+  </div>
+  <div class="user-av">NX</div>
+</div>
+
+<div class="content">
+
+  <!-- BREADCRUMB + TÍTULO + ACCIONES -->
+  <div class="page-header">
+    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+      <span class="breadcrumb" onclick="history.back()">← Agentes</span>
+      <span class="page-title">Ficha de empresa</span>
+    </div>
+    <div class="page-actions">
+      <button class="btn-danger">Suspender</button>
+      <button class="btn-primary">Guardar</button>
+    </div>
+  </div>
+
+  <!-- CABECERA EMPRESA -->
+  <div class="company-header">
+    <div class="company-av">CR</div>
+    <div class="company-info">
+      <div class="company-name">Comercial Rodríguez S.L.</div>
+      <div class="company-contact"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="046560696d6a44676b696176676d6568766b60766d6371617e2a6177">[email&#160;protected]</a> · +34 91 456 78 90</div>
+      <div class="company-meta">
+        <span class="tag tag-agency">Plan Agencia</span>
+        <span class="tag tag-active">Activo</span>
+        <span class="meta-txt">Alta: 15 feb 2026</span>
+        <span class="meta-txt">Último acceso: hoy 8:30</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs 2x2 -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Agentes activos</div>
+      <div class="kpi-value">6 / 10</div>
+      <div class="kpi-sub">4 plazas disponibles</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Clientes totales</div>
+      <div class="kpi-value">187 / 500</div>
+      <div class="kpi-sub">313 disponibles</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Productos en catálogo</div>
+      <div class="kpi-value">3.240 / 5.000</div>
+      <div class="kpi-sub">1.760 disponibles</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Facturación mensual</div>
+      <div class="kpi-value">135 €</div>
+      <div class="kpi-sub">45 € base + 6 × 15 €</div>
+    </div>
+  </div>
+
+  <!-- SUGERENCIA UPGRADE -->
+  <div class="upgrade-banner">
+    <div class="ub-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l2 4 4.5.7-3.3 3.2.8 4.5L8 12.3l-4 2.1.8-4.5L1.5 6.7 6 6l2-4z" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+    <div class="ub-body">
+      <div class="ub-title">Sugerencia — Plan Agencia Pro</div>
+      <div class="ub-sub">Esta empresa tiene 6 agentes y 3.240 productos. Se acerca a los límites del plan Agencia. Agencia Pro ofrece todo ilimitado.</div>
+      <button class="ub-btn">Proponer upgrade</button>
+    </div>
+  </div>
+
+  <!-- DATOS DE LA EMPRESA -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Datos de la empresa</div><div class="card-action">Editar</div></div>
+    <div class="field-row"><span class="field-label">Razón social</span><span class="field-value">Comercial Rodríguez S.L.</span></div>
+    <div class="field-row"><span class="field-label">NIF</span><span class="field-value">B-45678901</span></div>
+    <div class="field-row"><span class="field-label">Email admin</span><span class="field-value"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="78191c151116381b17151d0a1b1119140a171c0a111f0d1d02561d0b">[email&#160;protected]</a></span></div>
+    <div class="field-row"><span class="field-label">Dirección fiscal</span><span class="field-value">C/ Velázquez 34, Madrid</span></div>
+    <div class="field-row"><span class="field-label">Plan activo</span><span class="field-value purple">Agencia · 135 €/mes</span></div>
+    <div class="field-row"><span class="field-label">Próxima factura</span><span class="field-value">15 may 2026</span></div>
+    <div class="field-row"><span class="field-label">Método de pago</span><span class="field-value" style="color:#1D9E75">SEPA ···3210</span></div>
+  </div>
+
+  <!-- USO DEL PLAN -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Uso del plan</div></div>
+    <div class="usage-row">
+      <div class="usage-top"><span class="usage-label">Agentes</span><span class="usage-val">6 de 10</span></div>
+      <div class="usage-bar-wrap"><div class="usage-bar bar-green" style="width:60%"></div></div>
+    </div>
+    <div class="usage-row">
+      <div class="usage-top"><span class="usage-label">Clientes</span><span class="usage-val">187 de 500</span></div>
+      <div class="usage-bar-wrap"><div class="usage-bar bar-green" style="width:37%"></div></div>
+    </div>
+    <div class="usage-row">
+      <div class="usage-top"><span class="usage-label">Productos</span><span class="usage-val">3.240 de 5.000</span></div>
+      <div class="usage-bar-wrap"><div class="usage-bar bar-amber" style="width:65%"></div></div>
+    </div>
+    <div class="field-row"><span class="field-label">Pedidos este mes</span><span class="field-value">142</span></div>
+    <div class="field-row"><span class="field-label">Facturado por agentes</span><span class="field-value purple">48.320 €</span></div>
+  </div>
+
+  <!-- AGENTES DE LA EMPRESA -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Agentes de la empresa</div>
+      <div class="card-action">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Añadir agente
+      </div>
+    </div>
+    <div class="agent-row">
+      <div class="av" style="background:#EEEDFE;color:#3C3489">ML</div>
+      <div class="agent-body">
+        <div class="agent-name">María López <span class="tag-admin">Admin</span></div>
+        <div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d8b5b9aab1b998bbb7b5bdaabbb1b9b4aab7bcaab1bfadbda2f6bdab">[email&#160;protected]</a></div>
+        <div class="agent-stats">21 clientes · 47 pedidos mes</div>
+      </div>
+      <button class="act-btn">Ver ficha</button>
+    </div>
+    <div class="agent-row">
+      <div class="av" style="background:#EAF3DE;color:#27500A">JR</div>
+      <div class="agent-body">
+        <div class="agent-name">Juan Ruiz <span class="tag-agent-role">Agente</span></div>
+        <div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e9839c8887a98a86848c9b8a8088859b868d9b808e9c8c93c78c9a">[email&#160;protected]</a></div>
+        <div class="agent-stats">18 clientes · 38 pedidos mes</div>
+      </div>
+      <button class="act-btn">Ver ficha</button>
+    </div>
+    <div class="agent-row">
+      <div class="av" style="background:#FAEEDA;color:#633806">PS</div>
+      <div class="agent-body">
+        <div class="agent-name">Pedro Sánchez <span class="tag-agent-role">Agente</span></div>
+        <div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="98e8fdfceaf7d8fbf7f5fdeafbf1f9f4eaf7fceaf1ffedfde2b6fdeb">[email&#160;protected]</a></div>
+        <div class="agent-stats">15 clientes · 29 pedidos mes</div>
+      </div>
+      <button class="act-btn">Ver ficha</button>
+    </div>
+    <div class="agent-row">
+      <div class="av" style="background:#E1F5EE;color:#085041">CF</div>
+      <div class="agent-body">
+        <div class="agent-name">Carmen Fuentes <span class="tag-agent-role">Agente</span></div>
+        <div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0566647768606b45666a686077666c6469776a61776c6270607f2b6076">[email&#160;protected]</a></div>
+        <div class="agent-stats">12 clientes · 18 pedidos mes</div>
+      </div>
+      <button class="act-btn">Ver ficha</button>
+    </div>
+  </div>
+
+  <!-- HISTORIAL FACTURAS -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Historial de facturas</div></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Nº Factura</th><th>Concepto</th><th>Periodo</th><th>Importe</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="color:#bbb">NUD-FAC-2026-0201</td>
+            <td>Agencia · 6 ag. (45+5×15)</td>
+            <td>Abr 2026</td>
+            <td style="font-weight:500">135,00 €</td>
+            <td><span class="tag-paid">Pagada</span></td>
+            <td><span class="dl-btn">PDF</span></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb">NUD-FAC-2026-0143</td>
+            <td>Agencia · 5 ag. (45+4×15)</td>
+            <td>Mar 2026</td>
+            <td style="font-weight:500">105,00 €</td>
+            <td><span class="tag-paid">Pagada</span></td>
+            <td><span class="dl-btn">PDF</span></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb">NUD-FAC-2026-0089</td>
+            <td>Agencia · 4 ag. (45+3×15)</td>
+            <td>Feb 2026</td>
+            <td style="font-weight:500">90,00 €</td>
+            <td><span class="tag-paid">Pagada</span></td>
+            <td><span class="dl-btn">PDF</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-07 · Ficha de empresa <span class="sp-badge">Admin</span></div>
+    <div class="sp-lbl">Layout responsive</div>
+    <div class="sp-item">Topbar simplificada — solo hamburger, logo y avatar. Sin texto que se corte</div>
+    <div class="sp-item">Título y breadcrumb debajo del topbar dentro del contenido</div>
+    <div class="sp-item">KPIs en grid 2×2 — nunca se cortan en pantalla estrecha</div>
+    <div class="sp-lbl">Co

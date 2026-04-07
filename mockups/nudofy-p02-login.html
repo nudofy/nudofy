@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — P-02 Login</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;min-height:720px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0}
+.status-bar{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:500;color:#1a1a1a}
+.status-icons{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.screen{flex:1;display:flex;flex-direction:column;padding:32px 28px 28px}
+.back-btn{display:flex;align-items:center;gap:6px;font-size:14px;color:#534AB7;cursor:pointer;margin-bottom:32px;width:fit-content}
+.screen-title{font-size:26px;font-weight:500;color:#1a1a1a;letter-spacing:-0.3px;margin-bottom:6px}
+.screen-sub{font-size:14px;color:#888;margin-bottom:36px;line-height:1.4}
+.form-group{margin-bottom:18px}
+.form-label{font-size:12px;font-weight:500;color:#555;margin-bottom:7px;display:block}
+.form-input{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid #e5e5e5;font-size:15px;color:#1a1a1a;background:#fff;outline:none}
+.form-input:focus{border-color:#534AB7}
+.form-input.active{border-color:#534AB7}
+.input-wrap{position:relative}
+.input-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:16px;color:#aaa;cursor:pointer}
+.forgot{font-size:13px;color:#534AB7;text-align:right;margin-top:8px;cursor:pointer}
+.btn-primary{width:100%;padding:16px;border-radius:14px;background:#534AB7;color:#fff;font-size:16px;font-weight:500;border:none;cursor:pointer;margin-top:8px}
+.btn-primary:hover{background:#3C3489}
+.divider-row{display:flex;align-items:center;gap:12px;margin:20px 0}
+.divider-line{flex:1;height:1px;background:#f0f0f0}
+.divider-text{font-size:12px;color:#bbb}
+.btn-google{width:100%;padding:14px;border-radius:14px;background:#fff;border:1.5px solid #e5e5e5;font-size:15px;color:#444;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.google-icon{width:18px;height:18px;flex-shrink:0}
+.error-msg{background:#FCEBEB;border-radius:10px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.footer-links{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:auto;padding-top:24px}
+.footer-links a{font-size:12px;color:#bbb;text-decoration:none}
+.footer-sep{width:3px;height:3px;border-radius:50%;background:#ddd}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start;margin-top:0}
+.spec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;background:#f0f0f0;color:#555;padding:3px 8px;border-radius:6px;font-weight:500}
+.spec-section{margin-bottom:14px}
+.spec-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.spec-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;font-size:12px;color:#444;line-height:1.4}
+.spec-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.spec-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+  <div class="device">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>100%</span></div>
+    </div>
+    <div class="screen">
+      <div class="back-btn">← Volver</div>
+      <div class="screen-title">Bienvenido</div>
+      <div class="screen-sub">Accede con tus credenciales para continuar</div>
+
+      <div class="error-msg" style="display:none">
+        ⚠ Usuario o contraseña incorrectos
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input class="form-input active" type="email" placeholder="tu@email.com" value="jorge@nudofyapp.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" placeholder="••••••••" value="••••••••">
+          <span class="input-eye">👁</span>
+        </div>
+        <div class="forgot">¿Olvidaste tu contraseña?</div>
+      </div>
+
+      <button class="btn-primary">Entrar</button>
+
+
+
+      <div class="footer-links">
+        <a href="#">Quiénes somos</a>
+        <div class="footer-sep"></div>
+        <a href="#">Contacto</a>
+        <div class="footer-sep"></div>
+        <a href="#">nudofyapp.com</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">
+      P-02 · Login
+      <span class="spec-badge">Compartida</span>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Cabecera</div>
+      <div class="spec-item">Flecha "← Volver" para regresar a la splash P-01</div>
+      <div class="spec-item">Título: "Bienvenido"</div>
+      <div class="spec-item">Subtítulo: "Accede con tus credenciales para continuar"</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Formulario</div>
+      <div class="spec-item">Campo: Correo electrónico (teclado tipo email)</div>
+      <div class="spec-item">Campo: Contraseña (texto oculto con icono para mostrar/ocultar)</div>
+      <div class="spec-item">Enlace "¿Olvidaste tu contraseña?" → flujo de recuperación por email</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Acciones</div>
+      <div class="spec-item">Botón principal: "Entrar" → valida credenciales</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Estados</div>
+      <div class="spec-item">Error: mensaje visible si credenciales incorrectas</div>
+      <div class="spec-item">Cargando: botón en estado spinner tras pulsar Entrar</div>
+      <div class="spec-item">Éxito: redirige según perfil — agente va a A-01, cliente va a C-01</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Pie de página</div>
+      <div class="spec-item">Quiénes somos · Contacto · nudofyapp.com</div>
+      <div class="spec-item">Mismo pie que en la splash P-01</div>
+    </div>
+
+    <div class="spec-note">
+      Tras el login, la app detecta automáticamente si el usuario es agente o cliente y lo lleva a su pantalla de inicio correspondiente.
+    </div>
+  </div>
+</div>
+</body>
+</html>

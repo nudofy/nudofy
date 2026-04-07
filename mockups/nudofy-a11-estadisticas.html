@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-11 Estadísticas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.sb{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.sb-t{font-size:15px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:13px 18px 11px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer}
+.tb-title{font-size:17px;font-weight:500;color:#1a1a1a;flex:1}
+
+.period-scroll{background:#fff;padding:10px 14px 11px;border-bottom:0.5px solid #efefef;display:flex;gap:7px;overflow-x:auto}
+.period-scroll::-webkit-scrollbar{display:none}
+.ppill{padding:5px 13px;border-radius:18px;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid #e8e8e8;color:#666;background:#fff;flex-shrink:0}
+.ppill.act{background:#534AB7;color:#fff;border-color:#534AB7}
+
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 4px}
+.kpi{background:#fff;border-radius:12px;padding:13px 14px}
+.kpi-label{font-size:11px;color:#999;margin-bottom:4px}
+.kpi-value{font-size:20px;font-weight:500;color:#1a1a1a}
+.kpi-delta{font-size:11px;margin-top:4px;display:flex;align-items:center;gap:3px}
+.delta-up{color:#3B6D11}
+.delta-down{color:#A32D2D}
+.kpi.accent{background:#534AB7}
+.kpi.accent .kpi-label{color:#AFA9EC}
+.kpi.accent .kpi-value{color:#fff}
+.kpi.accent .kpi-delta{color:#C0BBF0}
+
+.section{padding:14px 14px 4px}
+.sec-title{font-size:12px;font-weight:500;color:#555;margin-bottom:10px}
+
+.chart-wrap{background:#fff;border-radius:14px;margin:0 14px;padding:14px}
+.chart-title{font-size:11px;color:#999;margin-bottom:12px}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{border-radius:4px 4px 0 0;width:100%;background:#EEEDFE;min-height:4px}
+.bar.act{background:#534AB7}
+.bar-lbl{font-size:9px;color:#bbb}
+.chart-footer{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:0.5px solid #f0f0f0}
+.cf-item{text-align:center}
+.cf-val{font-size:11px;font-weight:500;color:#1a1a1a}
+.cf-lbl{font-size:10px;color:#bbb;margin-top:1px}
+
+.rank-block{background:#fff;border-radius:14px;margin:0 14px 8px;overflow:hidden}
+.rank-header{padding:11px 14px;border-bottom:0.5px solid #f5f5f5;display:flex;align-items:center;gap:8px}
+.rank-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-title{font-size:12px;font-weight:500;color:#555}
+.rank-row{padding:9px 14px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #f8f8f8}
+.rank-row:last-child{border-bottom:none}
+.rank-pos{font-size:11px;font-weight:500;color:#bbb;width:16px;flex-shrink:0;text-align:center}
+.rank-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.rank-name{font-size:12px;font-weight:500;color:#1a1a1a;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-right{text-align:right;flex-shrink:0}
+.rank-val{font-size:12px;font-weight:500;color:#534AB7}
+.rank-sub{font-size:10px;color:#bbb;margin-top:1px}
+.rank-bar-wrap{flex:1;height:4px;background:#f0f0f0;border-radius:2px;margin:0 8px}
+.rank-bar{height:4px;border-radius:2px;background:#534AB7}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:13px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+    <div class="tb" style="flex-shrink:0;background:#fff;padding:13px 18px 11px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef">
+      <div class="back">← Inicio</div>
+      <div class="tb-title">Estadísticas</div>
+    </div>
+    <div class="period-scroll" style="flex-shrink:0;overflow-x:auto;display:flex;gap:7px;padding:10px 14px 11px;background:#fff;border-bottom:0.5px solid #efefef">
+      <div class="ppill" onclick="setPeriod(this)">Esta semana</div>
+      <div class="ppill act" onclick="setPeriod(this)">Este mes</div>
+      <div class="ppill" onclick="setPeriod(this)">Trimestre</div>
+      <div class="ppill" onclick="setPeriod(this)">Este año</div>
+      <div class="ppill" onclick="setPeriod(this)">Personalizado</div>
+    </div>
+    <div class="scr">
+
+      <div class="kpi-grid">
+        <div class="kpi accent">
+          <div class="kpi-label">Facturación</div>
+          <div class="kpi-value">8.340 €</div>
+          <div class="kpi-delta">▲ 12% vs mes anterior</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Pedidos realizados</div>
+          <div class="kpi-value">23</div>
+          <div class="kpi-delta delta-up">▲ 4 más que el mes pasado</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Ticket medio</div>
+          <div class="kpi-value">362 €</div>
+          <div class="kpi-delta delta-down">▼ 3% vs mes anterior</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Clientes activos</div>
+          <div class="kpi-value">8</div>
+          <div class="kpi-delta delta-up">▲ 2 nuevos este mes</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sec-title">Evolución de ventas</div>
+        <div class="chart-wrap">
+          <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:0.5px solid #f0f0f0">
+            <div id="tab-mes" style="flex:1;text-align:center;padding:6px 0;font-size:11px;font-weight:500;color:#534AB7;border-bottom:2px solid #534AB7;cursor:pointer" onclick="showChart('mes')">Mes actual</div>
+            <div id="tab-ano" style="flex:1;text-align:center;padding:6px 0;font-size:11px;font-weight:500;color:#bbb;border-bottom:2px solid transparent;cursor:pointer" onclick="showChart('ano')">Año</div>
+          </div>
+          <div id="chart-mes">
+            <div class="chart-bars">
+              <div class="bar-col"><div class="bar" style="height:30%"></div><div class="bar-lbl">1</div></div>
+              <div class="bar-col"><div class="bar" style="height:45%"></div><div class="bar-lbl">2</div></div>
+              <div class="bar-col"><div class="bar" style="height:55%"></div><div class="bar-lbl">3</div></div>
+              <div class="bar-col"><div class="bar" style="height:40%"></div><div class="bar-lbl">4</div></div>
+              <div class="bar-col"><div class="bar" style="height:65%"></div><div class="bar-lbl">5</div></div>
+              <div class="bar-col"><div class="bar act" style="height:100%"></div><div class="bar-lbl">6</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">7</div></div>
+            </div>
+            <div class="chart-footer">
+              <div class="cf-item"><div class="cf-val">1.240 €</div><div class="cf-lbl">Hoy</div></div>
+              <div class="cf-item"><div class="cf-val">8.340 €</div><div class="cf-lbl">Total mes</div></div>
+              <div class="cf-item"><div class="cf-val">7.450 €</div><div class="cf-lbl">Mes anterior</div></div>
+            </div>
+          </div>
+          <div id="chart-ano" style="display:none">
+            <div class="chart-bars">
+              <div class="bar-col"><div class="bar" style="height:50%"></div><div class="bar-lbl">Ene</div></div>
+              <div class="bar-col"><div class="bar" style="height:60%"></div><div class="bar-lbl">Feb</div></div>
+              <div class="bar-col"><div class="bar" style="height:45%"></div><div class="bar-lbl">Mar</div></div>
+              <div class="bar-col"><div class="bar act" style="height:75%"></div><div class="bar-lbl">Abr</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">May</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Jun</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Jul</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Ago</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Sep</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Oct</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Nov</div></div>
+              <div class="bar-col"><div class="bar" style="height:20%;background:#f0f0f0"></div><div class="bar-lbl">Dic</div></div>
+            </div>
+            <div class="chart-footer">
+              <div class="cf-item"><div class="cf-val">8.340 €</div><div class="cf-lbl">Mes actual</div></div>
+              <div class="cf-item"><div class="cf-val">29.840 €</div><div class="cf-lbl">Total año</div></div>
+              <div class="cf-item"><div class="cf-val">26.100 €</div><div class="cf-lbl">Año anterior</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sec-title">Top clientes</div>
+        <div class="rank-block">
+          <div class="rank-row">
+            <div class="rank-pos">1</div>
+            <div class="rank-av" style="background:#EEEDFE;color:#3C3489">JG</div>
+            <div class="rank-name">Juguetería El Globo</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:100%"></div></div>
+            <div class="rank-right"><div class="rank-val">2.840 €</div><div class="rank-sub">8 pedidos</div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-pos">2</div>
+            <div class="rank-av" style="background:#FAEEDA;color:#633806">DL</div>
+            <div class="rank-name">Distribuciones López</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:72%"></div></div>
+            <div class="rank-right"><div class="rank-val">2.050 €</div><div class="rank-sub">5 pedidos</div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-pos">3</div>
+            <div class="rank-av" style="background:#EAF3DE;color:#27500A">FS</div>
+            <div class="rank-name">Farmacia Sánchez</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:55%"></div></div>
+            <div class="rank-right"><div class="rank-val">1.560 €</div><div class="rank-sub">4 pedidos</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="sec-title">Top productos</div>
+        <div class="rank-block">
+          <div class="rank-row">
+            <div class="rank-pos">1</div>
+            <div class="rank-av" style="background:#E6F1FB;color:#0C447C;font-size:14px">🚔</div>
+            <div class="rank-name">City Police Station</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:100%"></div></div>
+            <div class="rank-right"><div class="rank-val">18 uds.</div><div class="rank-sub">899,82 €</div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-pos">2</div>
+            <div class="rank-av" style="background:#EAF3DE;color:#27500A;font-size:14px">🍼</div>
+            <div class="rank-name">Biberón Nature Nuk</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:78%"></div></div>
+            <div class="rank-right"><div class="rank-val">14 uds.</div><div class="rank-sub">167,30 €</div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-pos">3</div>
+            <div class="rank-av" style="background:#FAEEDA;color:#633806;font-size:14px">🏗️</div>
+            <div class="rank-name">Technic Grúa</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:60%"></div></div>
+            <div class="rank-right"><div class="rank-val">9 uds.</div><div class="rank-sub">809,91 €</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" style="padding-bottom:14px">
+        <div class="sec-title">Top proveedores</div>
+        <div class="rank-block">
+          <div class="rank-row">
+            <div class="rank-pos">1</div>
+            <div class="rank-av" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="rank-name">Lego</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:100%"></div></div>
+            <div class="rank-right"><div class="rank-val">4.120 €</div><div class="rank-sub">12 pedidos</div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-pos">2</div>
+            <div class="rank-av" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="rank-name">Chicco</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:62%"></div></div>
+            <div class="rank-right"><div class="rank-val">2.560 €</div><div class="rank-sub">7 pedidos</div></div>
+          </div>
+          <div class="rank-row">
+            <div class="rank-pos">3</div>
+            <div class="rank-av" style="background:#E1F5EE;color:#085041">N</div>
+            <div class="rank-name">Nuk</div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:40%"></div></div>
+            <div class="rank-right"><div class="rank-val">1.660 €</div><div class="rank-sub">4 pedidos</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bn">
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Clientes</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Pedidos</div></div>
+      <div class="ni act"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#534AB7"/><circle cx="10" cy="5" r="1.5" fill="#534AB7"/><circle cx="10" cy="15" r="1.5" fill="#534AB7"/></svg></div><div class="ni-lbl" style="color:#534AB7">Más</div><div class="nd"></div></div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">A-11 · Estadísticas <span class="sp-badge">Agente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Selector de periodo</div>
+      <div class="sp-item">Esta semana · Este mes · Trimestre · Este año · Personalizado</div>
+      <div class="sp-item">Scroll horizontal si no caben todos en pantalla</div>
+      <div class="sp-item">Al cambiar el periodo todos los datos se actualizan automáticamente</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">KPIs principales</div>
+      <div class="sp-item">Facturación total del periodo — destacado en morado</div>
+      <div class="sp-item">Número de pedidos realizados</div>
+      <div class="sp-item">Ticket medio por pedido</div>
+      <div class="sp-item">Clientes activos en el periodo</div>
+      <div class="sp-item">Cada KPI muestra la variación vs el periodo anterior con flecha y % en verde o rojo</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Gráfico de ventas</div>
+      <div class="sp-item">Barras de evolución diaria o semanal según el periodo</div>
+      <div class="sp-item">Barra del día actual destacada en morado</div>
+      <div class="sp-item">Footer con resumen: importe de hoy, total mes y mes anterior</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Rankings</div>
+      <div class="sp-item">Top 3 clientes: nombre, barra proporcional, importe y número de pedidos</div>
+      <div class="sp-item">Top 3 productos: nombre, barra proporcional, unidades vendidas e importe</div>
+      <div class="sp-item">Top 3 proveedores: nombre, barra proporcional, importe y pedidos</div>
+      <div class="sp-item">Tap en cualquier fila → abre detalle de ese cliente, producto o proveedor</div>
+    </div>
+
+    <div class="sp-note">
+      Las barras de los rankings son proporcionales al máximo de cada categoría — el primero siempre ocupa el 100% y el resto se escalan en relación a él, facilitando la comparación visual rápida.
+    </div>
+  </div>
+
+</div>
+<script>
+function showChart(type) {
+  document.getElementById('chart-mes').style.display = type === 'mes' ? 'block' : 'none';
+  document.getElementById('chart-ano').style.display = type === 'ano' ? 'block' : 'none';
+  document.getElementById('tab-mes').style.color = type === 'mes' ? '#534AB7' : '#bbb';
+  document.getElementById('tab-mes').style.borderBottom = type === 'mes' ? '2px solid #534AB7' : '2px solid transparent';
+  document.getElementById('tab-ano').style.color = type === 'ano' ? '#534AB7' : '#bbb';
+  document.getElementById('tab-ano').style.borderBottom = type === 'ano' ? '2px solid #534AB7' : '2px solid transparent';
+}
+function setPeriod(el) {
+  document.querySelectorAll('.ppill').forEach(p => p.classList.remove('act'));
+  el.classList.add('act');
+}
+</script>
+</body>
+</html>

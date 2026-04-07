@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — C-04 Confirmación de pedido</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.sb{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.sb-t{font-size:15px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.success-hero{background:#fff;padding:36px 24px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;border-bottom:0.5px solid #efefef}
+.check-circle{width:72px;height:72px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.success-title{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:6px}
+.success-sub{font-size:14px;color:#999;margin-bottom:14px}
+.pedido-num{background:#f7f7f5;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:500;color:#534AB7}
+
+.resumen-block{background:#fff;border-radius:14px;margin:14px 14px 0;overflow:hidden}
+.rb-header{padding:12px 14px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;gap:10px}
+.rb-logo{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+.rb-body{flex:1}
+.rb-prov{font-size:13px;font-weight:500;color:#1a1a1a}
+.rb-cat{font-size:11px;color:#999;margin-top:2px}
+.rb-row{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f8f8f8}
+.rb-row:last-child{border-bottom:none}
+.rb-label{font-size:12px;color:#999}
+.rb-value{font-size:12px;font-weight:500;color:#1a1a1a}
+.rb-value.green{color:#3B6D11}
+.rb-value.purple{color:#534AB7;font-size:14px}
+
+.agent-block{background:#E1F5EE;border-radius:14px;margin:10px 14px 0;padding:14px;display:flex;align-items:center;gap:12px}
+.agent-avatar{width:38px;height:38px;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#fff;flex-shrink:0}
+.agent-body{flex:1}
+.agent-title{font-size:12px;font-weight:500;color:#0F6E56}
+.agent-sub{font-size:11px;color:#1D9E75;margin-top:2px}
+.agent-status{font-size:10px;padding:3px 9px;border-radius:7px;background:#fff;color:#1D9E75;font-weight:500;flex-shrink:0}
+
+.timeline{background:#fff;border-radius:14px;margin:10px 14px 0;padding:14px}
+.tl-title{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.tl-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.tl-dot.active{background:#1D9E75}
+.tl-dot.pending{background:#e0e0e0}
+.tl-line{width:1px;height:20px;background:#e0e0e0;margin-left:4.5px;margin-top:2px;margin-bottom:-8px}
+.tl-text{font-size:12px;font-weight:500;color:#1a1a1a}
+.tl-sub{font-size:10px;color:#bbb;margin-top:1px}
+
+.actions{padding:14px;display:flex;flex-direction:column;gap:8px}
+.btn-primary{width:100%;padding:13px;border-radius:13px;background:#534AB7;color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer;text-align:center}
+.btn-secondary{width:100%;padding:11px;border-radius:13px;background:#fff;color:#534AB7;font-size:13px;font-weight:500;border:1.5px solid #534AB7;cursor:pointer;text-align:center}
+.btn-ghost{width:100%;padding:10px;border-radius:13px;background:transparent;color:#999;font-size:13px;font-weight:500;border:none;cursor:pointer;text-align:center}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#E1F5EE;color:#0F6E56;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:13px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#1D9E75;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #1D9E75}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+    <div class="scr">
+
+      <div class="success-hero">
+        <div class="check-circle">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="16" stroke="#3B6D11" stroke-width="1.5"/><path d="M10 17l5 5 9-9" stroke="#3B6D11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="success-title">¡Pedido enviado!</div>
+        <div class="success-sub">Tu agente lo revisará y lo enviará al proveedor</div>
+        <div class="pedido-num">NUD-2026-0413</div>
+      </div>
+
+      <div class="resumen-block">
+        <div class="rb-header">
+          <div class="rb-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+          <div class="rb-body">
+            <div class="rb-prov">Lego</div>
+            <div class="rb-cat">Primavera — Verano 2026</div>
+          </div>
+        </div>
+        <div class="rb-row">
+          <span class="rb-label">Productos</span>
+          <span class="rb-value">3 referencias · 4 uds.</span>
+        </div>
+        <div class="rb-row">
+          <span class="rb-label">Fecha</span>
+          <span class="rb-value">6 abr 2026 · 10:41</span>
+        </div>
+        <div class="rb-row">
+          <span class="rb-label">Observaciones</span>
+          <span class="rb-value">Entrega antes del 15 abr</span>
+        </div>
+        <div class="rb-row">
+          <span class="rb-label">Total pedido</span>
+          <span class="rb-value purple">249,96 €</span>
+        </div>
+      </div>
+
+      <div class="agent-block">
+        <div class="agent-avatar">JG</div>
+        <div class="agent-body">
+          <div class="agent-title">Jorge García ha recibido tu pedido</div>
+          <div class="agent-sub">Lo revisará y lo enviará al proveedor</div>
+        </div>
+        <div class="agent-status">Recibido</div>
+      </div>
+
+      <div class="timeline" style="margin-bottom:4px">
+        <div class="tl-title">Estado del pedido</div>
+        <div class="tl-item">
+          <div>
+            <div class="tl-dot active"></div>
+            <div class="tl-line"></div>
+          </div>
+          <div>
+            <div class="tl-text" style="color:#1D9E75">Recibido por el agente</div>
+            <div class="tl-sub">Hoy · 10:41</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div><div class="tl-dot pending"></div></div>
+          <div>
+            <div class="tl-text" style="color:#bbb">Enviado al proveedor</div>
+            <div class="tl-sub">Pendiente</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary">Ver detalle del pedido</button>
+        <button class="btn-secondary">Seguir comprando</button>
+        <button class="btn-ghost">Volver al inicio</button>
+      </div>
+
+    </div>
+
+    <div class="bn">
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg></div><div class="ni-lbl">Catálogo</div></div>
+      <div class="ni act"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" fill="#534AB7"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">C-04 · Confirmación de pedido <span class="sp-badge">Cliente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Hero de éxito</div>
+      <div class="sp-item">Icono de check verde grande — refuerzo visual positivo</div>
+      <div class="sp-item">Título "¡Pedido enviado!" y subtítulo explicativo</div>
+      <div class="sp-item">Número de pedido generado automáticamente (NUD-YYYY-XXXX)</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Resumen del pedido</div>
+      <div class="sp-item">Logo y nombre del proveedor y catálogo</div>
+      <div class="sp-item">Referencias, unidades, fecha y hora de confirmación</div>
+      <div class="sp-item">Observaciones que el cliente añadió</div>
+      <div class="sp-item">Total del pedido en morado</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Tarjeta del agente</div>
+      <div class="sp-item">Nombre del agente que ha recibido el pedido</div>
+      <div class="sp-item">Mensaje tranquilizador: "Te avisaremos cuando lo gestione"</div>
+      <div class="sp-item">Badge de estado: Recibido en verde</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Timeline de estado</div>
+      <div class="sp-item">Recibido por el agente — activo en verde con hora</div>
+      <div class="sp-item">Enviado al proveedor — pendiente en gris</div>
+      <div class="sp-item">En preparación — pendiente en gris</div>
+      <div class="sp-item">El timeline se actualiza conforme el agente gestiona el pedido</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Acciones</div>
+      <div class="sp-item">Ver detalle del pedido → C-06</div>
+      <div class="sp-item">Seguir comprando → vuelve al catálogo C-02</div>
+      <div class="sp-item">Volver al inicio → C-01</div>
+    </div>
+
+    <div class="sp-note">
+      El timeline da al cliente visibilidad del estado de su pedido sin necesidad de contactar al agente. Cada cambio de estado genera una notificación automática al cliente.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

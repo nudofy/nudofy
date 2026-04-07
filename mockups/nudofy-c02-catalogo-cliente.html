@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — C-02 Catálogo cliente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:24px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.view-label{font-size:11px;font-weight:500;color:#999;text-align:center;letter-spacing:.03em}
+.arrow{font-size:22px;color:#ccc;display:flex;align-items:center;padding-top:56px;flex-shrink:0}
+
+.device{width:360px;background:#fff;border-radius:36px;border:7px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.14);flex-shrink:0;max-height:800px}
+.sb{height:40px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
+.sb-t{font-size:14px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:11px;color:#1a1a1a;display:flex;gap:5px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:12px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.tb-title{font-size:17px;font-weight:500;color:#1a1a1a;flex:1}
+.cart-wrap{position:relative;cursor:pointer}
+.cart-badge{position:absolute;top:-4px;right:-6px;width:16px;height:16px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:500}
+
+.sw{background:#fff;padding:8px 14px 10px;border-bottom:0.5px solid #efefef}
+.si{position:relative}
+.si-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%)}
+.si-cam{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:7px;background:#EEEDFE;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.si-input{width:100%;padding:8px 44px 8px 32px;border-radius:10px;border:1px solid #e8e8e8;font-size:13px;color:#1a1a1a;background:#f7f7f5}
+
+.prov-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+.prov-card{background:#fff;border-radius:14px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.prov-card:active{opacity:.85}
+.prov-logo{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500}
+.prov-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.prov-cats{font-size:11px;color:#999}
+.prov-link{font-size:11px;color:#534AB7;font-weight:500}
+
+.tb2{background:#fff;padding:11px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer;white-space:nowrap}
+.tb2-title{font-size:15px;font-weight:500;color:#1a1a1a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.cat-list{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.cat-card{background:#fff;border-radius:12px;padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:11px}
+.cat-card:active{opacity:.85}
+.cat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-body{flex:1}
+.cat-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.cat-refs{font-size:11px;color:#999;margin-top:2px}
+.chevron{font-size:14px;color:#ccc}
+
+.filters-row{background:#fff;padding:7px 12px 8px;border-bottom:0.5px solid #efefef;display:flex;gap:7px;overflow-x:auto}
+.filters-row::-webkit-scrollbar{display:none}
+.fpill{padding:4px 12px;border-radius:18px;font-size:11px;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid #e8e8e8;color:#666;background:#fff;flex-shrink:0}
+.fpill.act{background:#534AB7;color:#fff;border-color:#534AB7}
+
+.prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px}
+.pg{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer}
+.pg-img{height:80px;background:#f0f0ee;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative}
+.pg-badge{position:absolute;top:6px;left:6px;font-size:9px;font-weight:500;padding:2px 7px;border-radius:5px}
+.badge-n{background:#EEEDFE;color:#3C3489}
+.badge-p{background:#FAEEDA;color:#854F0B}
+.pg-body{padding:9px 10px}
+.pg-name{font-size:11px;font-weight:500;color:#1a1a1a;line-height:1.3}
+.pg-ref{font-size:10px;color:#bbb;margin-top:1px}
+.pg-price{font-size:13px;font-weight:500;color:#534AB7;margin-top:5px}
+.pg-act{display:flex;align-items:center;gap:4px;margin-top:6px}
+.qb{width:22px;height:22px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:13px;color:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:500}
+.qv{font-size:12px;font-weight:500;color:#1a1a1a;min-width:16px;text-align:center}
+.add-btn{margin-left:auto;padding:4px 9px;border-radius:7px;background:#534AB7;color:#fff;font-size:10px;font-weight:500;border:none;cursor:pointer}
+.added-btn{margin-left:auto;padding:4px 9px;border-radius:7px;background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:500}
+
+.cart-bar{background:#fff;border-top:0.5px solid #efefef;padding:10px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px}
+.cart-summary{flex:1}
+.cart-items{font-size:12px;font-weight:500;color:#1a1a1a}
+.cart-total{font-size:11px;color:#999;margin-top:1px}
+.cart-btn{padding:10px 18px;border-radius:11px;background:#534AB7;color:#fff;font-size:13px;font-weight:500;border:none;cursor:pointer;white-space:nowrap}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:8px 0 18px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:300px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:18px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#E1F5EE;color:#0F6E56;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:12px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:11px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#1D9E75;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:9px 11px;line-height:1.5;border-left:3px solid #1D9E75}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <!-- VISTA 1: PROVEEDORES -->
+  <div class="col">
+    <div class="view-label">Vista 1 — Proveedores habilitados</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="tb-title">Catálogo</div>
+          <div class="cart-wrap">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 3h2l2.5 10h9l2-6H7" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="18" r="1.5" fill="#534AB7"/><circle cx="16" cy="18" r="1.5" fill="#534AB7"/></svg>
+            <div class="cart-badge">2</div>
+          </div>
+        </div>
+
+        <div class="sw">
+          <div class="si">
+            <div class="si-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#bbb" stroke-width="1.2"/><path d="M9.5 9.5l3 3" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+            <input class="si-input" type="text" placeholder="Buscar en todos los catálogos...">
+            <div class="si-cam"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3.5" width="12" height="8.5" rx="2" stroke="#534AB7" stroke-width="1.2"/><circle cx="7" cy="7.5" r="2" stroke="#534AB7" stroke-width="1.2"/><path d="M5 3.5l.8-1.5h2.4L9 3.5" stroke="#534AB7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+        </div>
+
+        <div class="prov-grid">
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="prov-name">Lego</div>
+            <div class="prov-cats">2 catálogos</div>
+            <div class="prov-link">Ver productos →</div>
+          </div>
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="prov-name">Chicco</div>
+            <div class="prov-cats">1 catálogo</div>
+            <div class="prov-link">Ver productos →</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;padding:8px 20px 16px;font-size:12px;color:#bbb;line-height:1.5">Solo ves los catálogos que tu agente ha habilitado para ti</div>
+
+      </div>
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" fill="#534AB7"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" fill="#534AB7" opacity=".5"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" fill="#534AB7" opacity=".5"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" fill="#534AB7" opacity=".5"/></svg></div><div class="ni-lbl" style="color:#534AB7">Catálogo</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#bbb" stroke-width="1.3"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Pedidos</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">›</div>
+
+  <!-- VISTA 2: CATÁLOGOS DEL PROVEEDOR -->
+  <div class="col">
+    <div class="view-label">Vista 2 — Catálogos de Lego</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb2">
+          <div class="back">← Catálogo</div>
+          <div class="tb2-title">Lego</div>
+          <div class="cart-wrap">
+            <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M3 3h2l2.5 10h9l2-6H7" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="18" r="1.5" fill="#534AB7"/><circle cx="16" cy="18" r="1.5" fill="#534AB7"/></svg>
+            <div class="cart-badge">2</div>
+          </div>
+        </div>
+
+        <div class="cat-list">
+          <div class="cat-card">
+            <div class="cat-icon" style="background:#E6F1FB"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#185FA5" stroke-width="1.3"/><path d="M5 9h8M5 6h8M5 12h5" stroke="#185FA5" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-name">Primavera — Verano 2026</div>
+              <div class="cat-refs">48 referencias</div>
+            </div>
+            <div class="chevron">›</div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon" style="background:#EEEDFE"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#534AB7" stroke-width="1.3"/><path d="M5 9h8M5 6h8M5 12h5" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+            <div class="cat-body">
+              <div class="cat-name">Navidad 2025</div>
+              <div class="cat-refs">62 referencias</div>
+            </div>
+            <div class="chevron">›</div>
+          </div>
+        </div>
+      </div>
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" fill="#534AB7"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" fill="#534AB7" opacity=".5"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" fill="#534AB7" opacity=".5"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" fill="#534AB7" opacity=".5"/></svg></div><div class="ni-lbl" style="color:#534AB7">Catálogo</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#bbb" stroke-width="1.3"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Pedidos</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">›</div>
+
+  <!-- VISTA 3: PRODUCTOS -->
+  <div class="col">
+    <div class="view-label">Vista 3 — Productos del catálogo</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb2">
+          <div class="back">← Lego</div>
+          <div class="tb2-title">Primavera — Verano 2026</div>
+          <div class="cart-wrap">
+            <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M3 3h2l2.5 10h9l2-6H7" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="18" r="1.5" fill="#534AB7"/><circle cx="16" cy="18" r="1.5" fill="#534AB7"/></svg>
+            <div class="cart-badge">2</div>
+          </div>
+        </div>
+
+        <div class="sw" style="padding:7px 12px 8px">
+          <div class="si">
+            <div class="si-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#bbb" stroke-width="1.2"/><path d="M9 9l3 3" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+            <input class="si-input" style="padding:7px 40px 7px 30px;font-size:12px" type="text" placeholder="Buscar producto...">
+            <div class="si-cam"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="3.5" width="12" height="8.5" rx="2" stroke="#534AB7" stroke-width="1.2"/><circle cx="7" cy="7.5" r="2" stroke="#534AB7" stroke-width="1.2"/><path d="M5 3.5l.8-1.5h2.4L9 3.5" stroke="#534AB7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+        </div>
+
+        <div class="filters-row">
+          <div class="fpill act">Todos</div>
+          <div class="fpill">City</div>
+          <div class="fpill">Technic</div>
+          <div class="fpill">Star Wars</div>
+          <div class="fpill">Duplo</div>
+        </div>
+
+        <div class="prod-grid">
+          <div class="pg">
+            <div class="pg-img">🚔<span class="pg-badge badge-n">Novedad</span></div>
+            <div class="pg-body">
+              <div class="pg-name">City Police Station</div>
+              <div class="pg-ref">LG-60316</div>
+              <div class="pg-price">49,99 €</div>
+              <div class="pg-act">
+                <div class="qb">−</div><div class="qv">2</div><div class="qb">+</div>
+                <div class="added-btn">✓ En carrito</div>
+              </div>
+            </div>
+          </div>
+          <div class="pg">
+            <div class="pg-img">🏗️</div>
+            <div class="pg-body">
+              <div class="pg-name">Technic Grúa</div>
+              <div class="pg-ref">LG-42108</div>
+              <div class="pg-price">89,99 €</div>
+              <div class="pg-act">
+                <div class="qb">−</div><div class="qv">1</div><div class="qb">+</div>
+                <button class="add-btn">+ Añadir</button>
+              </div>
+            </div>
+          </div>
+          <div class="pg">
+            <div class="pg-img">🏠<span class="pg-badge badge-p">Promo</span></div>
+            <div class="pg-body">
+              <div class="pg-name">Duplo Casa</div>
+              <div class="pg-ref">LG-10929</div>
+              <div class="pg-price">29,99 €</div>
+              <div class="pg-act">
+                <div class="qb">−</div><div class="qv">1</div><div class="qb">+</div>
+                <button class="add-btn">+ Añadir</button>
+              </div>
+            </div>
+          </div>
+          <div class="pg">
+            <div class="pg-img">🚀</div>
+            <div class="pg-body">
+              <div class="pg-name">Star Wars X-Wing</div>
+              <div class="pg-ref">LG-75301</div>
+              <div class="pg-price">59,99 €</div>
+              <div class="pg-act">
+                <div class="qb">−</div><div class="qv">1</div><div class="qb">+</div>
+                <button class="add-btn">+ Añadir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cart-bar">
+        <div class="cart-summary">
+          <div class="cart-items">2 productos en el carrito</div>
+          <div class="cart-total">99,98 € parcial</div>
+        </div>
+        <button class="cart-btn">Ver carrito</button>
+      </div>
+
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" fill="#534AB7"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" fill="#534AB7" opacity=".5"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" fill="#534AB7" opacity=".5"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" fill="#534AB7" opacity=".5"/></svg></div><div class="ni-lbl" style="color:#534AB7">Catálogo</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#bbb" stroke-width="1.3"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Pedidos</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESPECIFICACIONES -->
+  <div class="spec-panel">
+    <div class="sp-title">C-02 · Catálogo cliente <span class="sp-badge">Cliente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Jerarquía</div>
+      <div class="sp-item">Vista 1: Proveedores habilitados por el agente</div>
+      <div class="sp-item">Vista 2: Catálogos del proveedor seleccionado</div>
+      <div class="sp-item">Vista 3: Productos del catálogo con carrito</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 1 — Proveedores</div>
+      <div class="sp-item">Solo muestra los proveedores habilitados por el agente</div>
+      <div class="sp-item">Grid 2 columnas: logo, nombre y número de catálogos</div>
+      <div class="sp-item">Buscador global con icono de cámara para escanear código de barras</div>
+      <div class="sp-item">Icono de carrito con contador en la cabecera</div>
+      <div class="sp-item">Texto informativo: "Solo ves los catálogos que tu agente ha habilitado"</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 2 — Catálogos</div>
+      <div class="sp-item">Lista de catálogos habilitados del proveedor</div>
+      <div class="sp-item">Nombre, número de referencias y acceso directo</div>
+      <div class="sp-item">Carrito persistente en cabecera</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 3 — Productos</div>
+      <div class="sp-item">Buscador con cámara para escanear código de barras</div>
+      <div class="sp-item">Filtros por categoría en scroll horizontal</div>
+      <div class="sp-item">Grid 2 columnas con foto, nombre, ref. y precio</div>
+      <div class="sp-item">Badges de Novedad y Promo</div>
+      <div class="sp-item">Selector de cantidad y botón añadir — badge verde si ya está en carrito</div>
+      <div class="sp-item">Barra inferior persistente con resumen del carrito y botón "Ver carrito" → C-03</div>
+    </div>
+
+    <div class="sp-note">
+      El cliente no ve precios de coste ni condiciones comerciales — solo el precio de tarifa que el agente ha configurado. La experiencia es de compra, no de gestión.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

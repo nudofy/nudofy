@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Nudofy",
+    "slug": "nudofy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#534AB7"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nudofy.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#534AB7"
+      },
+      "package": "com.nudofy.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "scheme": "nudofy",
+    "extra": {
+      "eas": {
+        "projectId": "40847a34-c16b-4316-a2a2-a25eb2dcafef"
+      },
+      "router": {
+        "origin": false
+      }
+    },
+    "owner": "nudofy"
+  }
+}

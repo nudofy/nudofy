@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-01 Inicio agente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0}
+.status-bar{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:500;color:#1a1a1a}
+.status-icons{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.screen{display:flex;flex-direction:column;background:#f7f7f5}
+
+.topbar{background:#fff;padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between}
+.greeting{font-size:18px;font-weight:500;color:#1a1a1a}
+.greeting-date{font-size:12px;color:#999;margin-top:2px}
+.notif-btn{width:36px;height:36px;border-radius:50%;background:#f5f5f3;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;flex-shrink:0}
+.notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#E24B4A;border:1.5px solid #fff}
+
+.scroll-area{overflow-y:auto;flex:1}
+.section{padding:16px 16px 0}
+.section-title{font-size:12px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 16px 0}
+.kpi{background:#fff;border-radius:12px;padding:12px 10px;text-align:center}
+.kpi-value{font-size:20px;font-weight:500;color:#1a1a1a}
+.kpi-label{font-size:10px;color:#999;margin-top:3px;line-height:1.3}
+.kpi.accent{background:#534AB7}
+.kpi.accent .kpi-value{color:#fff}
+.kpi.accent .kpi-label{color:#AFA9EC}
+
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick-card{background:#fff;border-radius:14px;padding:14px 14px 12px;cursor:pointer;display:flex;flex-direction:column;gap:10px}
+.quick-card:active{opacity:.85}
+.quick-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.quick-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.quick-arrow{font-size:11px;color:#bbb;margin-top:auto}
+
+.pedidos-list{display:flex;flex-direction:column;gap:8px}
+.pedido-row{background:#fff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.pedido-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.pedido-info{flex:1;min-width:0}
+.pedido-cliente{font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pedido-prov{font-size:11px;color:#999;margin-top:1px}
+.pedido-right{text-align:right;flex-shrink:0}
+.pedido-importe{font-size:13px;font-weight:500;color:#1a1a1a}
+.pedido-estado{font-size:10px;padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block}
+.estado-enviado{background:#EAF3DE;color:#3B6D11}
+.estado-pendiente{background:#FAEEDA;color:#854F0B}
+.estado-cancelado{background:#FCEBEB;color:#A32D2D}
+
+.bottom-nav{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.nav-item-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.nav-item-label{font-size:10px;color:#bbb}
+.nav-item.active .nav-item-label{color:#534AB7}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:2px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.spec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.spec-section{margin-bottom:14px}
+.spec-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.spec-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;font-size:12px;color:#444;line-height:1.4}
+.spec-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.spec-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>100%</span></div>
+    </div>
+    <div class="screen">
+
+      <div class="topbar">
+        <div>
+          <div class="greeting">Buenos días, Jorge</div>
+          <div class="greeting-date">Domingo, 5 de abril de 2026</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="notif-btn">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="4" width="14" height="10" rx="2" stroke="#555" stroke-width="1.3"/>
+              <path d="M2 6l7 5 7-5" stroke="#555" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <div class="notif-badge"></div>
+          </div>
+          <div class="notif-btn">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 1.5a5.5 5.5 0 0 0-5.5 5.5v3L2 12h14l-1.5-2V7A5.5 5.5 0 0 0 9 1.5z" stroke="#555" stroke-width="1.3"/>
+              <path d="M7 12.5c0 1.1.9 2 2 2s2-.9 2-2" stroke="#555" stroke-width="1.3"/>
+            </svg>
+            <div class="notif-badge"></div>
+          </div>
+          <div class="notif-btn" title="Actualizar">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M15 9A6 6 0 1 1 9 3a6 6 0 0 1 4.5 2M13.5 2v3h-3" stroke="#555" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="notif-btn" title="Configurar">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="2.5" stroke="#555" stroke-width="1.3"/>
+              <path d="M9 2v1.5M9 14.5V16M2 9h1.5M14.5 9H16M4.1 4.1l1 1M12.9 12.9l1 1M12.9 4.1l-1 1M4.1 12.9l1-1" stroke="#555" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-value">23</div>
+          <div class="kpi-label">Pedidos mes · 8.340€</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-value">1.240€</div>
+          <div class="kpi-label">Importe hoy</div>
+        </div>
+        <div class="kpi accent">
+          <div class="kpi-value">+</div>
+          <div class="kpi-label">Nuevo pedido</div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:16px">
+        <div class="section-title">Acceso rápido</div>
+        <div class="quick-grid">
+          <div class="quick-card">
+            <div class="quick-icon" style="background:#EEEDFE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#534AB7" stroke-width="1.3"/><path d="M8 5v6M5 8h6" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="quick-title">Nuevo pedido</div>
+            <div class="quick-arrow">Selecciona cliente →</div>
+          </div>
+          <div class="quick-card">
+            <div class="quick-icon" style="background:#E1F5EE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="6" rx="1" stroke="#1D9E75" stroke-width="1.3"/><rect x="9" y="2" width="5" height="3.5" rx="1" stroke="#1D9E75" stroke-width="1.3"/><rect x="2" y="10" width="5" height="3.5" rx="1" stroke="#1D9E75" stroke-width="1.3"/><rect x="9" y="7.5" width="5" height="6" rx="1" stroke="#1D9E75" stroke-width="1.3"/></svg>
+            </div>
+            <div class="quick-title">Mis catálogos</div>
+            <div class="quick-arrow">6 proveedores →</div>
+          </div>
+          <div class="quick-card">
+            <div class="quick-icon" style="background:#FAEEDA">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#BA7517" stroke-width="1.3"/><path d="M5 8h6M5 5.5h6M5 10.5h4" stroke="#BA7517" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="quick-title">Mis pedidos</div>
+            <div class="quick-arrow">Realizados · Pendientes · Cancelados →</div>
+          </div>
+          <div class="quick-card">
+            <div class="quick-icon" style="background:#E6F1FB">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="#185FA5" stroke-width="1.3"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="#185FA5" stroke-width="1.3" stroke-linecap="round"/><path d="M11 3v4M9 5h4" stroke="#185FA5" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="quick-title">Añadir cliente</div>
+            <div class="quick-arrow">Dar de alta →</div>
+          </div>
+          <div class="quick-card">
+            <div class="quick-icon" style="background:#FBEAF0">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13V9M6 13V6M10 13V8M14 13V3" stroke="#993556" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="quick-title">Estadísticas</div>
+            <div class="quick-arrow">Ventas y rendimiento →</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:16px;padding-bottom:16px">
+        <div class="section-title">Últimos pedidos</div>
+        <div class="pedidos-list">
+          <div class="pedido-row">
+            <div class="pedido-avatar" style="background:#EEEDFE;color:#3C3489">JG</div>
+            <div class="pedido-info">
+              <div class="pedido-cliente">Juguetería El Globo</div>
+              <div class="pedido-prov">Lego · hace 1h</div>
+            </div>
+            <div class="pedido-right">
+              <div class="pedido-importe">342,00€</div>
+              <span class="pedido-estado estado-enviado">Enviado</span>
+            </div>
+          </div>
+          <div class="pedido-row">
+            <div class="pedido-avatar" style="background:#EAF3DE;color:#27500A">FS</div>
+            <div class="pedido-info">
+              <div class="pedido-cliente">Farmacia Sánchez</div>
+              <div class="pedido-prov">Nuk · hace 3h</div>
+            </div>
+            <div class="pedido-right">
+              <div class="pedido-importe">198,50€</div>
+              <span class="pedido-estado estado-enviado">Enviado</span>
+            </div>
+          </div>
+          <div class="pedido-row">
+            <div class="pedido-avatar" style="background:#FAEEDA;color:#633806">DL</div>
+            <div class="pedido-info">
+              <div class="pedido-cliente">Distribuciones López</div>
+              <div class="pedido-prov">Chicco · ayer</div>
+            </div>
+            <div class="pedido-right">
+              <div class="pedido-importe">520,00€</div>
+              <span class="pedido-estado estado-pendiente">Pendiente</span>
+            </div>
+          </div>
+          <div class="pedido-row">
+            <div class="pedido-avatar" style="background:#E1F5EE;color:#085041">PM</div>
+            <div class="pedido-info">
+              <div class="pedido-cliente">Parafarmacia MiSalud</div>
+              <div class="pedido-prov">Babymoov · ayer</div>
+            </div>
+            <div class="pedido-right">
+              <div class="pedido-importe">179,00€</div>
+              <span class="pedido-estado estado-enviado">Enviado</span>
+            </div>
+          </div>
+          <div class="pedido-row">
+            <div class="pedido-avatar" style="background:#FCEBEB;color:#791F1F">BS</div>
+            <div class="pedido-info">
+              <div class="pedido-cliente">Bazar El Sol</div>
+              <div class="pedido-prov">Playmobil · 03 abr</div>
+            </div>
+            <div class="pedido-right">
+              <div class="pedido-importe">95,00€</div>
+              <span class="pedido-estado estado-cancelado">Cancelado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active">
+        <div class="nav-item-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#534AB7"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#534AB7" opacity=".35"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#534AB7" opacity=".35"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#534AB7" opacity=".35"/></svg>
+        </div>
+        <div class="nav-item-label" style="color:#534AB7">Inicio</div>
+        <div class="nav-dot"></div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="nav-item-label">Clientes</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg>
+        </div>
+        <div class="nav-item-label">Catálogos</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="nav-item-label">Pedidos</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#bbb"/><circle cx="10" cy="5" r="1.5" fill="#bbb"/><circle cx="10" cy="15" r="1.5" fill="#bbb"/></svg>
+        </div>
+        <div class="nav-item-label">Más</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">
+      A-01 · Inicio del agente
+      <span class="spec-badge">Agente</span>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Cabecera</div>
+      <div class="spec-item">Saludo personalizado con nombre del agente</div>
+      <div class="spec-item">Fecha actual</div>
+      <div class="spec-item">Icono de buzón de entrada con badge si hay mensajes nuevos</div>
+      <div class="spec-item">Icono de notificaciones con badge rojo si hay pedidos de clientes nuevos</div>
+      <div class="spec-item">Botón actualizar → sincroniza catálogos y pedidos</div>
+      <div class="spec-item">Botón configurar → accede a ajustes del perfil</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">KPIs</div>
+      <div class="spec-item">Pedidos mes: número de pedidos realizados en el mes en curso</div>
+      <div class="spec-item">Total mes: importe acumulado del mes en €</div>
+      <div class="spec-item">Importe total generado hoy</div>
+      <div class="spec-item">Botón "+ Nuevo pedido" como tercer KPI — acceso rapidísimo</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Accesos rápidos</div>
+      <div class="spec-item">Nuevo pedido → seleccionar cliente y arrancar pedido</div>
+      <div class="spec-item">Mis catálogos → lista de proveedores</div>
+      <div class="spec-item">Mis pedidos → pantalla A-09 con 3 pestañas: Realizados, Pendientes y Cancelados</div>
+      <div class="spec-item">Añadir cliente → formulario de alta de nuevo cliente</div>
+      <div class="spec-item">Estadísticas → ventas por periodo, cliente, proveedor y producto</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Últimos pedidos</div>
+      <div class="spec-item">Lista de los 5 últimos pedidos realizados</div>
+      <div class="spec-item">Cada fila: avatar cliente, nombre, proveedor, tiempo, importe y estado</div>
+      <div class="spec-item">Estados: Enviado (verde) · Pendiente (ámbar) · Cancelado (rojo)</div>
+      <div class="spec-item">Tap en cualquier fila → abre detalle del pedido</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Navegación inferior</div>
+      <div class="spec-item">Inicio · Clientes · Catálogos · Pedidos · Más</div>
+      <div class="spec-item">Punto morado bajo el icono activo</div>
+    </div>
+
+    <div class="spec-note">
+      El KPI "Nuevo pedido" actúa como botón de acción rápida además de como métrica, para que el agente pueda arrancar un pedido con un solo toque desde la pantalla de inicio.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

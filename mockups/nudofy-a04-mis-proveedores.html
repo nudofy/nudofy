@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-04 Mis proveedores</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.status-bar{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:500;color:#1a1a1a}
+.status-icons{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.screen{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.topbar{background:#fff;padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.topbar-title{font-size:18px;font-weight:500;color:#1a1a1a}
+.add-btn{width:32px;height:32px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+.search-wrap{background:#fff;padding:10px 16px 12px;border-bottom:0.5px solid #efefef}
+.search-wrap-inner{position:relative}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%)}
+.search-input{width:100%;padding:9px 14px 9px 36px;border-radius:10px;border:1px solid #e8e8e8;font-size:14px;color:#1a1a1a;background:#f7f7f5}
+
+.prov-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+
+.prov-card{background:#fff;border-radius:14px;overflow:hidden;cursor:pointer}
+.prov-card:active{opacity:.85}
+.prov-main{padding:13px 14px;display:flex;align-items:center;gap:12px}
+.prov-logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;flex-shrink:0}
+.prov-body{flex:1;min-width:0}
+.prov-name{font-size:14px;font-weight:500;color:#1a1a1a}
+.prov-sector{font-size:11px;color:#999;margin-top:2px}
+.prov-refs{font-size:11px;color:#534AB7;margin-top:3px}
+.prov-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.estado-pill{font-size:10px;padding:3px 9px;border-radius:8px;font-weight:500}
+.activo{background:#EAF3DE;color:#3B6D11}
+.inactivo{background:#F1EFE8;color:#888780}
+.prov-chevron{color:#ccc;font-size:14px}
+
+.prov-footer{padding:8px 14px 12px;border-top:0.5px solid #f5f5f5;display:flex;gap:16px}
+.cond-item{display:flex;flex-direction:column;gap:2px}
+.cond-label{font-size:10px;color:#bbb}
+.cond-value{font-size:11px;font-weight:500;color:#555}
+
+.summary-bar{background:#fff;margin:0 14px;border-radius:12px;padding:12px 16px;display:flex;justify-content:space-around;margin-top:12px;margin-bottom:4px}
+.sum-item{text-align:center}
+.sum-value{font-size:18px;font-weight:500;color:#1a1a1a}
+.sum-label{font-size:10px;color:#999;margin-top:2px}
+
+.bottom-nav{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.nav-item-label{font-size:10px;color:#bbb}
+.nav-item.active .nav-item-label{color:#534AB7}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:2px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.spec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.spec-section{margin-bottom:14px}
+.spec-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.spec-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;font-size:12px;color:#444;line-height:1.4}
+.spec-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.spec-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>100%</span></div>
+    </div>
+    <div class="screen">
+
+      <div class="topbar">
+        <div class="topbar-title">Mis proveedores</div>
+        <div class="add-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <div class="search-wrap-inner">
+          <div class="search-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#bbb" stroke-width="1.3"/><path d="M10.5 10.5l3 3" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </div>
+          <input class="search-input" type="text" placeholder="Buscar proveedor o sector...">
+        </div>
+      </div>
+
+      <div class="summary-bar">
+        <div class="sum-item"><div class="sum-value">6</div><div class="sum-label">Proveedores</div></div>
+        <div class="sum-item"><div class="sum-value">5</div><div class="sum-label">Activos</div></div>
+        <div class="sum-item"><div class="sum-value">237</div><div class="sum-label">Referencias</div></div>
+      </div>
+
+      <div class="prov-list">
+
+        <div class="prov-card">
+          <div class="prov-main">
+            <div class="prov-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="prov-body">
+              <div class="prov-name">Lego</div>
+              <div class="prov-sector">Juguetes</div>
+              <div class="prov-refs">48 referencias</div>
+            </div>
+            <div class="prov-right">
+              <span class="estado-pill activo">Activo</span>
+              <span class="prov-chevron">›</span>
+            </div>
+          </div>
+          <div class="prov-footer">
+            <div class="cond-item"><div class="cond-label">Forma de pago</div><div class="cond-value">30 días</div></div>
+            <div class="cond-item"><div class="cond-label">Rappel</div><div class="cond-value">5% s/ objetivo</div></div>
+            <div class="cond-item"><div class="cond-label">Pedido mínimo</div><div class="cond-value">300 €</div></div>
+          </div>
+        </div>
+
+        <div class="prov-card">
+          <div class="prov-main">
+            <div class="prov-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="prov-body">
+              <div class="prov-name">Chicco</div>
+              <div class="prov-sector">Puericultura</div>
+              <div class="prov-refs">32 referencias</div>
+            </div>
+            <div class="prov-right">
+              <span class="estado-pill activo">Activo</span>
+              <span class="prov-chevron">›</span>
+            </div>
+          </div>
+          <div class="prov-footer">
+            <div class="cond-item"><div class="cond-label">Forma de pago</div><div class="cond-value">60 días</div></div>
+            <div class="cond-item"><div class="cond-label">Rappel</div><div class="cond-value">3% s/ objetivo</div></div>
+            <div class="cond-item"><div class="cond-label">Pedido mínimo</div><div class="cond-value">150 €</div></div>
+          </div>
+        </div>
+
+        <div class="prov-card">
+          <div class="prov-main">
+            <div class="prov-logo" style="background:#FAEEDA;color:#633806">P</div>
+            <div class="prov-body">
+              <div class="prov-name">Pilot Pen</div>
+              <div class="prov-sector">Papelería</div>
+              <div class="prov-refs">60 referencias</div>
+            </div>
+            <div class="prov-right">
+              <span class="estado-pill activo">Activo</span>
+              <span class="prov-chevron">›</span>
+            </div>
+          </div>
+          <div class="prov-footer">
+            <div class="cond-item"><div class="cond-label">Forma de pago</div><div class="cond-value">45 días</div></div>
+            <div class="cond-item"><div class="cond-label">Rappel</div><div class="cond-value">—</div></div>
+            <div class="cond-item"><div class="cond-label">Pedido mínimo</div><div class="cond-value">100 €</div></div>
+          </div>
+        </div>
+
+        <div class="prov-card">
+          <div class="prov-main">
+            <div class="prov-logo" style="background:#E1F5EE;color:#085041">N</div>
+            <div class="prov-body">
+              <div class="prov-name">Nuk</div>
+              <div class="prov-sector">Puericultura</div>
+              <div class="prov-refs">18 referencias</div>
+            </div>
+            <div class="prov-right">
+              <span class="estado-pill activo">Activo</span>
+              <span class="prov-chevron">›</span>
+            </div>
+          </div>
+          <div class="prov-footer">
+            <div class="cond-item"><div class="cond-label">Forma de pago</div><div class="cond-value">30 días</div></div>
+            <div class="cond-item"><div class="cond-label">Rappel</div><div class="cond-value">4% s/ objetivo</div></div>
+            <div class="cond-item"><div class="cond-label">Pedido mínimo</div><div class="cond-value">200 €</div></div>
+          </div>
+        </div>
+
+        <div class="prov-card">
+          <div class="prov-main">
+            <div class="prov-logo" style="background:#FAECE7;color:#712B13">B</div>
+            <div class="prov-body">
+              <div class="prov-name">Bosch Tools</div>
+              <div class="prov-sector">Herramientas</div>
+              <div class="prov-refs">40 referencias</div>
+            </div>
+            <div class="prov-right">
+              <span class="estado-pill activo">Activo</span>
+              <span class="prov-chevron">›</span>
+            </div>
+          </div>
+          <div class="prov-footer">
+            <div class="cond-item"><div class="cond-label">Forma de pago</div><div class="cond-value">60 días</div></div>
+            <div class="cond-item"><div class="cond-label">Rappel</div><div class="cond-value">2% s/ objetivo</div></div>
+            <div class="cond-item"><div class="cond-label">Pedido mínimo</div><div class="cond-value">500 €</div></div>
+          </div>
+        </div>
+
+        <div class="prov-card">
+          <div class="prov-main">
+            <div class="prov-logo" style="background:#F1EFE8;color:#888780">N</div>
+            <div class="prov-body">
+              <div class="prov-name">Nestlé</div>
+              <div class="prov-sector">Alimentación</div>
+              <div class="prov-refs">39 referencias</div>
+            </div>
+            <div class="prov-right">
+              <span class="estado-pill inactivo">Inactivo</span>
+              <span class="prov-chevron">›</span>
+            </div>
+          </div>
+          <div class="prov-footer">
+            <div class="cond-item"><div class="cond-label">Forma de pago</div><div class="cond-value">30 días</div></div>
+            <div class="cond-item"><div class="cond-label">Rappel</div><div class="cond-value">—</div></div>
+            <div class="cond-item"><div class="cond-label">Pedido mínimo</div><div class="cond-value">250 €</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg>
+        </div>
+        <div class="nav-item-label">Inicio</div>
+      </div>
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="nav-item-label">Clientes</div>
+      </div>
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg>
+        </div>
+        <div class="nav-item-label">Catálogos</div>
+      </div>
+      <div class="nav-item">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="nav-item-label">Pedidos</div>
+      </div>
+      <div class="nav-item active">
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#534AB7"/><circle cx="10" cy="5" r="1.5" fill="#534AB7"/><circle cx="10" cy="15" r="1.5" fill="#534AB7"/></svg>
+        </div>
+        <div class="nav-item-label" style="color:#534AB7">Más</div>
+        <div class="nav-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">
+      A-04 · Mis proveedores
+      <span class="spec-badge">Agente</span>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Cabecera</div>
+      <div class="spec-item">Título "Mis proveedores"</div>
+      <div class="spec-item">Botón "+" → añadir nuevo proveedor con sus condiciones</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Buscador</div>
+      <div class="spec-item">Búsqueda por nombre de proveedor o sector</div>
+      <div class="spec-item">Filtrado en tiempo real</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Barra de resumen</div>
+      <div class="spec-item">Total proveedores · Activos · Referencias totales</div>
+      <div class="spec-item">Visión rápida de la cartera del agente</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Tarjeta de proveedor</div>
+      <div class="spec-item">Logo con iniciales y color propio</div>
+      <div class="spec-item">Nombre, sector y número de referencias en catálogo</div>
+      <div class="spec-item">Estado: Activo (verde) / Inactivo (gris)</div>
+      <div class="spec-item">Condiciones comerciales resumidas: forma de pago, rappel y pedido mínimo</div>
+      <div class="spec-item">Tap → abre ficha completa del proveedor con su catálogo</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Navegación</div>
+      <div class="spec-item">Proveedores accesible desde "Más" en la barra inferior</div>
+    </div>
+
+    <div class="spec-note">
+      El proveedor inactivo (Nestlé) aparece en gris. El agente puede activarlo o desactivarlo desde su ficha. Los inactivos no aparecen en los catálogos al hacer un pedido.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

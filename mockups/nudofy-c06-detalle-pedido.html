@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — C-06 Detalle de pedido cliente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.sb{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.sb-t{font-size:15px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:13px 18px 11px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer}
+.tb-title{font-size:16px;font-weight:500;color:#1a1a1a;flex:1}
+
+.status-bar-block{background:#EAF3DE;padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #d5ecd5}
+.status-icon{width:32px;height:32px;border-radius:9px;background:#3B6D11;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.status-body{flex:1}
+.status-title{font-size:12px;font-weight:500;color:#27500A}
+.status-sub{font-size:11px;color:#3B6D11;margin-top:2px}
+.status-num{font-size:11px;font-weight:500;color:#27500A;background:#fff;border-radius:6px;padding:2px 8px;flex-shrink:0}
+
+.data-block{background:#fff;border-radius:13px;margin:12px 14px 0;overflow:hidden}
+.db-header{padding:10px 14px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;gap:8px}
+.db-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.db-title{font-size:12px;font-weight:500;color:#555}
+.db-row{padding:9px 14px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:0.5px solid #f8f8f8;gap:12px}
+.db-row:last-child{border-bottom:none}
+.db-label{font-size:12px;color:#bbb;flex-shrink:0}
+.db-value{font-size:12px;font-weight:500;color:#1a1a1a;text-align:right}
+.db-value.purple{color:#534AB7;font-size:14px}
+
+.line-block{background:#fff;border-radius:13px;margin:10px 14px 0;overflow:hidden}
+.line-row{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #f8f8f8}
+.line-row:last-child{border-bottom:none}
+.line-img{width:34px;height:34px;border-radius:8px;background:#f7f7f5;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.line-body{flex:1;min-width:0}
+.line-name{font-size:12px;font-weight:500;color:#1a1a1a}
+.line-ref{font-size:10px;color:#bbb;margin-top:1px}
+.line-right{text-align:right;flex-shrink:0}
+.line-qty{font-size:10px;color:#999}
+.line-tot{font-size:12px;font-weight:500;color:#1a1a1a;margin-top:2px}
+
+.actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 14px 14px}
+.act-btn{background:#fff;border-radius:11px;padding:13px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;border:none}
+.act-btn:hover{background:#f7f7f5}
+.act-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.act-lbl{font-size:11px;font-weight:500;color:#1a1a1a;text-align:center}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+.ni-back{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding-left:18px;cursor:pointer}
+.ni-back-lbl{font-size:12px;color:#534AB7;font-weight:500}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#E1F5EE;color:#0F6E56;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:13px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#1D9E75;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #1D9E75}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+    <div class="scr">
+
+      <div class="tb">
+        <div class="back">← Mis pedidos</div>
+        <div class="tb-title">Detalle de pedido</div>
+      </div>
+
+      <div class="status-bar-block">
+        <div class="status-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#fff" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="status-body">
+          <div class="status-title">Recibido por el agente</div>
+          <div class="status-sub">Jorge García lo enviará al proveedor</div>
+        </div>
+        <div class="status-num">NUD-2026-0413</div>
+      </div>
+
+      <div class="data-block">
+        <div class="db-header">
+          <div class="db-icon" style="background:#E6F1FB"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="#185FA5" stroke-width="1.2"/><path d="M4 5h5M4 7.5h3" stroke="#185FA5" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+          <div class="db-title">Información del pedido</div>
+        </div>
+        <div class="db-row"><span class="db-label">Proveedor</span><span class="db-value">Lego</span></div>
+        <div class="db-row"><span class="db-label">Catálogo</span><span class="db-value">Primavera — Verano 2026</span></div>
+        <div class="db-row"><span class="db-label">Fecha</span><span class="db-value">6 abr 2026 · 10:41</span></div>
+        <div class="db-row"><span class="db-label">Agente</span><span class="db-value">Jorge García</span></div>
+        <div class="db-row"><span class="db-label">Observaciones</span><span class="db-value">Entrega antes del 15 abr</span></div>
+      </div>
+
+      <div class="line-block">
+        <div class="db-header">
+          <div class="db-icon" style="background:#EAF3DE"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="#3B6D11" stroke-width="1.2"/><path d="M4 5h5M4 7h5M4 9h3" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+          <div class="db-title">Líneas del pedido</div>
+        </div>
+        <div class="line-row">
+          <div class="line-img">🚔</div>
+          <div class="line-body"><div class="line-name">City Police Station</div><div class="line-ref">LG-60316</div></div>
+          <div class="line-right"><div class="line-qty">x2</div><div class="line-tot">99,98 €</div></div>
+        </div>
+        <div class="line-row">
+          <div class="line-img">🏗️</div>
+          <div class="line-body"><div class="line-name">Technic Grúa</div><div class="line-ref">LG-42108</div></div>
+          <div class="line-right"><div class="line-qty">x1</div><div class="line-tot">89,99 €</div></div>
+        </div>
+        <div class="line-row">
+          <div class="line-img">🚀</div>
+          <div class="line-body"><div class="line-name">Star Wars X-Wing</div><div class="line-ref">LG-75301</div></div>
+          <div class="line-right"><div class="line-qty">x1</div><div class="line-tot">59,99 €</div></div>
+        </div>
+        <div class="db-row" style="border-top:0.5px solid #f0f0f0">
+          <span class="db-label" style="font-weight:500;color:#1a1a1a">Total</span>
+          <span class="db-value purple">249,96 €</span>
+        </div>
+      </div>
+
+      <div class="actions-grid">
+        <button class="act-btn">
+          <div class="act-icon" style="background:#EEEDFE"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M5 8l3 3 3-3" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h12" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+          <div class="act-lbl">Descargar PDF</div>
+        </button>
+        <button class="act-btn">
+          <div class="act-icon" style="background:#E1F5EE"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2.5C12 1 9.5 1 8 2.5L7 3.5M2.5 13.5C4 15 6.5 15 8 13.5L9 12.5" stroke="#1D9E75" stroke-width="1.3" stroke-linecap="round"/><path d="M5 8c0-1.5 1-3 3-3M11 8c0 1.5-1 3-3 3" stroke="#1D9E75" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+          <div class="act-lbl">Contactar agente</div>
+        </button>
+      </div>
+
+    </div>
+
+    <div class="bn">
+      <div class="ni-back" onclick="">
+        <div class="ni-back-lbl">← Mis pedidos</div>
+      </div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg></div><div class="ni-lbl">Catálogo</div></div>
+      <div class="ni act"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" fill="#534AB7"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">C-06 · Detalle de pedido <span class="sp-badge">Cliente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Cabecera</div>
+      <div class="sp-item">Flecha ← Mis pedidos en cabecera y también en barra inferior izquierda</div>
+      <div class="sp-item">Título "Detalle de pedido"</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Barra de estado</div>
+      <div class="sp-item">Color verde si recibido por agente, morado si enviado al proveedor</div>
+      <div class="sp-item">Icono, estado actual y número de pedido</div>
+      <div class="sp-item">Subtítulo contextual según estado</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Información del pedido</div>
+      <div class="sp-item">Proveedor · Catálogo · Fecha · Agente · Observaciones</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Líneas del pedido</div>
+      <div class="sp-item">Foto, nombre, referencia, cantidad y total por línea</div>
+      <div class="sp-item">Total del pedido en morado al final</div>
+      <div class="sp-item">Solo lectura — el cliente no puede modificar un pedido confirmado</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Acciones</div>
+      <div class="sp-item">Descargar PDF del pedido</div>
+      <div class="sp-item">Contactar con el agente por WhatsApp o email</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Navegación inferior</div>
+      <div class="sp-item">← Mis pedidos en la izquierda como link de retroceso</div>
+      <div class="sp-item">Inicio · Catálogo · Pedidos · Mi perfil</div>
+    </div>
+
+    <div class="sp-note">
+      El pedido es de solo lectura una vez confirmado. Si el cliente necesita hacer cambios debe contactar directamente con su agente.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

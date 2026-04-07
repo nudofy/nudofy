@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-06 Configuración</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+.topbar{background:#1a1a1a;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.hamburger{width:34px;height:34px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:7px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.topbar-center{font-size:14px;font-weight:500;color:#fff}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.btn-primary{padding:7px 16px;border-radius:9px;background:#534AB7;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer}
+
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+
+.content{padding:20px 24px;max-width:720px;margin:0 auto}
+
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden;margin-bottom:12px}
+.card-header{padding:13px 18px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;gap:10px}
+.card-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+
+.field-row{padding:11px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid #f8f8f8;gap:16px}
+.field-row:last-child{border-bottom:none}
+.field-left{flex:1}
+.field-label{font-size:13px;color:#1a1a1a}
+.field-sub{font-size:11px;color:#bbb;margin-top:2px}
+.field-input{padding:7px 11px;border-radius:8px;border:1px solid #e8e8e8;font-size:13px;color:#1a1a1a;background:#fff;width:180px;font-family:inherit;text-align:right}
+.field-input:focus{border-color:#534AB7;outline:none}
+.field-input.small{width:80px}
+.version-badge{font-size:11px;background:#EAF3DE;color:#3B6D11;padding:3px 10px;border-radius:6px;font-weight:500}
+
+.toggle{width:40px;height:24px;border-radius:12px;position:relative;flex-shrink:0;cursor:pointer}
+.toggle.on{background:#534AB7}
+.toggle.off{background:#e0e0e0}
+.toggle-knob{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle.on .toggle-knob{left:18px}
+.toggle.off .toggle-knob{left:2px}
+
+.danger-card{background:#fff;border-radius:12px;border:1.5px solid #F09595;overflow:hidden;margin-bottom:12px}
+.danger-header{padding:13px 18px;background:#FCEBEB;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #F09595}
+.danger-title{font-size:13px;font-weight:500;color:#A32D2D}
+.danger-body{padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap}
+.danger-btn{padding:9px 16px;border-radius:9px;background:#fff;color:#A32D2D;font-size:13px;font-weight:500;border:1.5px solid #F09595;cursor:pointer;flex:1;min-width:160px;text-align:center}
+.danger-btn:hover{background:#FCEBEB}
+
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:20px;margin-top:4px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;margin-top:12px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Agentes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Planes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/></svg>Facturación</div>
+    <div class="nav-item active" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Configuración</div>
+  </div>
+  <div class="drawer-footer"><div class="df-av">NX</div><div class="df-name">Admin Nudofy</div></div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span><span class="logo-sub">Admin</span>
+    </div>
+  </div>
+  <div class="topbar-center">Configuración</div>
+  <div class="topbar-right">
+    <button class="btn-primary">Guardar cambios</button>
+    <div class="user-av">NX</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- PLATAFORMA -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#EEEDFE"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="#534AB7" stroke-width="1.2"/><path d="M4 5h6M4 7.5h4" stroke="#534AB7" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+      <div class="card-title">Información de la plataforma</div>
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Nombre de la app</div></div>
+      <input class="field-input" type="text" value="Nudofy">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">URL corporativa</div></div>
+      <input class="field-input" type="text" value="nudofy.app">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Email de soporte</div></div>
+      <input class="field-input" type="text" value="info@nudofy.app">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Versión actual</div></div>
+      <span class="version-badge">v1.2.4</span>
+    </div>
+  </div>
+
+  <!-- EMAIL -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E6F1FB"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="#185FA5" stroke-width="1.2"/><path d="M1 5.5l6 4 6-4" stroke="#185FA5" stroke-width="1.2"/></svg></div>
+      <div class="card-title">Email y notificaciones</div>
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Email remitente facturas</div></div>
+      <input class="field-input" type="text" value="facturas@nudofy.app">
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Días antes de recordatorio de pago</div>
+        <div class="field-sub">Se envía aviso al agente antes del vencimiento</div>
+      </div>
+      <input class="field-input small" type="text" value="3">
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Notificar pedidos de clientes</div>
+        <div class="field-sub">Al agente cuando un cliente hace un pedido</div>
+      </div>
+      <div class="toggle on" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Notificar impagos al admin</div>
+        <div class="field-sub">Cuando hay una cuota vencida sin cobrar</div>
+      </div>
+      <div class="toggle on" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+
+  <!-- FACTURACIÓN -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#EAF3DE"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="#3B6D11" stroke-width="1.2"/><path d="M4 5h6M4 7h6M4 9h4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+      <div class="card-title">Datos de facturación de Nudofy</div>
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Nombre fiscal</div></div>
+      <input class="field-input" type="text" value="Nudofy Technologies S.L.">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">NIF</div></div>
+      <input class="field-input" type="text" value="B-87654321">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Dirección fiscal</div></div>
+      <input class="field-input" type="text" value="C/ Gran Vía 28, Madrid">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">IVA aplicado en facturas</div></div>
+      <input class="field-input small" type="text" value="21%">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Día de facturación mensual</div></div>
+      <input class="field-input small" type="text" value="1">
+    </div>
+    <div class="field-row">
+      <div class="field-left"><div class="field-label">Pasarela de pago</div></div>
+      <span style="font-size:12px;font-weight:500;color:#534AB7">Stripe · Conectado ✓</span>
+    </div>
+  </div>
+
+  <!-- ACCESO -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#FAEEDA"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="5.5" width="10" height="7" rx="1.5" stroke="#BA7517" stroke-width="1.2"/><path d="M4.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" stroke="#BA7517" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+      <div class="card-title">Acceso y seguridad</div>
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Registro de nuevos agentes</div>
+        <div class="field-sub">Permitir que se den de alta nuevos agentes</div>
+      </div>
+      <div class="toggle on" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Periodo de prueba gratuito</div>
+        <div class="field-sub">Días gratis para nuevos agentes</div>
+      </div>
+      <input class="field-input small" type="text" value="14 días">
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Suspensión automática por impago</div>
+        <div class="field-sub">Días de gracia antes de suspender el acceso</div>
+      </div>
+      <input class="field-input small" type="text" value="7 días">
+    </div>
+    <div class="field-row">
+      <div class="field-left">
+        <div class="field-label">Modo mantenimiento</div>
+        <div class="field-sub">Bloquea el acceso a todos los usuarios</div>
+      </div>
+      <div class="toggle off" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+
+  <!-- ZONA DE PELIGRO -->
+  <div class="danger-card">
+    <div class="danger-header">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#A32D2D" stroke-width="1.3"/><path d="M8 5v4M8 11v.5" stroke="#A32D2D" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <div class="danger-title">Zona de peligro</div>
+    </div>
+    <div class="danger-body">
+      <button class="danger-btn">Borrar datos de prueba</button>
+      <button class="danger-btn">Exportar copia de seguridad</button>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-06 · Configuración <span class="sp-badge">Admin</span></div>
+    <div class="sp-lbl">Secciones</div>
+    <div class="sp-item">Plataforma — nombre, URL, email de soporte y versión</div>
+    <div class="sp-item">Email — remitente facturas, días recordatorio y notificaciones</div>
+    <div class="sp-item">Facturación — datos fiscales de Nudofy, IVA, día de cobro y Stripe</div>
+    <div class="sp-item">Acceso — registro, periodo de prueba, suspensión automática y modo mantenimiento</div>
+    <div class="sp-item">Zona de peligro — borrar datos de prueba y exportar copia de seguridad</div>
+    <div class="sp-lbl" style="margin-top:10px">Diseño</div>
+    <div class="sp-item">Una sola columna — legible en cualquier pantalla sin cortes</div>
+    <div class="sp-item">Campos de texto alineados a la derecha junto a su label</div>
+    <div class="sp-item">Toggles funcionales — clic para activar/desactivar</div>
+  </div>
+
+</div>
+
+<script>
+function openMenu(){document.getElementById('drawer').classList.add('open');document.getElementById('overlay').classList.add('open')}
+function closeMenu(){document.getElementById('drawer').classList.remove('open');document.getElementById('overlay').classList.remove('open')}
+function toggleSwitch(el){el.classList.toggle('on');el.classList.toggle('off')}
+</script>
+</body>
+</html>

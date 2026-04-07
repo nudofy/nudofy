@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-07 Nuevo pedido v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:24px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.view-label{font-size:11px;font-weight:500;color:#999;text-align:center;letter-spacing:.03em}
+.arrow{font-size:22px;color:#ccc;display:flex;align-items:center;padding-top:56px;flex-shrink:0}
+
+.device{width:360px;background:#fff;border-radius:36px;border:7px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.14);flex-shrink:0;max-height:800px}
+.sb{height:40px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
+.sb-t{font-size:14px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:11px;color:#1a1a1a;display:flex;gap:5px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:12px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:3px}
+.tb-title{font-size:15px;font-weight:500;color:#1a1a1a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:10px 12px 4px}
+.kpi{background:#fff;border-radius:10px;padding:9px 10px;text-align:center}
+.kpi-v{font-size:17px;font-weight:500;color:#1a1a1a}
+.kpi-l{font-size:10px;color:#999;margin-top:2px}
+
+.sec-lbl{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;padding:12px 14px 6px}
+
+.new-block{background:#fff;border-radius:13px;margin:0 12px 8px;padding:14px;border:1.5px dashed #AFA9EC}
+.new-block-title{font-size:12px;font-weight:500;color:#534AB7;margin-bottom:10px}
+.new-opts{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.new-opt{background:#EEEDFE;border-radius:9px;padding:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+.new-opt-icon{width:30px;height:30px;border-radius:8px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.new-opt-lbl{font-size:11px;font-weight:500;color:#3C3489}
+.new-opt-sub{font-size:10px;color:#534AB7}
+
+.pc{background:#fff;border-radius:12px;margin:0 12px 7px;overflow:hidden;cursor:pointer}
+.pc-head{padding:11px 12px;display:flex;align-items:center;gap:10px}
+.pc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.pc-body{flex:1;min-width:0}
+.pc-cli{font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-prov{font-size:10px;color:#999;margin-top:2px}
+.pc-right{text-align:right;flex-shrink:0}
+.pc-imp{font-size:13px;font-weight:500;color:#534AB7}
+.pc-lin{font-size:10px;color:#bbb;margin-top:2px}
+.pc-foot{padding:7px 12px 10px;border-top:0.5px solid #f5f5f5;display:flex;align-items:center;justify-content:space-between}
+.pc-fecha{font-size:10px;color:#bbb}
+.tag{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500}
+.tag-curso{background:#FAEEDA;color:#854F0B}
+.tag-sin{background:#F1EFE8;color:#888780}
+
+.info-bar{background:#fff;padding:9px 14px;border-bottom:0.5px solid #efefef;display:flex;gap:8px;align-items:center}
+.ic{background:#f7f7f5;border-radius:7px;padding:5px 9px;display:flex;flex-direction:column;gap:1px;flex:1}
+.ic-l{font-size:9px;color:#bbb}
+.ic-v{font-size:11px;font-weight:500;color:#1a1a1a}
+.ch-link{font-size:11px;color:#534AB7;cursor:pointer;white-space:nowrap}
+
+.sw{background:#fff;padding:7px 12px 9px;border-bottom:0.5px solid #efefef}
+.si{position:relative}
+.si-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%)}
+.si-input{width:100%;padding:7px 12px 7px 30px;border-radius:9px;border:1px solid #e8e8e8;font-size:12px;color:#1a1a1a;background:#f7f7f5}
+
+.lines{padding:9px 12px;display:flex;flex-direction:column;gap:6px}
+.line{background:#fff;border-radius:11px;padding:10px 11px;display:flex;align-items:center;gap:9px}
+.line-img{width:36px;height:36px;border-radius:8px;background:#f7f7f5;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.line-body{flex:1;min-width:0}
+.line-name{font-size:11px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line-ref{font-size:10px;color:#bbb;margin-top:1px}
+.line-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.line-tot{font-size:12px;font-weight:500;color:#1a1a1a}
+.line-qty{display:flex;align-items:center;gap:5px}
+.qb{width:20px;height:20px;border-radius:5px;border:1px solid #e0e0e0;background:#fff;font-size:12px;color:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:500}
+.qv{font-size:11px;font-weight:500;color:#1a1a1a;min-width:14px;text-align:center}
+.xb{width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+.cont-btn{margin:0 12px 10px;background:#534AB7;border:none;color:#fff;font-weight:500;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-size:13px;width:calc(100% - 24px)}
+
+.notas{margin:0 12px 10px}
+.notas-lbl{font-size:11px;color:#999;margin-bottom:4px}
+.notas-ta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #e8e8e8;font-size:11px;color:#555;background:#fff;resize:none;font-family:inherit}
+
+.tot-bar{background:#fff;border-top:0.5px solid #efefef;padding:10px 16px;flex-shrink:0}
+.tr{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.tr-l{font-size:11px;color:#999}
+.tr-v{font-size:11px;font-weight:500;color:#1a1a1a}
+.tf{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0 10px;padding-top:7px;border-top:0.5px solid #f0f0f0}
+.tf-l{font-size:13px;font-weight:500;color:#1a1a1a}
+.tf-v{font-size:18px;font-weight:500;color:#534AB7}
+.main-btn{width:100%;padding:13px;border-radius:13px;background:#534AB7;color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer}
+.sec-btn{width:100%;padding:11px;border-radius:13px;background:#fff;color:#534AB7;font-size:13px;font-weight:500;border:1.5px solid #534AB7;cursor:pointer;margin-top:7px}
+
+.cat-row{background:#fff;padding:6px 12px 7px;border-bottom:0.5px solid #efefef;display:flex;gap:6px;overflow-x:auto}
+.cat-row::-webkit-scrollbar{display:none}
+.cpill{padding:4px 11px;border-radius:18px;font-size:11px;white-space:nowrap;cursor:pointer;border:1px solid #e8e8e8;color:#666;background:#fff;flex-shrink:0}
+.cpill.act{background:#534AB7;color:#fff;border-color:#534AB7}
+
+.prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:9px 11px}
+.pg{background:#fff;border-radius:11px;overflow:hidden;cursor:pointer}
+.pg-img{height:76px;background:#f0f0ee;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative}
+.pg-badge{position:absolute;top:5px;left:5px;font-size:9px;font-weight:500;padding:2px 6px;border-radius:5px}
+.badge-n{background:#EEEDFE;color:#3C3489}
+.badge-p{background:#FAEEDA;color:#854F0B}
+.pg-body{padding:8px 9px}
+.pg-name{font-size:11px;font-weight:500;color:#1a1a1a}
+.pg-ref{font-size:9px;color:#bbb;margin-top:1px}
+.pg-price{font-size:12px;font-weight:500;color:#534AB7;margin-top:4px}
+.pg-act{display:flex;align-items:center;gap:3px;margin-top:5px}
+.pgb{width:20px;height:20px;border-radius:5px;border:1px solid #e0e0e0;background:#fff;font-size:12px;color:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:500}
+.pgv{font-size:11px;font-weight:500;color:#1a1a1a;min-width:14px;text-align:center}
+.pg-add{margin-left:auto;padding:3px 7px;border-radius:5px;background:#534AB7;color:#fff;font-size:9px;font-weight:500;cursor:pointer;border:none}
+.pg-added{margin-left:auto;padding:3px 7px;border-radius:5px;background:#EAF3DE;color:#3B6D11;font-size:9px;font-weight:500}
+
+.cart-icon-wrap{position:relative;cursor:pointer;margin-left:4px}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:8px 0 18px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.cart-summary{margin:0 12px 8px;background:#EEEDFE;border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:10px}
+.cs-text{flex:1}
+.cs-title{font-size:12px;font-weight:500;color:#3C3489}
+.cs-sub{font-size:11px;color:#534AB7;margin-top:2px}
+
+.disc-row{margin:0 12px 8px;background:#fff;border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:8px}
+.disc-input{flex:1;border:1px solid #e8e8e8;border-radius:8px;padding:7px 10px;font-size:12px;color:#1a1a1a;background:#f7f7f5;font-family:inherit}
+.disc-btn{padding:7px 13px;border-radius:8px;background:#534AB7;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer}
+
+.obs-wrap{margin:0 12px 8px}
+.obs-lbl{font-size:11px;color:#999;margin-bottom:4px}
+.obs-ta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #e8e8e8;font-size:11px;color:#555;background:#fff;resize:none;font-family:inherit}
+
+.spec-panel{width:310px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:18px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:12px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:11px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:9px 11px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <!-- VISTA 1 -->
+  <div class="col">
+    <div class="view-label">Vista 1 — Pedidos abiertos</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="back">← Inicio</div>
+          <div class="tb-title">Pedidos</div>
+          <button style="padding:6px 12px;border-radius:18px;background:#534AB7;color:#fff;font-size:11px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;gap:4px">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>Nuevo
+          </button>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v">4</div><div class="kpi-l">Abiertos</div></div>
+          <div class="kpi"><div class="kpi-v">1.558€</div><div class="kpi-l">Importe</div></div>
+          <div class="kpi"><div class="kpi-v">22</div><div class="kpi-l">Líneas</div></div>
+        </div>
+
+        <div class="sec-lbl">En curso</div>
+
+        <div class="new-block">
+          <div class="new-block-title">¿Cómo quieres empezar?</div>
+          <div class="new-opts">
+            <div class="new-opt">
+              <div class="new-opt-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5" r="2.5" stroke="#fff" stroke-width="1.2"/><path d="M2 12c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+              <div class="new-opt-lbl">Por cliente</div>
+              <div class="new-opt-sub">Elige cliente primero</div>
+            </div>
+            <div class="new-opt">
+              <div class="new-opt-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="4.5" height="5.5" rx="1" stroke="#fff" stroke-width="1.2"/><rect x="8" y="1.5" width="4.5" height="3" rx="1" stroke="#fff" stroke-width="1.2"/><rect x="1.5" y="9" width="4.5" height="3" rx="1" stroke="#fff" stroke-width="1.2"/><rect x="8" y="6.5" width="4.5" height="6" rx="1" stroke="#fff" stroke-width="1.2"/></svg></div>
+              <div class="new-opt-lbl">Por proveedor</div>
+              <div class="new-opt-sub">Elige proveedor primero</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-av" style="background:#EEEDFE;color:#3C3489">JG</div>
+            <div class="pc-body"><div class="pc-cli">Juguetería El Globo</div><div class="pc-prov">Lego · Primavera 2026</div></div>
+            <div class="pc-right"><div class="pc-imp">487,50 €</div><div class="pc-lin">8 líneas</div></div>
+          </div>
+          <div class="pc-foot"><div class="pc-fecha">Hoy · 9:15</div><span class="tag tag-curso">En curso</span></div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-av" style="background:#EAF3DE;color:#27500A">FS</div>
+            <div class="pc-body"><div class="pc-cli">Farmacia Sánchez</div><div class="pc-prov">Chicco · Catálogo 2026</div></div>
+            <div class="pc-right"><div class="pc-imp">312,00 €</div><div class="pc-lin">5 líneas</div></div>
+          </div>
+          <div class="pc-foot"><div class="pc-fecha">Hoy · 8:40</div><span class="tag tag-curso">En curso</span></div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-av" style="background:#FAEEDA;color:#633806">DL</div>
+            <div class="pc-body"><div class="pc-cli">Distribuciones López</div><div class="pc-prov">Nuk · Tarifa 2026</div></div>
+            <div class="pc-right"><div class="pc-imp">441,00 €</div><div class="pc-lin">5 líneas</div></div>
+          </div>
+          <div class="pc-foot"><div class="pc-fecha">Ayer · 17:20</div><span class="tag tag-curso">En curso</span></div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-av" style="background:#F1EFE8;color:#888780">?</div>
+            <div class="pc-body"><div class="pc-cli" style="color:#bbb">Sin cliente asignado</div><div class="pc-prov">Bosch Tools · Catálogo 2026</div></div>
+            <div class="pc-right"><div class="pc-imp">318,00 €</div><div class="pc-lin">4 líneas</div></div>
+          </div>
+          <div class="pc-foot"><div class="pc-fecha">Hoy · 7:55</div><span class="tag tag-sin">Sin cliente</span></div>
+        </div>
+      </div>
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Clientes</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" fill="#534AB7"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="1.4" fill="#bbb"/><circle cx="9" cy="4.5" r="1.4" fill="#bbb"/><circle cx="9" cy="13.5" r="1.4" fill="#bbb"/></svg></div><div class="ni-lbl">Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">›</div>
+
+  <!-- VISTA 2 -->
+  <div class="col">
+    <div class="view-label">Vista 2 — Editar pedido</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="back">← Pedidos</div>
+          <div class="tb-title">El Globo · Lego</div>
+        </div>
+
+        <div class="info-bar">
+          <div class="ic"><div class="ic-l">Cliente</div><div class="ic-v">Jug. El Globo</div></div>
+          <div class="ic"><div class="ic-l">Proveedor</div><div class="ic-v">Lego</div></div>
+          <div class="ch-link">Cambiar</div>
+        </div>
+
+        <div class="lines">
+          <div class="line">
+            <div class="line-img">🚔</div>
+            <div class="line-body"><div class="line-name">City Police Station</div><div class="line-ref">LG-60316 · 49,99 €/ud</div></div>
+            <div class="line-right">
+              <div class="line-tot">99,98 €</div>
+              <div class="line-qty">
+                <div class="qb">−</div><div class="qv">2</div><div class="qb">+</div>
+                <div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#ddd" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="line">
+            <div class="line-img">🏗️</div>
+            <div class="line-body"><div class="line-name">Technic Grúa</div><div class="line-ref">LG-42108 · 89,99 €/ud</div></div>
+            <div class="line-right">
+              <div class="line-tot">179,98 €</div>
+              <div class="line-qty">
+                <div class="qb">−</div><div class="qv">2</div><div class="qb">+</div>
+                <div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#ddd" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="line">
+            <div class="line-img">🚀</div>
+            <div class="line-body"><div class="line-name">Star Wars X-Wing</div><div class="line-ref">LG-75301 · 59,99 €/ud</div></div>
+            <div class="line-right">
+              <div class="line-tot">179,97 €</div>
+              <div class="line-qty">
+                <div class="qb">−</div><div class="qv">3</div><div class="qb">+</div>
+                <div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#ddd" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notas">
+          <div class="notas-lbl">Notas</div>
+          <textarea class="notas-ta" rows="2" placeholder="Instrucciones, observaciones..."></textarea>
+        </div>
+
+        <button class="cont-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="4.5" height="5.5" rx="1" stroke="#fff" stroke-width="1.2"/><rect x="8" y="1.5" width="4.5" height="3" rx="1" stroke="#fff" stroke-width="1.2"/><rect x="1.5" y="9" width="4.5" height="3" rx="1" stroke="#fff" stroke-width="1.2"/><rect x="8" y="6.5" width="4.5" height="6" rx="1" stroke="#fff" stroke-width="1.2"/></svg>
+          Continuar pedido
+        </button>
+      </div>
+
+      <div class="tot-bar">
+        <div class="tr"><span class="tr-l">Subtotal (7 uds.)</span><span class="tr-v">459,93 €</span></div>
+        <div class="tr"><span class="tr-l">Rappel estimado (5%)</span><span class="tr-v">− 23,00 €</span></div>
+        <div class="tf"><span class="tf-l">Total pedido</span><span class="tf-v">436,93 €</span></div>
+        <button class="main-btn">Ir al carrito</button>
+      </div>
+
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Clientes</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" fill="#534AB7"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="1.4" fill="#bbb"/><circle cx="9" cy="4.5" r="1.4" fill="#bbb"/><circle cx="9" cy="13.5" r="1.4" fill="#bbb"/></svg></div><div class="ni-lbl">Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">›</div>
+
+  <!-- VISTA 3 -->
+  <div class="col">
+    <div class="view-label">Vista 3 — Productos del proveedor</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="back">← Pedido</div>
+          <div class="tb-title">Lego — Añadir</div>
+          <div class="cart-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 3h2l2.5 10h9l2-6H7" stroke="#534AB7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="18" r="1.5" fill="#534AB7"/><circle cx="16" cy="18" r="1.5" fill="#534AB7"/></svg>
+            <div style="position:absolute;top:-4px;right:-6px;width:16px;height:16px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:500">3</div>
+          </div>
+        </div>
+
+        <div class="sw">
+          <div style="display:flex;gap:7px;align-items:center">
+            <div class="si" style="flex:1">
+              <div class="si-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#bbb" stroke-width="1.2"/><path d="M9 9l3 3" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+              <input class="si-input" type="text" placeholder="Buscar producto...">
+            </div>
+            <select style="padding:6px 9px;border-radius:9px;border:1px solid #e8e8e8;font-size:11px;color:#534AB7;background:#EEEDFE;outline:none;font-family:inherit;font-weight:500;cursor:pointer">
+              <option>Todos los catálogos</option>
+              <option>Primavera 2026</option>
+              <option>Navidad 2025</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cat-row">
+          <div class="cpill act">Todos</div>
+          <div class="cpill">City</div>
+          <div class="cpill">Technic</div>
+          <div class="cpill">Star Wars</div>
+          <div class="cpill">Duplo</div>
+          <div class="cpill">Creator</div>
+        </div>
+
+        <div class="prod-grid">
+          <div class="pg">
+            <div class="pg-img">🚔<span class="pg-badge badge-n">Novedad</span></div>
+            <div class="pg-body">
+              <div class="pg-name">City Police Station</div>
+              <div class="pg-ref">LG-60316</div>
+              <div class="pg-price">49,99 €</div>
+              <div class="pg-act"><div class="pgb">−</div><div class="pgv">2</div><div class="pgb">+</div><div class="pg-added">✓ En carrito</div></div>
+            </div>
+          </div>
+          <div class="pg">
+            <div class="pg-img">🏗️</div>
+            <div class="pg-body">
+              <div class="pg-name">Technic Grúa</div>
+              <div class="pg-ref">LG-42108</div>
+              <div class="pg-price">89,99 €</div>
+              <div class="pg-act"><div class="pgb">−</div><div class="pgv">1</div><div class="pgb">+</div><button class="pg-add">+ Añadir</button></div>
+            </div>
+          </div>
+          <div class="pg">
+            <div class="pg-img">🏠<span class="pg-badge badge-p">Promo</span></div>
+            <div class="pg-body">
+              <div class="pg-name">Duplo Casa</div>
+              <div class="pg-ref">LG-10929</div>
+              <div class="pg-price">29,99 €</div>
+              <div class="pg-act"><div class="pgb">−</div><div class="pgv">1</div><div class="pgb">+</div><button class="pg-add">+ Añadir</button></div>
+            </div>
+          </div>
+          <div class="pg">
+            <div class="pg-img">🚀</div>
+            <div class="pg-body">
+              <div class="pg-name">Star Wars X-Wing</div>
+              <div class="pg-ref">LG-75301</div>
+              <div class="pg-price">59,99 €</div>
+              <div class="pg-act"><div class="pgb">−</div><div class="pgv">1</div><div class="pgb">+</div><button class="pg-add">+ Añadir</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tot-bar">
+        <div class="tf" style="margin-bottom:9px"><span class="tf-l">Carrito · 3 productos · 7 uds.</span><span class="tf-v" style="font-size:15px">459,93 €</span></div>
+        <button class="main-btn">Ir al carrito</button>
+      </div>
+
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Clientes</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" fill="#534AB7"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="1.4" fill="#bbb"/><circle cx="9" cy="4.5" r="1.4" fill="#bbb"/><circle cx="9" cy="13.5" r="1.4" fill="#bbb"/></svg></div><div class="ni-lbl">Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">›</div>
+
+  <!-- VISTA 4 — CARRITO -->
+  <div class="col">
+    <div class="view-label">Vista 4 — Carrito</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="back">← Productos</div>
+          <div class="tb-title">Carrito</div>
+        </div>
+
+        <div class="cart-summary">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="#534AB7"/><path d="M6 6h3l3.5 14h11l3-9H10" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14.5" cy="25" r="2" fill="#fff"/><circle cx="21.5" cy="25" r="2" fill="#fff"/></svg>
+          <div class="cs-text">
+            <div class="cs-title">Juguetería El Globo · Lego</div>
+            <div class="cs-sub">3 productos · 7 unidades</div>
+          </div>
+        </div>
+
+        <div class="lines" style="padding-top:0">
+          <div class="line">
+            <div class="line-img">🚔</div>
+            <div class="line-body"><div class="line-name">City Police Station</div><div class="line-ref">LG-60316 · 49,99 €/ud</div></div>
+            <div class="line-right">
+              <div class="line-tot">99,98 €</div>
+              <div class="line-qty"><div class="qb">−</div><div class="qv">2</div><div class="qb">+</div><div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#ddd" stroke-width="1.4" stroke-linecap="round"/></svg></div></div>
+            </div>
+          </div>
+          <div class="line">
+            <div class="line-img">🏗️</div>
+            <div class="line-body"><div class="line-name">Technic Grúa</div><div class="line-ref">LG-42108 · 89,99 €/ud</div></div>
+            <div class="line-right">
+              <div class="line-tot">179,98 €</div>
+              <div class="line-qty"><div class="qb">−</div><div class="qv">2</div><div class="qb">+</div><div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#ddd" stroke-width="1.4" stroke-linecap="round"/></svg></div></div>
+            </div>
+          </div>
+          <div class="line">
+            <div class="line-img">🚀</div>
+            <div class="line-body"><div class="line-name">Star Wars X-Wing</div><div class="line-ref">LG-75301 · 59,99 €/ud</div></div>
+            <div class="line-right">
+              <div class="line-tot">179,97 €</div>
+              <div class="line-qty"><div class="qb">−</div><div class="qv">3</div><div class="qb">+</div><div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#ddd" stroke-width="1.4" stroke-linecap="round"/></svg></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="disc-row">
+          <input class="disc-input" type="text" placeholder="Código descuento">
+          <button class="disc-btn">Aplicar</button>
+        </div>
+
+        <div class="obs-wrap">
+          <div class="obs-lbl">Observaciones del pedido</div>
+          <textarea class="obs-ta" rows="2" placeholder="Instrucciones de entrega, fecha deseada..."></textarea>
+        </div>
+
+      </div>
+
+      <div class="tot-bar">
+        <div class="tr"><span class="tr-l">Subtotal (7 uds.)</span><span class="tr-v">459,93 €</span></div>
+        <div class="tr"><span class="tr-l">Rappel estimado (5%)</span><span class="tr-v">− 23,00 €</span></div>
+        <div class="tr"><span class="tr-l">Descuento</span><span class="tr-v" style="color:#3B6D11">− 0,00 €</span></div>
+        <div class="tf"><span class="tf-l">Total pedido</span><span class="tf-v">436,93 €</span></div>
+        <button class="main-btn">Confirmar y generar PDF</button>
+        <button class="sec-btn">Enviar propuesta al cliente</button>
+      </div>
+
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Clientes</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" fill="#534AB7"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="1.4" fill="#bbb"/><circle cx="9" cy="4.5" r="1.4" fill="#bbb"/><circle cx="9" cy="13.5" r="1.4" fill="#bbb"/></svg></div><div class="ni-lbl">Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESPECIFICACIONES -->
+  <div class="spec-panel">
+    <div class="sp-title">A-07 · Nuevo pedido <span class="sp-badge">Agente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Flujo completo</div>
+      <div class="sp-item">Vista 1 Pedidos abiertos → Vista 2 Editar → Vista 3 Productos → Vista 4 Carrito</div>
+      <div class="sp-item">Todas las vistas tienen flecha ← para retroceder</div>
+      <div class="sp-item">Un pedido = un proveedor. Puede mezclar catálogos del mismo proveedor</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 1 — Pedidos abiertos</div>
+      <div class="sp-item">KPIs: abiertos, importe total, líneas</div>
+      <div class="sp-item">Arranque por cliente o por proveedor</div>
+      <div class="sp-item">Pedido sin cliente asignado visible en gris con tag "Sin cliente"</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 2 — Editar pedido</div>
+      <div class="sp-item">Contexto cliente + proveedor con opción de cambiar</div>
+      <div class="sp-item">Líneas editables: cantidad, eliminar</div>
+      <div class="sp-item">Notas del pedido</div>
+      <div class="sp-item">Botón "Continuar pedido" → Vista 3</div>
+      <div class="sp-item">Botón "Ir al carrito" → Vista 4</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 3 — Productos</div>
+      <div class="sp-item">Icono carrito con contador en cabecera</div>
+      <div class="sp-item">Buscador + desplegable de catálogos del proveedor</div>
+      <div class="sp-item">Filtros por categoría o marca en scroll horizontal</div>
+      <div class="sp-item">Grid productos: badge "En carrito" si ya está añadido</div>
+      <div class="sp-item">Barra inferior con resumen y botón "Ir al carrito"</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 4 — Carrito</div>
+      <div class="sp-item">Resumen completo de líneas con edición de cantidades</div>
+      <div class="sp-item">Campo de código descuento con botón Aplicar</div>
+      <div class="sp-item">Observaciones del pedido (texto libre)</div>
+      <div class="sp-item">Totales: subtotal, rappel, descuento y total final</div>
+      <div class="sp-item">Botón principal: "Confirmar y generar PDF" → A-08</div>
+      <div class="sp-item">Botón secundario: "Enviar propuesta al cliente" → envía resumen al cliente para revisión antes de finalizar</div>
+    </div>
+
+    <div class="sp-note">
+      "Enviar propuesta al cliente" manda un resumen del pedido al cliente por email o WhatsApp para que lo revise. No confirma el pedido — el agente confirma después de recibir el visto bueno.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — P-01 Splash</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.device{width:375px;min-height:720px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.status-bar{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:500;color:#1a1a1a}
+.status-icons{display:flex;align-items:center;gap:6px}
+.status-icons span{font-size:12px;color:#1a1a1a}
+.screen{flex:1;display:flex;flex-direction:column;background:#fff}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px 24px}
+.logo-mark{width:72px;height:72px;border-radius:20px;background:#534AB7;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.logo-mark svg{width:40px;height:40px}
+.app-name{font-size:32px;font-weight:500;color:#1a1a1a;letter-spacing:-0.5px;margin-bottom:8px}
+.app-slogan{font-size:15px;color:#666;text-align:center;line-height:1.5;max-width:240px}
+.dots{display:flex;gap:6px;margin-top:32px}
+.dot{width:7px;height:7px;border-radius:50%;background:#e0e0e0}
+.dot.active{background:#534AB7;width:20px;border-radius:4px}
+.actions{padding:24px 28px 12px;display:flex;flex-direction:column;gap:12px}
+.btn-primary{width:100%;padding:16px;border-radius:14px;background:#534AB7;color:#fff;font-size:16px;font-weight:500;border:none;cursor:pointer;text-align:center}
+.btn-secondary{width:100%;padding:16px;border-radius:14px;background:#fff;color:#534AB7;font-size:16px;font-weight:500;border:1.5px solid #534AB7;cursor:pointer;text-align:center}
+.footer{padding:16px 28px 28px;border-top:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:20px;flex-shrink:0}
+.footer a{font-size:12px;color:#999;text-decoration:none}
+.footer a:hover{color:#534AB7}
+.footer-sep{width:3px;height:3px;border-radius:50%;background:#d0d0d0}
+.label{font-size:11px;color:#bbb;text-align:center;margin-bottom:4px;padding:0 28px}
+
+.spec-panel{width:340px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;margin-left:32px;align-self:flex-start;margin-top:40px}
+.spec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.spec-section{margin-bottom:14px}
+.spec-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.spec-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;font-size:12px;color:#444;line-height:1.4}
+.spec-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0;margin-top:1px}
+.spec-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+
+.outer{display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:40px 24px}
+</style>
+</head>
+<body>
+<div class="outer">
+  <div class="device">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <span>●●●</span>
+        <span>WiFi</span>
+        <span>100%</span>
+      </div>
+    </div>
+    <div class="screen">
+      <div class="hero">
+        <div class="logo-mark">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="20" r="5.5" fill="white" opacity="0.55"/>
+            <circle cx="31" cy="9" r="5.5" fill="white"/>
+            <circle cx="31" cy="31" r="5.5" fill="white"/>
+            <line x1="13.8" y1="17.5" x2="26" y2="11" stroke="white" stroke-width="2" opacity="0.85"/>
+            <line x1="13.8" y1="22.5" x2="26" y2="29" stroke="white" stroke-width="2" opacity="0.85"/>
+          </svg>
+        </div>
+        <div class="app-name">Nudofy</div>
+        <div class="app-slogan">Catalogs and sales</div>
+        <div class="dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary">Entrar</button>
+      </div>
+
+      <div class="footer">
+        <a href="#">Quiénes somos</a>
+        <div class="footer-sep"></div>
+        <a href="#">Contacto</a>
+        <div class="footer-sep"></div>
+        <a href="#">nudofyapp.com</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">
+      P-01 · Splash / Bienvenida
+      <span class="spec-badge">Compartida</span>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Zona hero</div>
+      <div class="spec-item">Logo Nudofy (icono + nombre)</div>
+      <div class="spec-item">Slogan: "Catalogs and sales"</div>
+      <div class="spec-item">Dots preparados para slides de onboarding futuras</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Acciones</div>
+      <div class="spec-item">Botón único: "Entrar" → va a P-02 Login</div>
+      <div class="spec-item">No hay registro libre. Todos los usuarios (agentes y clientes) son dados de alta desde el panel de administración de Nudofy</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Pie de página</div>
+      <div class="spec-item">Quiénes somos → abre página corporativa</div>
+      <div class="spec-item">Contacto → abre formulario o email</div>
+      <div class="spec-item">nudofyapp.com → URL corporativa de Nudofy</div>
+    </div>
+
+    <div class="spec-note">
+      El acceso a Nudofy es solo por invitación. Los agentes los activa el equipo Nudofy. Los clientes los da de alta su agente desde su panel.
+    </div>
+  </div>
+</div>
+</body>
+</html>

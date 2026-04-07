@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-01 Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+.topbar{background:#1a1a1a;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.hamburger{width:36px;height:36px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:8px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.topbar-center{font-size:14px;font-weight:500;color:#fff}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-date{font-size:12px;color:#555}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff;cursor:pointer}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+.content{padding:24px 28px;max-width:1200px;margin:0 auto}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi-card{background:#fff;border-radius:12px;padding:16px 18px;border:0.5px solid #e8e8e8}
+.kpi-label{font-size:11px;color:#999;margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:500;color:#1a1a1a}
+.kpi-delta{font-size:11px;margin-top:5px}
+.delta-up{color:#3B6D11}
+.delta-down{color:#A32D2D}
+.kpi-card.accent{background:#534AB7;border-color:#534AB7}
+.kpi-card.accent .kpi-label{color:#AFA9EC}
+.kpi-card.accent .kpi-value{color:#fff}
+.kpi-card.accent .kpi-delta{color:#C0BBF0}
+.grid-3{display:flex;flex-direction:column;gap:16px;margin-bottom:16px}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.card-link{font-size:12px;color:#534AB7;cursor:pointer}
+.chart-bars{display:flex;align-items:flex-end;gap:8px;height:70px;padding:12px 18px 0}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bar{border-radius:4px 4px 0 0;width:100%;background:#EEEDFE;min-height:4px}
+.bar.act{background:#534AB7}
+.bar-lbl{font-size:10px;color:#bbb}
+.chart-footer{display:flex;justify-content:space-around;padding:10px 18px 14px;border-top:0.5px solid #f0f0f0;margin-top:10px}
+.cf-item{text-align:center}
+.cf-val{font-size:12px;font-weight:500;color:#1a1a1a}
+.cf-lbl{font-size:10px;color:#bbb;margin-top:1px}
+.plan-row{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #f8f8f8}
+.plan-row:last-child{border-bottom:none}
+.plan-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.plan-agents{font-size:11px;color:#999;margin-top:2px}
+.plan-bar-wrap{flex:1;height:5px;background:#f0f0f0;border-radius:3px}
+.plan-bar{height:5px;border-radius:3px;background:#534AB7}
+.plan-revenue{font-size:13px;font-weight:500;color:#534AB7;white-space:nowrap}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:10px 18px;font-size:11px;font-weight:500;color:#999;border-bottom:0.5px solid #f0f0f0;background:#fafafa}
+.table td{padding:11px 18px;border-bottom:0.5px solid #f8f8f8;color:#1a1a1a;vertical-align:middle}
+.table tr:last-child td{border-bottom:none}
+.table tr:hover td{background:#fafafa;cursor:pointer}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.agent-cell{display:flex;align-items:center;gap:9px}
+.agent-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.agent-email{font-size:11px;color:#bbb}
+.tag{font-size:10px;padding:2px 9px;border-radius:6px;font-weight:500;white-space:nowrap}
+.tag-pro{background:#EEEDFE;color:#3C3489}
+.tag-basic{background:#F1EFE8;color:#5F5E5A}
+.tag-agency{background:#E6F1FB;color:#0C447C}
+.tag-active{background:#EAF3DE;color:#3B6D11}
+.tag-pending{background:#FAEEDA;color:#854F0B}
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:20px;margin-top:16px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item active" onclick="closeMenu()">
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="closeMenu()">
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Agentes
+    </div>
+    <div class="nav-item" onclick="closeMenu()">
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      Planes
+    </div>
+    <div class="nav-item" onclick="closeMenu()">
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/></svg>
+      Facturación
+    </div>
+    <div class="nav-item" onclick="closeMenu()">
+      <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Configuración
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <div class="df-av">NX</div>
+    <div class="df-name">Admin Nudofy</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span>
+      <span class="logo-sub">Admin</span>
+    </div>
+  </div>
+  <div class="topbar-center">Dashboard</div>
+  <div class="topbar-right">
+    <span class="topbar-date">Lunes, 6 abril 2026</span>
+    <div class="user-av">NX</div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="kpi-grid">
+    <div class="kpi-card accent"><div class="kpi-label">Ingresos mensuales</div><div class="kpi-value">4.712 €</div><div class="kpi-delta">▲ 18% vs mes anterior</div></div>
+    <div class="kpi-card"><div class="kpi-label">Agentes activos</div><div class="kpi-value">248</div><div class="kpi-delta delta-up">▲ 12 nuevos este mes</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pedidos generados</div><div class="kpi-value">1.840</div><div class="kpi-delta delta-up">▲ 9% vs mes anterior</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pagos pendientes</div><div class="kpi-value">3</div><div class="kpi-delta delta-down">▼ 3 agentes con cuota vencida</div></div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Evolución de ingresos</div></div>
+      <div class="chart-bars">
+        <div class="bar-col"><div class="bar" style="height:55%"></div><div class="bar-lbl">Oct</div></div>
+        <div class="bar-col"><div class="bar" style="height:60%"></div><div class="bar-lbl">Nov</div></div>
+        <div class="bar-col"><div class="bar" style="height:70%"></div><div class="bar-lbl">Dic</div></div>
+        <div class="bar-col"><div class="bar" style="height:65%"></div><div class="bar-lbl">Ene</div></div>
+        <div class="bar-col"><div class="bar" style="height:75%"></div><div class="bar-lbl">Feb</div></div>
+        <div class="bar-col"><div class="bar" style="height:80%"></div><div class="bar-lbl">Mar</div></div>
+        <div class="bar-col"><div class="bar act" style="height:100%"></div><div class="bar-lbl">Abr</div></div>
+      </div>
+      <div class="chart-footer">
+        <div class="cf-item"><div class="cf-val">4.712 €</div><div class="cf-lbl">Este mes</div></div>
+        <div class="cf-item"><div class="cf-val">3.990 €</div><div class="cf-lbl">Mes anterior</div></div>
+        <div class="cf-item"><div class="cf-val">26.480 €</div><div class="cf-lbl">Acumulado año</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Ingresos por plan</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr">
+        <div class="plan-row"><div><div class="plan-name">Pro</div><div class="plan-agents">186 agentes · 19 €/mes</div></div><div class="plan-bar-wrap"><div class="plan-bar" style="width:100%"></div></div><div class="plan-revenue">3.534 €</div></div>
+        <div class="plan-row" style="border-left:0.5px solid #f8f8f8;border-bottom:none"><div><div class="plan-name">Básico</div><div class="plan-agents">48 agentes · 9 €/mes</div></div><div class="plan-bar-wrap"><div class="plan-bar" style="width:38%"></div></div><div class="plan-revenue">432 €</div></div>
+        <div class="plan-row" style="border-left:0.5px solid #f8f8f8;border-bottom:none"><div><div class="plan-name">Agencia</div><div class="plan-agents">14 agentes · 39 €/mes</div></div><div class="plan-bar-wrap"><div class="plan-bar" style="width:20%"></div></div><div class="plan-revenue">546 €</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Últimos agentes registrados</div><div class="card-link">Ver todos →</div></div>
+    <table class="table">
+      <thead><tr><th>Agente</th><th>Plan</th><th>Alta</th><th>Clientes</th><th>Pedidos mes</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td><div class="agent-cell"><div class="av" style="background:#EEEDFE;color:#3C3489">JG</div><div><div class="agent-name">Jorge García</div><div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f49e9b869391b49a918c9b958484da979b99">[email&#160;protected]</a></div></div></div></td><td><span class="tag tag-pro">Pro</span></td><td>12 ene 2026</td><td>8</td><td>23</td><td><span class="tag tag-active">Activo</span></td></tr>
+        <tr><td><div class="agent-cell"><div class="av" style="background:#EAF3DE;color:#27500A">ML</div><div><div class="agent-name">María López</div><div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="86ebe7f4efe7c6e5e9ebe3f4e5efe7eaa8e3f5">[email&#160;protected]</a></div></div></div></td><td><span class="tag tag-agency">Agencia</span></td><td>03 abr 2026</td><td>21</td><td>47</td><td><span class="tag tag-active">Activo</span></td></tr>
+        <tr><td><div class="agent-cell"><div class="av" style="background:#FAEEDA;color:#633806">PR</div><div><div class="agent-name">Pedro Ruiz</div><div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9feffafbedf0dffef8faf1ebfab1fcf0f2">[email&#160;protected]</a></div></div></div></td><td><span class="tag tag-basic">Básico</span></td><td>01 abr 2026</td><td>3</td><td>7</td><td><span class="tag tag-active">Activo</span></td></tr>
+        <tr><td><div class="agent-cell"><div class="av" style="background:#FAECE7;color:#712B13">CS</div><div><div class="agent-name">Carmen Soler</div><div class="agent-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e78486958a8289a7918289938694c9898293">[email&#160;protected]</a></div></div></div></td><td><span class="tag tag-pro">Pro</span></td><td>28 mar 2026</td><td>6</td><td>0</td><td><span class="tag tag-pending">Pago pendiente</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-01 · Dashboard <span class="sp-badge">Admin</span></div>
+    <div class="sp-grid">
+      <div><div class="sp-lbl">Navegación</div><div class="sp-item">Menú hamburguesa — se despliega como drawer lateral</div><div class="sp-item">Overlay oscuro que cierra al tocar fuera</div><div class="sp-item">Topbar fija con logo, sección activa y usuario</div></div>
+      <div><div class="sp-lbl">KPIs globales</div><div class="sp-item">Ingresos · Agentes · Pedidos · Pagos pendientes</div><div class="sp-item">Comparativa vs mes anterior en cada KPI</div></div>
+      <div><div class="sp-lbl">Contenido</div><div class="sp-item">Gráfico mensual con desglose por plan</di

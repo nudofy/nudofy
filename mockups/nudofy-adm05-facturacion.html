@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-05 Facturación</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+.topbar{background:#1a1a1a;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.hamburger{width:34px;height:34px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:7px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.topbar-center{font-size:14px;font-weight:500;color:#fff;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.btn-primary{padding:7px 14px;border-radius:9px;background:#534AB7;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.btn-secondary{padding:7px 14px;border-radius:9px;background:transparent;color:#AFA9EC;font-size:12px;font-weight:500;border:1px solid #444;cursor:pointer;white-space:nowrap}
+
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+
+.content{padding:20px 24px;max-width:1200px;margin:0 auto}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:10px;border:0.5px solid #e8e8e8;padding:13px 16px}
+.kpi-label{font-size:11px;color:#999;margin-bottom:4px}
+.kpi-value{font-size:20px;font-weight:500;color:#1a1a1a}
+.kpi-sub{font-size:11px;color:#bbb;margin-top:3px}
+.kpi.accent{background:#534AB7;border-color:#534AB7}
+.kpi.accent .kpi-label{color:#AFA9EC}
+.kpi.accent .kpi-value{color:#fff}
+.kpi.accent .kpi-sub{color:#C0BBF0}
+.kpi.warn{background:#FAEEDA;border-color:#FAC775}
+.kpi.warn .kpi-label{color:#854F0B}
+.kpi.warn .kpi-value{color:#633806}
+.kpi.warn .kpi-sub{color:#BA7517}
+
+.alert-banner{border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.alert-banner.red{background:#FCEBEB}
+.alert-banner.amber{background:#FAEEDA}
+.alert-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alert-body{flex:1}
+.alert-title{font-size:13px;font-weight:500}
+.alert-title.red{color:#A32D2D}
+.alert-title.amber{color:#633806}
+.alert-sub{font-size:12px;margin-top:2px}
+.alert-sub.red{color:#C0392B}
+.alert-sub.amber{color:#854F0B}
+.alert-btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;border:none;cursor:pointer;white-space:nowrap}
+.alert-btn.red{background:#A32D2D;color:#fff}
+.alert-btn.amber{background:#BA7517;color:#fff}
+
+.filters-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:280px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%)}
+.search-input{width:100%;padding:8px 14px 8px 33px;border-radius:9px;border:1px solid #e8e8e8;font-size:13px;background:#fff;color:#1a1a1a;outline:none}
+.f-select{padding:8px 12px;border-radius:9px;border:1px solid #e8e8e8;font-size:13px;color:#555;background:#fff;outline:none;cursor:pointer;font-family:inherit}
+.results-count{font-size:13px;color:#999;margin-left:auto}
+
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden;margin-bottom:14px}
+.card-header{padding:13px 18px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.card-actions{display:flex;gap:8px}
+.card-btn{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;border:1px solid #e8e8e8;background:#fff;color:#534AB7;cursor:pointer}
+.card-btn:hover{background:#EEEDFE}
+
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:10px 18px;font-size:11px;font-weight:500;color:#999;border-bottom:0.5px solid #f0f0f0;background:#fafafa;white-space:nowrap}
+.table td{padding:11px 18px;border-bottom:0.5px solid #f8f8f8;color:#1a1a1a;vertical-align:middle}
+.table tr:last-child td{border-bottom:none}
+.table tr:hover td{background:#fafafa}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.av-sq{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.entity-cell{display:flex;align-items:center;gap:8px}
+.entity-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.entity-sub{font-size:11px;color:#bbb;margin-top:1px}
+.tag{font-size:10px;padding:2px 9px;border-radius:6px;font-weight:500;white-space:nowrap}
+.tag-pro{background:#EEEDFE;color:#3C3489}
+.tag-basic{background:#F1EFE8;color:#5F5E5A}
+.tag-agency{background:#E6F1FB;color:#0C447C}
+.tag-paid{background:#EAF3DE;color:#3B6D11}
+.tag-pending{background:#FAEEDA;color:#854F0B}
+.tag-overdue{background:#FCEBEB;color:#A32D2D}
+
+.payment-badge{display:flex;align-items:center;gap:5px;font-size:11px}
+.payment-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-card{background:#534AB7}
+.dot-sepa{background:#1D9E75}
+.dot-none{background:#bbb}
+
+.act-btn{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid #e8e8e8;background:#fff;color:#534AB7;cursor:pointer;margin-right:4px;white-space:nowrap}
+.act-btn:hover{background:#EEEDFE}
+.act-btn.danger{color:#A32D2D;border-color:#F09595}
+.act-btn.success{color:#1D9E75;border-color:#A8DFC9}
+
+.cobro-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:16px 18px}
+.flow-step{background:#f9f9f9;border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.flow-num{width:22px;height:22px;border-radius:50%;background:#534AB7;color:#fff;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.flow-title{font-size:12px;font-weight:500;color:#1a1a1a}
+.flow-sub{font-size:11px;color:#999;margin-top:3px;line-height:1.4}
+
+.pagination{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:14px}
+.page-btn{width:32px;height:32px;border-radius:8px;border:1px solid #e8e8e8;background:#fff;font-size:13px;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.page-btn.active{background:#534AB7;color:#fff;border-color:#534AB7}
+.page-info{font-size:12px;color:#999;margin:0 6px}
+
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:20px;margin-top:14px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Agentes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Planes</div>
+    <div class="nav-item active" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/><path d="M4 11h2M10 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Facturación</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Configuración</div>
+  </div>
+  <div class="drawer-footer"><div class="df-av">NX</div><div class="df-name">Admin Nudofy</div></div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span><span class="logo-sub">Admin</span>
+    </div>
+  </div>
+  <div class="topbar-center">Facturación</div>
+  <div class="topbar-right">
+    <button class="btn-secondary" onclick="">Exportar CSV</button>
+    <button class="btn-primary">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Generar facturas del mes
+    </button>
+    <div class="user-av">NX</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="kpi-label">Ingresos abril 2026</div>
+      <div class="kpi-value">5.890 €</div>
+      <div class="kpi-sub">267 facturas emitidas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Cobradas</div>
+      <div class="kpi-value">263</div>
+      <div class="kpi-sub">5.793 € cobrados</div>
+    </div>
+    <div class="kpi warn">
+      <div class="kpi-label">Pendientes de cobro</div>
+      <div class="kpi-value">4</div>
+      <div class="kpi-sub">97 € por cobrar</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Acumulado 2026</div>
+      <div class="kpi-value">28.640 €</div>
+      <div class="kpi-sub">Enero — Abril</div>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="alert-banner amber">
+    <div class="alert-icon" style="background:#BA7517"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.3"/><path d="M8 5v4M8 11v.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+    <div class="alert-body">
+      <div class="alert-title amber">4 agentes con pago pendiente — 97 € por cobrar</div>
+      <div class="alert-sub amber">Carmen Soler, Roberto Martín, Luis Torres y Ana Vega tienen cuotas vencidas. Se enviará recordatorio automático mañana.</div>
+    </div>
+    <button class="alert-btn amber">Ver agentes</button>
+  </div>
+
+  <!-- FLUJO DE COBRO -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Cómo funciona el cobro mensual</div></div>
+    <div class="cobro-flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+          <div class="flow-title">Día 1 de cada mes</div>
+          <div class="flow-sub">Nudofy genera automáticamente una factura por agente según su plan activo</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+          <div class="flow-title">Cobro automático</div>
+          <div class="flow-sub">Se carga en la tarjeta o IBAN del agente vía Stripe. El agente recibe la factura por email</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+          <div class="flow-title">Si falla el cobro</div>
+          <div class="flow-sub">Se notifica al agente y al admin. Tras 7 días sin pago se suspende el acceso automáticamente</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+          <div class="flow-title">Cobro manual</div>
+          <div class="flow-sub">El admin puede lanzar el cobro manualmente desde la ficha del agente o desde esta tabla</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <div class="search-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#bbb" stroke-width="1.3"/><path d="M9.5 9.5l3 3" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+      <input class="search-input" type="text" placeholder="Buscar por agente o nº factura...">
+    </div>
+    <select class="f-select">
+      <option>Abril 2026</option>
+      <option>Marzo 2026</option>
+      <option>Febrero 2026</option>
+      <option>Enero 2026</option>
+    </select>
+    <select class="f-select">
+      <option>Todos los estados</option>
+      <option>Cobrada</option>
+      <option>Pendiente</option>
+      <option>Vencida</option>
+    </select>
+    <select class="f-select">
+      <option>Todos los planes</option>
+      <option>Básico · 15 €/mes</option>
+      <option>Pro · 25 €/mes</option>
+      <option>Agencia · 45 €+</option>
+      <option>Agencia Pro · 150 €+</option>
+    </select>
+    <div class="results-count">267 facturas</div>
+  </div>
+
+  <!-- TABLA FACTURAS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Facturas — Abril 2026</div>
+      <div class="card-actions">
+        <button class="card-btn">Exportar selección</button>
+        <button class="card-btn">Enviar recordatorios</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nº Factura</th>
+            <th>Cliente</th>
+            <th>Plan</th>
+            <th>Importe</th>
+            <th>Método de pago</th>
+            <th>Fecha emisión</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0201</td>
+            <td><div class="entity-cell"><div class="av" style="background:#EEEDFE;color:#3C3489">JG</div><div><div class="entity-name">Jorge García</div><div class="entity-sub">Agente individual</div></div></div></td>
+            <td><span class="tag tag-pro">Pro · 25 €</span></td>
+            <td style="font-weight:500">25,00 €</td>
+            <td><div class="payment-badge"><div class="payment-dot dot-card"></div>Tarjeta ···4242</div></td>
+            <td style="color:#bbb;font-size:12px">1 abr 2026</td>
+            <td><span class="tag tag-paid">Cobrada</span></td>
+            <td><button class="act-btn">PDF</button></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0202</td>
+            <td><div class="entity-cell"><div class="av-sq" style="background:#E6F1FB;color:#0C447C">CR</div><div><div class="entity-name">Comercial Rodríguez S.L.</div><div class="entity-sub">Empresa · 6 agentes</div></div></div></td>
+            <td><span class="tag tag-agency">Agencia · 135 €</span></td>
+            <td style="font-weight:500">135,00 €</td>
+            <td><div class="payment-badge"><div class="payment-dot dot-sepa"></div>SEPA ···3210</div></td>
+            <td style="color:#bbb;font-size:12px">1 abr 2026</td>
+            <td><span class="tag tag-paid">Cobrada</span></td>
+            <td><button class="act-btn">PDF</button></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0203</td>
+            <td><div class="entity-cell"><div class="av" style="background:#EAF3DE;color:#27500A">PR</div><div><div class="entity-name">Pedro Ruiz</div><div class="entity-sub">Agente individual</div></div></div></td>
+            <td><span class="tag tag-basic">Básico · 15 €</span></td>
+            <td style="font-weight:500">15,00 €</td>
+            <td><div class="payment-badge"><div class="payment-dot dot-card"></div>Tarjeta ···7891</div></td>
+            <td style="color:#bbb;font-size:12px">1 abr 2026</td>
+            <td><span class="tag tag-paid">Cobrada</span></td>
+            <td><button class="act-btn">PDF</button></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0204</td>
+            <td><div class="entity-cell"><div class="av" style="background:#FAECE7;color:#712B13">CS</div><div><div class="entity-name">Carmen Soler</div><div class="entity-sub">Agente individual</div></div></div></td>
+            <td><span class="tag tag-pro">Pro · 25 €</span></td>
+            <td style="font-weight:500">25,00 €</td>
+            <td><div class="payment-badge"><div class="payment-dot dot-none"></div><span style="color:#bbb">Sin método</span></div></td>
+            <td style="color:#bbb;font-size:12px">1 abr 2026</td>
+            <td><span class="tag tag-overdue">Vencida</span></td>
+            <td><button class="act-btn">PDF</button><button class="act-btn danger">Recordatorio</button><button class="act-btn success">Cobrar ahora</button></td>
+          </tr>
+          <tr>
+            <td style="color:#bbb;font-size:12px">NUD-FAC-2026-0205</td>
+            <td><div class="entity-cell"><div class="av-sq" style="background:#FAEEDA;color:#633806">DS</div><div><div class="entity-name">Distribuciones Sur S.A.</div><div class="entity-sub">Empresa · 3 agentes</div></div></div></td>
+            <td><span class="tag tag-agency">Agencia · 90 €</span></td>
+            <td style="font-weight:500">90,00 €</td>
+            <td><div class="payment-badge"><div class="payment-dot dot-sepa"></div>SEPA ···6541</div></td>
+            <td style="color:#bbb;font-size:12px">1 abr 2026</td>
+            <td><span class="tag tag-pending">Pendiente</span></td>
+            <td><button class="act-btn">PDF</button><button class="act-btn danger">Recordatorio</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pagination">
+    <div class="page-info">Mostrando 1-5 de 267</div>
+    <button class="page-btn">‹</button>
+    <button class="page-btn active">1</button>
+    <button class="page-btn">2</button>
+    <button class="page-btn">3</button>
+    <button class="page-btn">…</button>
+    <button class="page-btn">54</button>
+    <button class="page-btn">›</button>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-05 · Facturación <span class="sp-badge">Admin</span></div>
+    <div class="sp-grid">
+      <div>
+        <div class="sp-lbl">Cobro mensual automático</div>
+        <div class="sp-item">Día 1 de cada mes Nudofy genera todas las facturas</div>
+        <div class="sp-item">Cobro automático vía Stripe con la tarjeta o IBAN del agente</div>
+        <div class="sp-item">El agente recibe la factura por email automáticamente</div>
+        <div class="sp-item">Tras 7 días sin pago se suspende el acceso</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Gestión de impagos</div>
+        <div class="sp-item">Alerta ámbar con total pendiente y agentes afectados</div>
+        <div class="sp-item">Botón "Recordatorio" — envía email al agente</div>
+        <div class="sp-item">Botón "Cobrar ahora" — reintenta el cobro manualmente</div>
+        <div class="sp-item">Método de pago visible en tabla — detecta quién no tiene método guardado</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Exportación y contabilidad</div>
+        <div class="sp-item">Exportar CSV — descarga todas las facturas del mes para contabilidad</div>
+        <div class="sp-item">Exportar selección — filtra y exporta un subconjunto</div>
+        <div class="sp-item">PDF descargable por factura</div>
+        <div class="sp-item">Compatible con Holded, Contasimple u otros software de contabilidad</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function openMenu(){document.getElementById('drawer').classList.add('open');document.getElementById('overlay').classList.add('open')}
+function closeMenu(){document.getElementById('drawer').classList.remove('open');document.getElementById('overlay').classList.remove('open')}
+</script>
+</body>
+</html>

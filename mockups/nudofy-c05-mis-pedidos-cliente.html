@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — C-05 Mis pedidos cliente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.sb{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.sb-t{font-size:15px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:13px 18px 11px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer}
+.tb-title{font-size:17px;font-weight:500;color:#1a1a1a;flex:1}
+
+.sw{background:#fff;padding:9px 14px 11px;border-bottom:0.5px solid #efefef}
+.si{position:relative}
+.si-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%)}
+.si-input{width:100%;padding:8px 14px 8px 33px;border-radius:10px;border:1px solid #e8e8e8;font-size:13px;color:#1a1a1a;background:#f7f7f5}
+
+.filters-row{background:#fff;padding:8px 14px 9px;border-bottom:0.5px solid #efefef;display:flex;gap:8px;align-items:center}
+.f-select{padding:5px 9px;border-radius:8px;border:1px solid #e8e8e8;font-size:11px;color:#555;background:#fff;outline:none;font-family:inherit;cursor:pointer}
+.f-select.act{border-color:#534AB7;color:#534AB7;background:#EEEDFE}
+
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 14px 4px}
+.kpi{background:#fff;border-radius:10px;padding:10px;text-align:center}
+.kpi-v{font-size:17px;font-weight:500;color:#1a1a1a}
+.kpi-l{font-size:10px;color:#999;margin-top:2px}
+
+.sec-lbl{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;padding:12px 14px 6px}
+
+.pedido-list{padding:0 14px 14px;display:flex;flex-direction:column;gap:7px}
+.pc{background:#fff;border-radius:13px;overflow:hidden;cursor:pointer}
+.pc:active{opacity:.85}
+.pc-head{padding:12px 13px;display:flex;align-items:center;gap:11px}
+.pc-logo{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+.pc-body{flex:1;min-width:0}
+.pc-num{font-size:10px;color:#bbb;margin-bottom:2px}
+.pc-prov{font-size:13px;font-weight:500;color:#1a1a1a}
+.pc-cat{font-size:11px;color:#999;margin-top:2px}
+.pc-right{text-align:right;flex-shrink:0}
+.pc-imp{font-size:13px;font-weight:500;color:#1a1a1a}
+.pc-fecha{font-size:10px;color:#bbb;margin-top:2px}
+.pc-foot{padding:7px 13px 10px;border-top:0.5px solid #f5f5f5;display:flex;align-items:center;justify-content:space-between}
+.tag{font-size:10px;padding:2px 9px;border-radius:6px;font-weight:500}
+.tag-recibido{background:#EAF3DE;color:#3B6D11}
+.tag-enviado{background:#EEEDFE;color:#3C3489}
+.tag-pendiente{background:#FAEEDA;color:#854F0B}
+.pc-chevron{font-size:14px;color:#ccc}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#E1F5EE;color:#0F6E56;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:13px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#1D9E75;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #1D9E75}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+    <div class="scr">
+
+      <div class="tb">
+        <div class="back">← Inicio</div>
+        <div class="tb-title">Mis pedidos</div>
+      </div>
+
+      <div class="sw">
+        <div class="si">
+          <div class="si-icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#bbb" stroke-width="1.3"/><path d="M10 10l3.5 3.5" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+          <input class="si-input" type="text" placeholder="Buscar por número de pedido o proveedor...">
+        </div>
+      </div>
+
+      <div class="filters-row">
+        <select class="f-select act">
+          <option>Todos los estados</option>
+          <option>Recibido por agente</option>
+          <option>Enviado al proveedor</option>
+        </select>
+        <select class="f-select">
+          <option>Todos los proveedores</option>
+          <option>Lego</option>
+          <option>Chicco</option>
+        </select>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-v">12</div><div class="kpi-l">Pedidos</div></div>
+        <div class="kpi"><div class="kpi-v">3.840€</div><div class="kpi-l">Total</div></div>
+        <div class="kpi"><div class="kpi-v">320€</div><div class="kpi-l">Ticket medio</div></div>
+      </div>
+
+      <div class="sec-lbl">Todos los pedidos</div>
+
+      <div class="pedido-list">
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="pc-body">
+              <div class="pc-num">NUD-2026-0413</div>
+              <div class="pc-prov">Lego</div>
+              <div class="pc-cat">Primavera — Verano 2026 · 4 uds.</div>
+            </div>
+            <div class="pc-right">
+              <div class="pc-imp">249,96 €</div>
+              <div class="pc-fecha">Hoy · 10:41</div>
+            </div>
+          </div>
+          <div class="pc-foot">
+            <span class="tag tag-recibido">Recibido por agente</span>
+            <span class="pc-chevron">›</span>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="pc-body">
+              <div class="pc-num">NUD-2026-0398</div>
+              <div class="pc-prov">Chicco</div>
+              <div class="pc-cat">Catálogo 2026 · 3 uds.</div>
+            </div>
+            <div class="pc-right">
+              <div class="pc-imp">179,85 €</div>
+              <div class="pc-fecha">02 abr</div>
+            </div>
+          </div>
+          <div class="pc-foot">
+            <span class="tag tag-enviado">Enviado al proveedor</span>
+            <span class="pc-chevron">›</span>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="pc-body">
+              <div class="pc-num">NUD-2026-0381</div>
+              <div class="pc-prov">Lego</div>
+              <div class="pc-cat">Primavera — Verano 2026 · 6 uds.</div>
+            </div>
+            <div class="pc-right">
+              <div class="pc-imp">312,00 €</div>
+              <div class="pc-fecha">28 mar</div>
+            </div>
+          </div>
+          <div class="pc-foot">
+            <span class="tag tag-enviado">Enviado al proveedor</span>
+            <span class="pc-chevron">›</span>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="pc-body">
+              <div class="pc-num">NUD-2026-0356</div>
+              <div class="pc-prov">Chicco</div>
+              <div class="pc-cat">Catálogo 2026 · 5 uds.</div>
+            </div>
+            <div class="pc-right">
+              <div class="pc-imp">289,50 €</div>
+              <div class="pc-fecha">15 mar</div>
+            </div>
+          </div>
+          <div class="pc-foot">
+            <span class="tag tag-enviado">Enviado al proveedor</span>
+            <span class="pc-chevron">›</span>
+          </div>
+        </div>
+
+        <div class="pc">
+          <div class="pc-head">
+            <div class="pc-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="pc-body">
+              <div class="pc-num">NUD-2026-0312</div>
+              <div class="pc-prov">Lego</div>
+              <div class="pc-cat">Navidad 2025 · 8 uds.</div>
+            </div>
+            <div class="pc-right">
+              <div class="pc-imp">520,00 €</div>
+              <div class="pc-fecha">02 mar</div>
+            </div>
+          </div>
+          <div class="pc-foot">
+            <span class="tag tag-enviado">Enviado al proveedor</span>
+            <span class="pc-chevron">›</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="bn">
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg></div><div class="ni-lbl">Catálogo</div></div>
+      <div class="ni act"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" fill="#534AB7"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">C-05 · Mis pedidos <span class="sp-badge">Cliente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Cabecera</div>
+      <div class="sp-item">Flecha ← volver a Inicio</div>
+      <div class="sp-item">Buscador por número de pedido o nombre de proveedor</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Filtros</div>
+      <div class="sp-item">Por estado: Todos · Recibido por agente · Enviado al proveedor</div>
+      <div class="sp-item">Por proveedor: desplegable con los proveedores del cliente</div>
+      <div class="sp-item">Filtros combinables con el buscador</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">KPIs</div>
+      <div class="sp-item">Total de pedidos realizados</div>
+      <div class="sp-item">Importe total acumulado</div>
+      <div class="sp-item">Ticket medio por pedido</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Tarjeta de pedido</div>
+      <div class="sp-item">Logo del proveedor, número de pedido, catálogo y unidades</div>
+      <div class="sp-item">Importe total y fecha</div>
+      <div class="sp-item">Estado: Recibido por agente (verde) · Enviado al proveedor (morado)</div>
+      <div class="sp-item">Tap → abre C-06 detalle del pedido</div>
+    </div>
+
+    <div class="sp-note">
+      Solo dos estados posibles — Recibido por agente y Enviado al proveedor — ya que los proveedores no actualizan el estado en Nudofy.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

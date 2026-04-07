@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-05 Catálogos</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.status-bar{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.status-time{font-size:15px;font-weight:500;color:#1a1a1a}
+.status-icons{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.screen{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.topbar{background:#fff;padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.topbar-title{font-size:18px;font-weight:500;color:#1a1a1a}
+.import-btn{padding:6px 12px;border-radius:20px;border:1px solid #534AB7;background:#fff;color:#534AB7;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px}
+
+.search-wrap{background:#fff;padding:10px 16px 12px;border-bottom:0.5px solid #efefef}
+.search-wrap-inner{position:relative}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%)}
+.search-cam{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:7px;background:#EEEDFE;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.search-input{width:100%;padding:9px 42px 9px 36px;border-radius:10px;border:1px solid #e8e8e8;font-size:14px;color:#1a1a1a;background:#f7f7f5}
+
+.prov-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+.prov-card{background:#fff;border-radius:14px;padding:16px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.prov-card:active{opacity:.85}
+.prov-logo{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500}
+.prov-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.prov-cats{font-size:11px;color:#999}
+.prov-chevron{font-size:11px;color:#534AB7;font-weight:500}
+
+.device2{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.screen2{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+.topbar2{background:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:14px;color:#534AB7;cursor:pointer}
+.topbar2-title{font-size:16px;font-weight:500;color:#1a1a1a;flex:1}
+.add-cat-btn{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+
+.prov-header{background:#fff;padding:16px 18px;display:flex;align-items:center;gap:14px;border-bottom:0.5px solid #efefef}
+.prov-header-logo{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;flex-shrink:0}
+.prov-header-name{font-size:15px;font-weight:500;color:#1a1a1a}
+.prov-header-sector{font-size:12px;color:#999;margin-top:2px}
+
+.cat-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.cat-card{background:#fff;border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.cat-card:active{opacity:.85}
+.cat-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-body{flex:1}
+.cat-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.cat-meta{font-size:11px;color:#999;margin-top:3px}
+.cat-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.cat-refs{font-size:11px;color:#534AB7;font-weight:500}
+.cat-status{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500}
+.status-active{background:#EAF3DE;color:#3B6D11}
+.status-old{background:#F1EFE8;color:#888780}
+.cat-chevron{font-size:14px;color:#ccc}
+
+.import-hint{margin:0 14px 4px;background:#EEEDFE;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px}
+.import-hint-text{flex:1}
+.import-hint-title{font-size:12px;font-weight:500;color:#3C3489}
+.import-hint-sub{font-size:11px;color:#534AB7;margin-top:1px}
+.import-hint-btn{font-size:11px;font-weight:500;color:#534AB7;background:#fff;border:1px solid #AFA9EC;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+
+.bottom-nav{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.nav-item-label{font-size:10px;color:#bbb}
+.nav-item.active .nav-item-label{color:#534AB7}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:2px}
+
+.view-label{font-size:11px;font-weight:500;color:#999;text-align:center;margin-bottom:8px;letter-spacing:.03em}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.spec-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.spec-section{margin-bottom:14px}
+.spec-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.spec-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;font-size:12px;color:#444;line-height:1.4}
+.spec-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.spec-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+.arrow-between{font-size:22px;color:#ccc;display:flex;align-items:center;padding-top:60px}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <!-- VISTA 1: PROVEEDORES -->
+  <div>
+    <div class="view-label">Vista 1 — Proveedores</div>
+    <div class="device">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons"><span>●●●</span><span>WiFi</span><span>100%</span></div>
+      </div>
+      <div class="screen">
+        <div class="topbar">
+          <div class="topbar-title">Catálogos</div>
+          <div class="import-btn">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v7M4 6l2.5 2.5L9 6" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10h9" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Importar
+          </div>
+        </div>
+
+        <div class="search-wrap">
+          <div class="search-wrap-inner">
+            <div class="search-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#bbb" stroke-width="1.3"/><path d="M10.5 10.5l3 3" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <input class="search-input" type="text" placeholder="Buscar en todos los catálogos...">
+            <div class="search-cam">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3.5" width="12" height="8.5" rx="2" stroke="#534AB7" stroke-width="1.2"/><circle cx="7" cy="7.5" r="2" stroke="#534AB7" stroke-width="1.2"/><path d="M5 3.5l.8-1.5h2.4L9 3.5" stroke="#534AB7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="prov-grid">
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="prov-name">Lego</div>
+            <div class="prov-cats">3 catálogos</div>
+            <div class="prov-chevron">Ver catálogos →</div>
+          </div>
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="prov-name">Chicco</div>
+            <div class="prov-cats">2 catálogos</div>
+            <div class="prov-chevron">Ver catálogos →</div>
+          </div>
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#FAEEDA;color:#633806">P</div>
+            <div class="prov-name">Pilot Pen</div>
+            <div class="prov-cats">1 catálogo</div>
+            <div class="prov-chevron">Ver catálogos →</div>
+          </div>
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#E1F5EE;color:#085041">N</div>
+            <div class="prov-name">Nuk</div>
+            <div class="prov-cats">2 catálogos</div>
+            <div class="prov-chevron">Ver catálogos →</div>
+          </div>
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#FAECE7;color:#712B13">B</div>
+            <div class="prov-name">Bosch Tools</div>
+            <div class="prov-cats">1 catálogo</div>
+            <div class="prov-chevron">Ver catálogos →</div>
+          </div>
+          <div class="prov-card">
+            <div class="prov-logo" style="background:#EEEDFE;color:#3C3489">N</div>
+            <div class="prov-name">Nestlé</div>
+            <div class="prov-cats">2 catálogos</div>
+            <div class="prov-chevron">Ver catálogos →</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg>
+          </div>
+          <div class="nav-item-label">Inicio</div>
+        </div>
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="nav-item-label">Clientes</div>
+        </div>
+        <div class="nav-item active">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" fill="#534AB7"/><rect x="11" y="2" width="7" height="5" rx="1.5" fill="#534AB7" opacity=".5"/><rect x="2" y="13" width="7" height="5" rx="1.5" fill="#534AB7" opacity=".5"/><rect x="11" y="9" width="7" height="9" rx="1.5" fill="#534AB7" opacity=".5"/></svg>
+          </div>
+          <div class="nav-item-label" style="color:#534AB7">Catálogos</div>
+          <div class="nav-dot"></div>
+        </div>
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="nav-item-label">Pedidos</div>
+        </div>
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#bbb"/><circle cx="10" cy="5" r="1.5" fill="#bbb"/><circle cx="10" cy="15" r="1.5" fill="#bbb"/></svg>
+          </div>
+          <div class="nav-item-label">Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-between">›</div>
+
+  <!-- VISTA 2: CATÁLOGOS DE UN PROVEEDOR -->
+  <div>
+    <div class="view-label">Vista 2 — Catálogos de Lego</div>
+    <div class="device2">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons"><span>●●●</span><span>WiFi</span><span>100%</span></div>
+      </div>
+      <div class="screen2">
+        <div class="topbar2">
+          <div class="back">← Catálogos</div>
+          <div class="topbar2-title">Lego</div>
+          <div class="add-cat-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+
+        <div class="prov-header">
+          <div class="prov-header-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+          <div>
+            <div class="prov-header-name">Lego</div>
+            <div class="prov-header-sector">Juguetes · 3 catálogos activos</div>
+          </div>
+        </div>
+
+        <div class="import-hint" style="margin-top:12px">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect width="26" height="26" rx="7" fill="#534AB7"/><path d="M13 6v8M9.5 11l3.5 4 3.5-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 19h12" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <div class="import-hint-text">
+            <div class="import-hint-title">Importar nuevo catálogo</div>
+            <div class="import-hint-sub">Sube un Excel o PDF de Lego</div>
+          </div>
+          <div class="import-hint-btn">Subir archivo</div>
+        </div>
+
+        <div class="cat-list">
+          <div class="cat-card">
+            <div class="cat-icon" style="background:#E6F1FB">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#185FA5" stroke-width="1.3"/><path d="M7 10h6M7 7h6M7 13h4" stroke="#185FA5" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="cat-body">
+              <div class="cat-name">Primavera — Verano 2026</div>
+              <div class="cat-meta">Importado el 12 mar 2026</div>
+            </div>
+            <div class="cat-right">
+              <div class="cat-refs">48 refs.</div>
+              <span class="cat-status status-active">Activo</span>
+            </div>
+            <div class="cat-chevron">›</div>
+          </div>
+
+          <div class="cat-card">
+            <div class="cat-icon" style="background:#EEEDFE">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#534AB7" stroke-width="1.3"/><path d="M7 10h6M7 7h6M7 13h4" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="cat-body">
+              <div class="cat-name">Navidad 2025</div>
+              <div class="cat-meta">Importado el 2 sep 2025</div>
+            </div>
+            <div class="cat-right">
+              <div class="cat-refs">62 refs.</div>
+              <span class="cat-status status-active">Activo</span>
+            </div>
+            <div class="cat-chevron">›</div>
+          </div>
+
+          <div class="cat-card">
+            <div class="cat-icon" style="background:#F1EFE8">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#888" stroke-width="1.3"/><path d="M7 10h6M7 7h6M7 13h4" stroke="#888" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="cat-body">
+              <div class="cat-name">Verano 2025</div>
+              <div class="cat-meta">Importado el 15 ene 2025</div>
+            </div>
+            <div class="cat-right">
+              <div class="cat-refs">44 refs.</div>
+              <span class="cat-status status-old">Archivado</span>
+            </div>
+            <div class="cat-chevron">›</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg>
+          </div>
+          <div class="nav-item-label">Inicio</div>
+        </div>
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="nav-item-label">Clientes</div>
+        </div>
+        <div class="nav-item active">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" fill="#534AB7"/><rect x="11" y="2" width="7" height="5" rx="1.5" fill="#534AB7" opacity=".5"/><rect x="2" y="13" width="7" height="5" rx="1.5" fill="#534AB7" opacity=".5"/><rect x="11" y="9" width="7" height="9" rx="1.5" fill="#534AB7" opacity=".5"/></svg>
+          </div>
+          <div class="nav-item-label" style="color:#534AB7">Catálogos</div>
+          <div class="nav-dot"></div>
+        </div>
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="nav-item-label">Pedidos</div>
+        </div>
+        <div class="nav-item">
+          <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#bbb"/><circle cx="10" cy="5" r="1.5" fill="#bbb"/><circle cx="10" cy="15" r="1.5" fill="#bbb"/></svg>
+          </div>
+          <div class="nav-item-label">Más</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESPECIFICACIONES -->
+  <div class="spec-panel">
+    <div class="spec-title">
+      A-05 · Catálogos
+      <span class="spec-badge">Agente</span>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Jerarquía</div>
+      <div class="spec-item">Nivel 1: Proveedores — grid con logo y nombre</div>
+      <div class="spec-item">Nivel 2: Catálogos del proveedor — lista con nombre, fecha, referencias y estado</div>
+      <div class="spec-item">Nivel 3: Productos del catálogo — grid con fotos, precios y botón añadir (pantalla A-06)</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Vista 1 — Proveedores</div>
+      <div class="spec-item">Grid 2 columnas: logo, nombre y número de catálogos</div>
+      <div class="spec-item">Buscador global: busca productos en todos los catálogos a la vez</div>
+      <div class="spec-item">Botón "Importar" en cabecera para subir Excel o PDF</div>
+      <div class="spec-item">Solo aparecen proveedores activos</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Vista 2 — Catálogos del proveedor</div>
+      <div class="spec-item">Cabecera con logo, nombre y sector del proveedor</div>
+      <div class="spec-item">Botón "+" para añadir un nuevo catálogo a ese proveedor</div>
+      <div class="spec-item">Banner de importación contextual para subir archivo</div>
+      <div class="spec-item">Cada catálogo: nombre, fecha de importación, número de referencias y estado</div>
+      <div class="spec-item">Estados: Activo (verde) · Archivado (gris)</div>
+      <div class="spec-item">Tap en catálogo → abre grid de productos (A-06)</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-label">Importación de catálogo</div>
+      <div class="spec-item">Formatos: Excel (.xlsx) y PDF</div>
+      <div class="spec-item">Excel: mapeo automático de columnas (ref., nombre, precio, categoría, foto)</div>
+      <div class="spec-item">PDF: extracción con IA, el agente revisa y confirma antes de guardar</div>
+      <div class="spec-item">Al importar se pide nombre del catálogo (ej. "Navidad 2026")</div>
+    </div>
+
+    <div class="spec-note">
+      Un proveedor puede tener múltiples catálogos activos al mismo tiempo — por ejemplo, tarifa general y catálogo de outlet. Los catálogos archivados se conservan para consulta histórica pero no aparecen al hacer pedidos.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

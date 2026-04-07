@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — C-03 Carrito cliente</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:24px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.view-label{font-size:11px;font-weight:500;color:#999;text-align:center;letter-spacing:.03em}
+.arrow{font-size:22px;color:#ccc;display:flex;align-items:center;padding-top:56px;flex-shrink:0}
+
+.device{width:360px;background:#fff;border-radius:36px;border:7px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.14);flex-shrink:0;max-height:800px}
+.sb{height:40px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
+.sb-t{font-size:14px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:11px;color:#1a1a1a;display:flex;gap:5px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:12px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer;white-space:nowrap}
+.tb-title{font-size:16px;font-weight:500;color:#1a1a1a;flex:1}
+
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 4px}
+.kpi{background:#fff;border-radius:10px;padding:10px 12px;text-align:center}
+.kpi-v{font-size:17px;font-weight:500;color:#1a1a1a}
+.kpi-l{font-size:10px;color:#999;margin-top:2px}
+
+.sec-lbl{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;padding:12px 14px 6px}
+
+.cart-card{background:#fff;border-radius:13px;margin:0 12px 8px;overflow:hidden;cursor:pointer}
+.cart-card:active{opacity:.85}
+.cc-head{padding:12px 13px;display:flex;align-items:center;gap:11px}
+.cc-logo{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;flex-shrink:0}
+.cc-body{flex:1;min-width:0}
+.cc-prov{font-size:13px;font-weight:500;color:#1a1a1a}
+.cc-cat{font-size:11px;color:#999;margin-top:2px}
+.cc-right{text-align:right;flex-shrink:0}
+.cc-imp{font-size:14px;font-weight:500;color:#534AB7}
+.cc-prods{font-size:10px;color:#bbb;margin-top:2px}
+.cc-foot{padding:7px 13px 10px;border-top:0.5px solid #f5f5f5;display:flex;align-items:center;justify-content:space-between}
+.cc-fecha{font-size:10px;color:#bbb}
+.cc-btn{padding:5px 12px;border-radius:8px;background:#EEEDFE;color:#3C3489;font-size:11px;font-weight:500;border:none;cursor:pointer}
+
+.prov-header{background:#fff;padding:13px 16px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid #efefef}
+.ph-logo{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;flex-shrink:0}
+.ph-body{flex:1}
+.ph-name{font-size:14px;font-weight:500;color:#1a1a1a}
+.ph-cat{font-size:11px;color:#999;margin-top:2px}
+
+.lines{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.line{background:#fff;border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:9px}
+.line-img{width:36px;height:36px;border-radius:8px;background:#f7f7f5;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.line-body{flex:1;min-width:0}
+.line-name{font-size:12px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line-ref{font-size:10px;color:#bbb;margin-top:1px}
+.line-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.line-tot{font-size:12px;font-weight:500;color:#1a1a1a}
+.line-qty{display:flex;align-items:center;gap:5px}
+.qb{width:22px;height:22px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:13px;color:#534AB7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:500}
+.qv{font-size:12px;font-weight:500;color:#1a1a1a;min-width:16px;text-align:center}
+.xb{width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.4}
+
+.obs-wrap{margin:0 12px 10px}
+.obs-lbl{font-size:11px;color:#999;margin-bottom:4px}
+.obs-ta{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #e8e8e8;font-size:11px;color:#555;background:#fff;resize:none;font-family:inherit}
+
+.tot-bar{background:#fff;border-top:0.5px solid #efefef;padding:10px 14px;flex-shrink:0}
+.tr{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.tr-l{font-size:11px;color:#999}
+.tr-v{font-size:11px;font-weight:500;color:#1a1a1a}
+.tf{display:flex;justify-content:space-between;align-items:baseline;margin:7px 0 9px;padding-top:7px;border-top:0.5px solid #f0f0f0}
+.tf-l{font-size:13px;font-weight:500;color:#1a1a1a}
+.tf-v{font-size:18px;font-weight:500;color:#534AB7}
+.confirm-btn{width:100%;padding:13px;border-radius:12px;background:#1D9E75;color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer}
+.info-msg{display:flex;align-items:center;gap:6px;margin-top:7px;padding:8px 10px;background:#E1F5EE;border-radius:8px}
+.info-msg-text{font-size:11px;color:#0F6E56;line-height:1.3}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:8px 0 18px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:300px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:18px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#E1F5EE;color:#0F6E56;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:12px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:11px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#1D9E75;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:9px 11px;line-height:1.5;border-left:3px solid #1D9E75}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <!-- VISTA 1: MIS CARRITOS -->
+  <div class="col">
+    <div class="view-label">Vista 1 — Mis carritos</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="back">← Catálogo</div>
+          <div class="tb-title">Mi carrito</div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v">2</div><div class="kpi-l">Carritos abiertos</div></div>
+          <div class="kpi"><div class="kpi-v">389,97 €</div><div class="kpi-l">Importe total</div></div>
+        </div>
+
+        <div class="sec-lbl">Carritos por proveedor</div>
+
+        <div class="cart-card">
+          <div class="cc-head">
+            <div class="cc-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+            <div class="cc-body">
+              <div class="cc-prov">Lego</div>
+              <div class="cc-cat">Primavera — Verano 2026</div>
+            </div>
+            <div class="cc-right">
+              <div class="cc-imp">289,97 €</div>
+              <div class="cc-prods">5 productos</div>
+            </div>
+          </div>
+          <div class="cc-foot">
+            <span class="cc-fecha">Iniciado hoy · 9:30</span>
+            <button class="cc-btn">Ver carrito →</button>
+          </div>
+        </div>
+
+        <div class="cart-card">
+          <div class="cc-head">
+            <div class="cc-logo" style="background:#EAF3DE;color:#27500A">C</div>
+            <div class="cc-body">
+              <div class="cc-prov">Chicco</div>
+              <div class="cc-cat">Catálogo 2026</div>
+            </div>
+            <div class="cc-right">
+              <div class="cc-imp">100,00 €</div>
+              <div class="cc-prods">2 productos</div>
+            </div>
+          </div>
+          <div class="cc-foot">
+            <span class="cc-fecha">Iniciado hoy · 8:55</span>
+            <button class="cc-btn">Ver carrito →</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/></svg></div><div class="ni-lbl">Catálogo</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" fill="#534AB7"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">›</div>
+
+  <!-- VISTA 2: CARRITO DE UN PROVEEDOR -->
+  <div class="col">
+    <div class="view-label">Vista 2 — Carrito de Lego</div>
+    <div class="device">
+      <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+      <div class="scr">
+        <div class="tb">
+          <div class="back">← Mis carritos</div>
+          <div class="tb-title">Carrito</div>
+        </div>
+
+        <div class="prov-header">
+          <div class="ph-logo" style="background:#E6F1FB;color:#0C447C">L</div>
+          <div class="ph-body">
+            <div class="ph-name">Lego</div>
+            <div class="ph-cat">Primavera — Verano 2026</div>
+          </div>
+        </div>
+
+        <div class="lines">
+          <div class="line">
+            <div class="line-img">🚔</div>
+            <div class="line-body">
+              <div class="line-name">City Police Station</div>
+              <div class="line-ref">LG-60316 · 49,99 €/ud</div>
+            </div>
+            <div class="line-right">
+              <div class="line-tot">99,98 €</div>
+              <div class="line-qty">
+                <div class="qb">−</div><div class="qv">2</div><div class="qb">+</div>
+                <div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#888" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="line">
+            <div class="line-img">🏗️</div>
+            <div class="line-body">
+              <div class="line-name">Technic Grúa</div>
+              <div class="line-ref">LG-42108 · 89,99 €/ud</div>
+            </div>
+            <div class="line-right">
+              <div class="line-tot">89,99 €</div>
+              <div class="line-qty">
+                <div class="qb">−</div><div class="qv">1</div><div class="qb">+</div>
+                <div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#888" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="line">
+            <div class="line-img">🚀</div>
+            <div class="line-body">
+              <div class="line-name">Star Wars X-Wing</div>
+              <div class="line-ref">LG-75301 · 59,99 €/ud</div>
+            </div>
+            <div class="line-right">
+              <div class="line-tot">59,99 €</div>
+              <div class="line-qty">
+                <div class="qb">−</div><div class="qv">1</div><div class="qb">+</div>
+                <div class="xb"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="#888" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="obs-wrap">
+          <div class="obs-lbl">Observaciones</div>
+          <textarea class="obs-ta" rows="2" placeholder="Fecha de entrega deseada, instrucciones..."></textarea>
+        </div>
+
+      </div>
+
+      <div class="tot-bar">
+        <div class="tr"><span class="tr-l">Subtotal (4 uds.)</span><span class="tr-v">249,96 €</span></div>
+        <div class="tf"><span class="tf-l">Total pedido</span><span class="tf-v">249,96 €</span></div>
+        <button class="confirm-btn">Confirmar pedido</button>
+        <div class="info-msg">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#1D9E75" stroke-width="1.2"/><path d="M7 4.5v3.5M7 9.5v.5" stroke="#1D9E75" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span class="info-msg-text">Tu agente Jorge García recibirá el pedido automáticamente</span>
+        </div>
+      </div>
+
+      <div class="bn">
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="#bbb"/><rect x="10" y="2" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="1.2" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="2" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="2" y="12" width="6" height="4.5" rx="1.2" stroke="#bbb" stroke-width="1.3"/><rect x="10" y="8.5" width="6" height="8" rx="1.2" stroke="#bbb" stroke-width="1.3"/></svg></div><div class="ni-lbl">Catálogo</div></div>
+        <div class="ni act"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" fill="#534AB7"/><path d="M5 9h8M5 6.5h8M5 11.5h5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl" style="color:#534AB7">Pedidos</div><div class="nd"></div></div>
+        <div class="ni"><div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6.5" r="3" stroke="#bbb" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div><div class="ni-lbl">Mi perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESPECIFICACIONES -->
+  <div class="spec-panel">
+    <div class="sp-title">C-03 · Carrito cliente <span class="sp-badge">Cliente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Regla clave</div>
+      <div class="sp-item">Un carrito por proveedor — igual que el agente</div>
+      <div class="sp-item">El cliente puede tener varios carritos abiertos a la vez</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 1 — Mis carritos</div>
+      <div class="sp-item">KPIs: carritos abiertos e importe total acumulado</div>
+      <div class="sp-item">Tarjeta por cada carrito: logo proveedor, catálogo, importe parcial, productos y hora de inicio</div>
+      <div class="sp-item">Botón "Ver carrito →" para acceder al detalle de cada uno</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Vista 2 — Carrito del proveedor</div>
+      <div class="sp-item">Cabecera con logo y nombre del proveedor y catálogo</div>
+      <div class="sp-item">Líneas editables: cantidad ajustable y botón eliminar</div>
+      <div class="sp-item">Campo de observaciones libre</div>
+      <div class="sp-item">Total del pedido</div>
+      <div class="sp-item">Botón "Confirmar pedido" en verde → envío automático al agente</div>
+      <div class="sp-item">Mensaje informativo con el nombre del agente que recibirá el pedido</div>
+    </div>
+
+    <div class="sp-note">
+      Al confirmar el pedido el cliente no puede modificarlo. El agente lo recibe como notificación y puede revisarlo antes de enviarlo al proveedor si así lo desea.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

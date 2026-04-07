@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy — A-12 Mi perfil y ajustes</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;padding:40px 24px}
+.outer{display:flex;align-items:flex-start;justify-content:center;gap:32px;flex-wrap:wrap}
+.device{width:375px;background:#fff;border-radius:40px;border:8px solid #1a1a1a;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);flex-shrink:0;max-height:820px}
+.sb{height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}
+.sb-t{font-size:15px;font-weight:500;color:#1a1a1a}
+.sb-i{font-size:12px;color:#1a1a1a;display:flex;gap:6px}
+.scr{display:flex;flex-direction:column;background:#f7f7f5;overflow-y:auto;flex:1}
+
+.tb{background:#fff;padding:13px 18px 11px;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid #efefef;flex-shrink:0}
+.back{font-size:13px;color:#534AB7;cursor:pointer}
+.tb-title{font-size:17px;font-weight:500;color:#1a1a1a;flex:1}
+
+.profile-header{background:#fff;padding:20px 18px;display:flex;align-items:center;gap:14px;border-bottom:0.5px solid #efefef}
+.profile-avatar{width:58px;height:58px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:500;color:#fff;flex-shrink:0}
+.profile-info{flex:1}
+.profile-name{font-size:16px;font-weight:500;color:#1a1a1a}
+.profile-email{font-size:12px;color:#999;margin-top:3px}
+.profile-plan{display:inline-flex;align-items:center;gap:5px;margin-top:6px;background:#EEEDFE;padding:3px 10px;border-radius:10px}
+.profile-plan-text{font-size:11px;font-weight:500;color:#3C3489}
+.edit-avatar{font-size:12px;color:#534AB7;cursor:pointer;white-space:nowrap}
+
+.section-group{padding:14px 14px 4px}
+.section-lbl{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+
+.settings-block{background:#fff;border-radius:13px;overflow:hidden;margin-bottom:10px}
+.setting-row{padding:13px 14px;display:flex;align-items:center;gap:12px;border-bottom:0.5px solid #f5f5f5;cursor:pointer}
+.setting-row:last-child{border-bottom:none}
+.setting-row:active{opacity:.8}
+.setting-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.setting-body{flex:1}
+.setting-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.setting-sub{font-size:11px;color:#999;margin-top:2px}
+.setting-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.chevron{font-size:14px;color:#ccc}
+.toggle{width:38px;height:22px;border-radius:11px;position:relative;flex-shrink:0;cursor:pointer}
+.toggle.on{background:#534AB7}
+.toggle.off{background:#e0e0e0}
+.toggle-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left .15s}
+.toggle.on .toggle-knob{left:18px}
+.toggle.off .toggle-knob{left:2px}
+.setting-value{font-size:12px;color:#999}
+
+.plan-card{background:#534AB7;border-radius:13px;margin:0 14px 10px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+.plan-icon{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.plan-body{flex:1}
+.plan-name{font-size:14px;font-weight:500;color:#fff}
+.plan-detail{font-size:11px;color:#C0BBF0;margin-top:3px}
+.plan-btn{padding:7px 14px;border-radius:10px;background:#fff;color:#534AB7;font-size:12px;font-weight:500;border:none;cursor:pointer;white-space:nowrap}
+
+.logout-btn{margin:0 14px 20px;padding:13px;border-radius:13px;background:#fff;border:1px solid #F09595;color:#A32D2D;font-size:14px;font-weight:500;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+
+.bn{background:#fff;border-top:0.5px solid #efefef;display:flex;padding:10px 0 20px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.ni-lbl{font-size:10px;color:#bbb}
+.ni.act .ni-lbl{color:#534AB7}
+.nd{width:4px;height:4px;border-radius:50%;background:#534AB7;margin-top:1px}
+
+.spec-panel{width:320px;background:#fff;border-radius:16px;border:0.5px solid #e5e5e5;padding:20px;align-self:flex-start}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#EEEDFE;color:#3C3489;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-sec{margin-bottom:13px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+.sp-note{font-size:11px;color:#888;background:#f9f9f9;border-radius:8px;padding:10px 12px;line-height:1.5;border-left:3px solid #534AB7}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <div class="device">
+    <div class="sb"><span class="sb-t">9:41</span><div class="sb-i"><span>●●●</span><span>WiFi</span><span>100%</span></div></div>
+    <div class="scr">
+
+      <div class="tb">
+        <div class="back">← Inicio</div>
+        <div class="tb-title">Mi perfil</div>
+      </div>
+
+      <div class="profile-header">
+        <div class="profile-avatar">JG</div>
+        <div class="profile-info">
+          <div class="profile-name">Jorge García</div>
+          <div class="profile-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d17120f1a183d131805121c0d0d531e1210">[email&#160;protected]</a></div>
+          <div class="profile-plan">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1l1.2 2.4L9 4.1 6.9 6.2l.5 2.8L5 7.5 2.6 9l.5-2.8L1 4.1l2.8-.7L5 1z" fill="#534AB7"/></svg>
+            <span class="profile-plan-text">Plan Pro · 19 €/mes</span>
+          </div>
+        </div>
+        <div class="edit-avatar">Editar</div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-lbl">Datos personales</div>
+        <div class="settings-block">
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#EEEDFE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="#534AB7" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="#534AB7" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Nombre</div>
+              <div class="setting-sub">Jorge García</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#E6F1FB">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="#185FA5" stroke-width="1.3"/><path d="M2 6l6 4 6-4" stroke="#185FA5" stroke-width="1.3"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Email</div>
+              <div class="setting-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a0cacfd2c7c5e0cec5d8cfc1d0d08ec3cfcd">[email&#160;protected]</a></div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#EAF3DE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 2h2l1 3-1.5 1.5a9 9 0 0 0 3 3L10 8l3 1v2c0 1-1 2-2 2A11 11 0 0 1 2 4c0-1 1-2 2-2z" stroke="#3B6D11" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Teléfono</div>
+              <div class="setting-sub">+34 612 345 678</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#FAEEDA">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#BA7517" stroke-width="1.3"/><path d="M5 7h6M5 9.5h4" stroke="#BA7517" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Empresa / Razón social</div>
+              <div class="setting-sub">Comercial García S.L.</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-lbl">Firma de email y PDF</div>
+        <div class="settings-block">
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#EEEDFE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 12l2-1 7-7-1-1-7 7-1 2z" stroke="#534AB7" stroke-width="1.3" stroke-linejoin="round"/><path d="M10 4l1 1" stroke="#534AB7" stroke-width="1.3"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Firma personalizada</div>
+              <div class="setting-sub">Jorge García · +34 612 345 678</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#E6F1FB">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#185FA5" stroke-width="1.3"/><path d="M5 8h6M5 5.5h6M5 10.5h4" stroke="#185FA5" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Logo en PDF</div>
+              <div class="setting-sub">Sin logo — toca para añadir</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-lbl">Notificaciones</div>
+        <div class="settings-block">
+          <div class="setting-row">
+            <div class="setting-body">
+              <div class="setting-title">Pedidos de clientes</div>
+              <div class="setting-sub">Cuando un cliente hace un pedido</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-body">
+              <div class="setting-title">Propuestas aceptadas o rechazadas</div>
+              <div class="setting-sub">Respuesta del cliente a una propuesta</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-body">
+              <div class="setting-title">Recordatorios de pedidos</div>
+              <div class="setting-sub">Pedidos sin enviar tras 24h</div>
+            </div>
+            <div class="toggle on"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-body">
+              <div class="setting-title">Catálogos actualizados</div>
+              <div class="setting-sub">Cuando un proveedor publica novedad</div>
+            </div>
+            <div class="toggle off"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-lbl">Seguridad</div>
+        <div class="settings-block">
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#F1EFE8">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="#888" stroke-width="1.3"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#888" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Cambiar contraseña</div>
+              <div class="setting-sub">Última vez hace 3 meses</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-lbl">Plan y facturación</div>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2l2 4 4.5 .7-3.3 3.2.8 4.5L10 12.3l-4 2.1.8-4.5L3.5 6.7 8 6l2-4z" fill="white"/></svg>
+        </div>
+        <div class="plan-body">
+          <div class="plan-name">Plan Pro</div>
+          <div class="plan-detail">19 €/mes · Renueva el 6 may 2026</div>
+        </div>
+        <button class="plan-btn">Cambiar plan</button>
+      </div>
+
+      <div class="section-group">
+        <div class="section-lbl">Soporte</div>
+        <div class="settings-block">
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#E1F5EE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#1D9E75" stroke-width="1.3"/><path d="M6.5 6.5a1.5 1.5 0 1 1 2 1.4c-.5.2-.5.6-.5 1" stroke="#1D9E75" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11" r=".6" fill="#1D9E75"/></svg>
+            </div>
+            <div class="setting-body"><div class="setting-title">Contactar con soporte</div></div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#FAEEDA">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v4l2 2" stroke="#BA7517" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="#BA7517" stroke-width="1.3"/></svg>
+            </div>
+            <div class="setting-body"><div class="setting-title">Tutoriales y ayuda</div></div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-icon" style="background:#EEEDFE">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.6 3.5L8 10l-3 1.5.6-3.5L3 5.5l3.5-.5L8 2z" stroke="#534AB7" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="setting-body">
+              <div class="setting-title">Novedades de Nudofy</div>
+              <div class="setting-sub">Versión 1.2.4</div>
+            </div>
+            <div class="setting-right"><span class="chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="logout-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3" stroke="#A32D2D" stroke-width="1.3" stroke-linecap="round"/><path d="M10 11l3-3-3-3M13 8H6" stroke="#A32D2D" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Cerrar sesión
+      </div>
+
+    </div>
+
+    <div class="bn">
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#bbb"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#bbb" opacity=".5"/></svg></div><div class="ni-lbl">Inicio</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="#bbb" stroke-width="1.4"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Clientes</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="2" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="2" y="13" width="7" height="5" rx="1.5" stroke="#bbb" stroke-width="1.4"/><rect x="11" y="9" width="7" height="9" rx="1.5" stroke="#bbb" stroke-width="1.4"/></svg></div><div class="ni-lbl">Catálogos</div></div>
+      <div class="ni"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="#bbb" stroke-width="1.4"/><path d="M6 10h8M6 7h8M6 13h5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="ni-lbl">Pedidos</div></div>
+      <div class="ni act"><div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="1.5" fill="#534AB7"/><circle cx="10" cy="5" r="1.5" fill="#534AB7"/><circle cx="10" cy="15" r="1.5" fill="#534AB7"/></svg></div><div class="ni-lbl" style="color:#534AB7">Más</div><div class="nd"></div></div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">A-12 · Mi perfil y ajustes <span class="sp-badge">Agente</span></div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Cabecera de perfil</div>
+      <div class="sp-item">Avatar con iniciales del agente</div>
+      <div class="sp-item">Nombre, email y plan activo con estrella</div>
+      <div class="sp-item">Botón "Editar" para modificar el avatar</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Datos personales</div>
+      <div class="sp-item">Nombre · Email · Teléfono · Empresa o razón social</div>
+      <div class="sp-item">Cada campo es editable individualmente</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Firma de email y PDF</div>
+      <div class="sp-item">Texto de firma que aparece en todos los emails y PDFs de pedidos</div>
+      <div class="sp-item">Logo opcional que se incluye en la cabecera del PDF</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Notificaciones</div>
+      <div class="sp-item">Toggle individual para cada tipo de notificación</div>
+      <div class="sp-item">Pedidos de clientes · Propuestas · Recordatorios · Catálogos</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Seguridad</div>
+      <div class="sp-item">Cambiar contraseña con indicación de cuándo se cambió por última vez</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Plan y facturación</div>
+      <div class="sp-item">Tarjeta morada con plan activo, precio y fecha de renovación</div>
+      <div class="sp-item">Botón "Cambiar plan" → muestra los tres planes disponibles</div>
+    </div>
+
+    <div class="sp-sec">
+      <div class="sp-lbl">Soporte</div>
+      <div class="sp-item">Contactar con soporte de Nudofy</div>
+      <div class="sp-item">Tutoriales y ayuda</div>
+      <div class="sp-item">Novedades con número de versión actual</div>
+   

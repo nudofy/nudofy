@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-02 Agentes y empresas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+.topbar{background:#1a1a1a;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.hamburger{width:34px;height:34px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:7px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.topbar-center{font-size:14px;font-weight:500;color:#fff;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.btn-primary{padding:7px 14px;border-radius:9px;background:#534AB7;color:#fff;font-size:12px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-secondary{padding:7px 14px;border-radius:9px;background:transparent;color:#AFA9EC;font-size:12px;font-weight:500;border:1px solid #444;cursor:pointer;white-space:nowrap}
+
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+
+.content{padding:24px 28px;max-width:1200px;margin:0 auto}
+
+.filters-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:300px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%)}
+.search-input{width:100%;padding:8px 14px 8px 33px;border-radius:9px;border:1px solid #e8e8e8;font-size:13px;background:#fff;color:#1a1a1a;outline:none}
+.f-select{padding:8px 12px;border-radius:9px;border:1px solid #e8e8e8;font-size:13px;color:#555;background:#fff;outline:none;cursor:pointer;font-family:inherit}
+.results-count{font-size:13px;color:#999;margin-left:auto}
+
+.tab-bar{display:flex;gap:0;margin-bottom:16px;background:#fff;border-radius:10px;border:0.5px solid #e8e8e8;overflow:hidden;width:fit-content}
+.tab-btn{padding:8px 20px;font-size:13px;font-weight:500;color:#999;background:transparent;border:none;cursor:pointer}
+.tab-btn.active{background:#534AB7;color:#fff}
+
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden;margin-bottom:14px}
+.card-header{padding:13px 18px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:10px 18px;font-size:11px;font-weight:500;color:#999;border-bottom:0.5px solid #f0f0f0;background:#fafafa}
+.table td{padding:11px 18px;border-bottom:0.5px solid #f8f8f8;color:#1a1a1a;vertical-align:middle}
+.table tr:last-child td{border-bottom:none}
+.table tr:hover td{background:#fafafa;cursor:pointer}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.av-sq{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.entity-cell{display:flex;align-items:center;gap:10px}
+.entity-name{font-size:13px;font-weight:500;color:#1a1a1a}
+.entity-email{font-size:11px;color:#bbb;margin-top:1px}
+.entity-sub{font-size:11px;color:#999;margin-top:1px}
+.tag{font-size:10px;padding:2px 9px;border-radius:6px;font-weight:500;white-space:nowrap}
+.tag-pro{background:#EEEDFE;color:#3C3489}
+.tag-basic{background:#F1EFE8;color:#5F5E5A}
+.tag-agency{background:#E6F1FB;color:#0C447C}
+.tag-agency-pro{background:#042C53;color:#85B7EB}
+.tag-active{background:#EAF3DE;color:#3B6D11}
+.tag-inactive{background:#F1EFE8;color:#888}
+.tag-pending{background:#FAEEDA;color:#854F0B}
+.act-btn{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid #e8e8e8;background:#fff;color:#534AB7;cursor:pointer;margin-right:4px}
+.act-btn:hover{background:#EEEDFE}
+.act-btn.danger{color:#A32D2D;border-color:#F09595}
+
+.pagination{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:16px}
+.page-btn{width:32px;height:32px;border-radius:8px;border:1px solid #e8e8e8;background:#fff;font-size:13px;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.page-btn.active{background:#534AB7;color:#fff;border-color:#534AB7}
+.page-info{font-size:12px;color:#999;margin:0 6px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0;margin:20px}
+.modal-header{padding:18px 22px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10}
+.modal-title{font-size:15px;font-weight:500;color:#1a1a1a}
+.modal-close{width:28px;height:28px;border-radius:7px;border:none;background:#f5f5f3;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#666}
+.modal-close:hover{background:#e8e8e8}
+.modal-body{padding:18px 22px}
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;font-weight:500;color:#555;margin-bottom:6px;display:block}
+.form-label span{color:#bbb;font-weight:400;margin-left:4px}
+.form-input{width:100%;padding:9px 12px;border-radius:9px;border:1px solid #e8e8e8;font-size:13px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit}
+.form-input:focus{border-color:#534AB7}
+.form-select{width:100%;padding:9px 12px;border-radius:9px;border:1px solid #e8e8e8;font-size:13px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;cursor:pointer}
+.form-section{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 10px;padding-bottom:6px;border-bottom:0.5px solid #f0f0f0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.plan-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.plan-opt{border:1.5px solid #e8e8e8;border-radius:10px;padding:10px 12px;cursor:pointer}
+.plan-opt:hover{border-color:#AFA9EC}
+.plan-opt.selected{border-color:#534AB7;background:#EEEDFE}
+.plan-opt-name{font-size:12px;font-weight:500;color:#1a1a1a}
+.plan-opt-price{font-size:11px;color:#999;margin-top:2px}
+.plan-opt.selected .plan-opt-name{color:#3C3489}
+.modal-footer{padding:14px 22px;border-top:0.5px solid #f0f0f0;display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:#fff}
+.btn-cancel{padding:8px 16px;border-radius:9px;background:#fff;color:#555;font-size:13px;font-weight:500;border:1px solid #e8e8e8;cursor:pointer}
+.btn-save{padding:8px 18px;border-radius:9px;background:#534AB7;color:#fff;font-size:13px;font-weight:500;border:none;cursor:pointer}
+
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:20px;margin-top:14px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>Dashboard</div>
+    <div class="nav-item active" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Agentes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Planes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/></svg>Facturación</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Configuración</div>
+  </div>
+  <div class="drawer-footer"><div class="df-av">NX</div><div class="df-name">Admin Nudofy</div></div>
+</div>
+
+<!-- MODAL ALTA AGENTE -->
+<div class="modal-overlay" id="modal-agente">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Dar de alta — Agente individual</div>
+      <button class="modal-close" onclick="closeModal('modal-agente')"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">Datos personales</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nombre</label>
+          <input class="form-input" type="text" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellidos</label>
+          <input class="form-input" type="text" placeholder="Apellidos">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email <span>(acceso a la app)</span></label>
+        <input class="form-input" type="email" placeholder="email@ejemplo.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono <span>(opcional)</span></label>
+        <input class="form-input" type="text" placeholder="+34 600 000 000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Empresa / Razón social <span>(opcional)</span></label>
+        <input class="form-input" type="text" placeholder="Nombre de su empresa">
+      </div>
+      <div class="form-group">
+        <label class="form-label">NIF <span>(opcional)</span></label>
+        <input class="form-input" type="text" placeholder="00000000A">
+      </div>
+      <div class="form-section">Plan</div>
+      <div class="plan-selector">
+        <div class="plan-opt selected" onclick="selectPlan(this)">
+          <div class="plan-opt-name">Básico</div>
+          <div class="plan-opt-price">15 €/mes · 100 prod · 20 cli</div>
+        </div>
+        <div class="plan-opt" onclick="selectPlan(this)">
+          <div class="plan-opt-name">Pro</div>
+          <div class="plan-opt-price">25 €/mes · 2.000 prod · 200 cli</div>
+        </div>
+      </div>
+      <div class="form-section">Acceso</div>
+      <div class="form-group">
+        <label class="form-label">Enviar invitación por email</label>
+        <select class="form-select">
+          <option>Sí — enviar email de bienvenida con acceso</option>
+          <option>No — el agente recibirá las credenciales manualmente</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-agente')">Cancelar</button>
+      <button class="btn-save">Dar de alta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALTA EMPRESA -->
+<div class="modal-overlay" id="modal-empresa">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Dar de alta — Empresa</div>
+      <button class="modal-close" onclick="closeModal('modal-empresa')"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">Datos de la empresa</div>
+      <div class="form-group">
+        <label class="form-label">Razón social</label>
+        <input class="form-input" type="text" placeholder="Nombre de la empresa">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">NIF / CIF</label>
+          <input class="form-input" type="text" placeholder="B-00000000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input class="form-input" type="text" placeholder="+34 900 000 000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dirección fiscal</label>
+        <input class="form-input" type="text" placeholder="Calle, número, ciudad">
+      </div>
+
+      <div class="form-section">Administrador de la empresa</div>
+      <div class="form-group" style="background:#f9f9f9;border-radius:10px;padding:12px">
+        <div style="font-size:11px;color:#999;margin-bottom:10px">El administrador gestiona los agentes de la empresa y tiene acceso completo al panel.</div>
+        <div class="form-grid">
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Nombre</label>
+            <input class="form-input" type="text" placeholder="Nombre">
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Apellidos</label>
+            <input class="form-input" type="text" placeholder="Apellidos">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Email del administrador <span>(acceso a la app)</span></label>
+          <input class="form-input" type="email" placeholder="admin@empresa.com">
+        </div>
+      </div>
+
+      <div class="form-section">Plan</div>
+      <div class="plan-selector">
+        <div class="plan-opt selected" onclick="selectPlan(this)">
+          <div class="plan-opt-name">Agencia</div>
+          <div class="plan-opt-price">45 € + 15 €/agente · hasta 10 ag.</div>
+        </div>
+        <div class="plan-opt" onclick="selectPlan(this)">
+          <div class="plan-opt-name" style="color:#185FA5">Agencia Pro</div>
+          <div class="plan-opt-price">150 € + 20 €/agente · ilimitado</div>
+        </div>
+      </div>
+
+      <div class="form-section">Acceso</div>
+      <div class="form-group">
+        <label class="form-label">Enviar invitación al administrador</label>
+        <select class="form-select">
+          <option>Sí — enviar email de bienvenida con acceso</option>
+          <option>No — credenciales manuales</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-empresa')">Cancelar</button>
+      <button class="btn-save">Dar de alta empresa</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span><span class="logo-sub">Admin</span>
+    </div>
+  </div>
+  <div class="topbar-center">Agentes y empresas</div>
+  <div class="topbar-right">
+    <button class="btn-secondary" onclick="openModal('modal-empresa')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Alta empresa
+    </button>
+    <button class="btn-primary" onclick="openModal('modal-agente')">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Alta agente
+    </button>
+    <div class="user-av">NX</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <div class="search-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#bbb" stroke-width="1.3"/><path d="M9.5 9.5l3 3" stroke="#bbb" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+      <input class="search-input" type="text" placeholder="Buscar por nombre o email...">
+    </div>
+    <select class="f-select">
+      <option>Todos los planes</option>
+      <option>Básico</option>
+      <option>Pro</option>
+      <option>Agencia</option>
+      <option>Agencia Pro</option>
+    </select>
+    <select class="f-select">
+      <option>Todos los estados</option>
+      <option>Activo</option>
+      <option>Inactivo</option>
+      <option>Pago pendiente</option>
+    </select>
+    <select class="f-select">
+      <option>Agentes y empresas</option>
+      <option>Solo agentes individuales</option>
+      <option>Solo empresas</option>
+    </select>
+    <div class="results-count">267 registros</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(this,'tab-todos')">Todos (267)</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-agentes')">Agentes individuales (248)</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-empresas')">Empresas (19)</button>
+  </div>
+
+  <div class="card" id="tab-todos">
+    <table class="table">
+      <thead>
+        <tr><th>Nombre</th><th>Tipo</th><th>Plan</th><th>Alta</th><th>Clientes</th><th>Pedidos mes</th><th>Próxima factura</th><th>Estado</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="entity-cell"><div class="av" style="background:#EEEDFE;color:#3C3489">JG</div><div><div class="entity-name">Jorge García</div><div class="entity-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6f05001d080a2f010a17000e1f1f410c0002">[email&#160;protected]</a></div></div></div></td>
+          <td><span style="font-size:11px;color:#999">Agente</span></td>
+          <td><span class="tag tag-pro">Pro</span></td>
+          <td>12 ene 2026</td><td>8</td><td>23</td><td>6 may 2026</td>
+          <td><span class="tag tag-active">Activo</span></td>
+          <td><button class="act-btn">Ver ficha</button><button class="act-btn">Editar plan</button></td>
+        </tr>
+        <tr>
+          <td><div class="entity-cell"><div class="av-sq" style="background:#E6F1FB;color:#0C447C">CR</div><div><div class="entity-name">Comercial Rodríguez S.L.</div><div class="entity-sub">6 agentes · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c0a1a4ada9ae80a3afada5b2a3a9a1acb2afa4b2a9a7b5a5baeea5b3">[email&#160;protected]</a></div></div></div></td>
+          <td><span style="font-size:11px;color:#185FA5;font-weight:500">Empresa</span></td>
+          <td><span class="tag tag-agency">Agencia</span></td>
+          <td>15 feb 2026</td><td>187</td><td>142</td><td>15 may 2026</td>
+          <td><span class="tag tag-active">Activo</span></td>
+          <td><button class="act-btn">Ver empresa</button><button class="act-btn">Editar plan</button></td>
+        </tr>
+        <tr>
+          <td><div class="entity-cell"><div class="av" style="background:#EAF3DE;color:#27500A">ML</div><div><div class="entity-name">María López</div><div class="entity-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="abc6cad9c2caebc8c4c6ced9c8c2cac785ced8">[email&#160;protected]</a></div></div></div></td>
+          <td><span style="font-size:11px;color:#999">Agente</span></td>
+          <td><span class="tag" style="background:#042C53;color:#85B7EB">Agencia Pro</span></td>
+          <td>03 abr 2026</td><td>21</td><td>47</td><td>3 may 2026</td>
+          <td><span class="tag tag-active">Activo</span></td>
+          <td><button class="act-btn">Ver ficha</button><button class="act-btn">Editar plan</button></td>
+        </tr>
+        <tr>
+          <td><div class="entity-cell"><div class="av" style="background:#FAEEDA;color:#633806">PR</div><div><div class="entity-name">Pedro Ruiz</div><div class="entity-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9eeefbfaecf1defff9fbf0eafbb0fdf1f3">[email&#160;protected]</a></div></div></div></td>
+          <td><span style="font-size:11px;color:#999">Agente</span></td>
+          <td><span class="tag tag-basic">Básico</span></td>
+          <td>01 abr 2026</td><td>3</td><td>7</td><td>1 may 2026</td>
+          <td><span class="tag tag-active">Activo</span></td>
+          <td><button class="act-btn">Ver ficha</button><button class="act-btn">Editar plan</button></td>
+        </tr>
+        <tr>
+          <td><div class="entity-cell"><div class="av-sq" style="background:#FAEEDA;color:#633806">DS</div><div><div class="entity-name">Distribuciones Sur S.A.</div><div class="entity-sub">3 agentes · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b8d9dcd5d1d6f8dcd1cbcccbcdca96dbd7d5">[email&#160;protected]</a></div></div></div></td>
+          <td><span style="font-size:11px;color:#185FA5;font-weight:500">Empresa</span></td>
+          <td><span class="tag tag-agency">Agencia</span></td>
+          <td>20 mar 2026</td><td>94</td><td>67</td><td>20 may 2026</td>
+          <td><span class="tag tag-active">Activo</span></td>
+          <td><button class="act-btn">Ver empresa</button><button class="act-btn">Editar plan</button></td>
+        </tr>
+        <tr>
+          <td><div class="entity-cell"><div class="av" style="background:#FAECE7;color:#712B13">CS</div><div><div class="entity-name">Carmen Soler</div><div class="entity-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="90f3f1e2fdf5fed0e6f5fee4f1e3befef5e4">[email&#160;protected]</a></div></div></div></td>
+          <td><span style="font-size:11px;color:#999">Agente</span></td>
+          <td><span class="tag tag-pro">Pro</span></td>
+          <td>28 mar 2026</td><td>6</td><td>0</td><td>28 abr 2026</td>
+          <td><span class="tag tag-pending">Pago pendiente</span></td>
+          <td><button class="act-btn">Ver ficha</button><button class="act-btn danger">Suspender</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="page-info">Mostrando 1-6 de 267</div>
+    <button class="page-btn">‹</button>
+    <button class="page-btn active">1</button>
+    <button class="page-btn">2</button>
+    <button class="page-btn">3</button>
+    <button class="page-btn">…</button>
+    <button class="page-btn">45</button>
+    <button class="page-btn">›</button>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-02 · Agentes y empresas <span class="sp-badge">Admin</span></div>
+    <div class="sp-grid">
+      <div>
+        <div class="sp-lbl">Alta de agente individual</div>
+        <div class="sp-item">Botón "Alta agente" en topbar → abre modal</div>
+        <div class="sp-item">Campos: nombre, apellidos, email, teléfono, empresa, NIF</div>
+        <div class="sp-item">Selección de plan: Básico o Pro</div>
+        <div class="sp-item">Opción de enviar email de bienvenida automático</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Alta de empresa</div>
+        <div class="sp-item">Botón "Alta empresa" en topbar → abre modal</div>
+        <div class="sp-item">Datos empresa: razón social, NIF, teléfono, dirección fiscal</div>
+        <div class="sp-item">Datos del administrador: nombre, apellidos, email</div>
+        <div class="sp-item">Selección de plan: Agencia o Agencia Pro</div>
+        <div class="sp-item">Los agentes de la empresa se añaden desde ADM-07</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Tabla unificada</div>
+        <div class="sp-item">Muestra agentes individuales y empresas en la misma lista</div>
+        <div class="sp-item">Columna Tipo diferencia: Agente / Empresa</div>
+        <div class="sp-item">Las empresas muestran número de agentes y email del admin</div>
+        <div class="sp-item">Avatar cuadrado para empresas, circular para agentes</div>
+        <div class="sp-item">Pestañas: Todos · Agentes individuales · Empresas</div>
+        <div class="sp-item">"Ver empresa" → ADM-07 · "Ver ficha" → ADM-03</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script data-cfasync="fa

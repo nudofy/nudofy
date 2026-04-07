@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nudofy Admin — ADM-04 Planes</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;min-height:100vh}
+.topbar{background:#1a1a1a;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.hamburger{width:36px;height:36px;border-radius:8px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.hamburger span{width:18px;height:1.5px;background:#888;border-radius:2px}
+.hamburger:hover span{background:#fff}
+.logo-wrap{display:flex;align-items:center;gap:8px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:#534AB7;display:flex;align-items:center;justify-content:center}
+.logo-text{font-size:14px;font-weight:500;color:#fff}
+.logo-sub{font-size:10px;color:#555;margin-left:2px}
+.topbar-center{font-size:14px;font-weight:500;color:#fff;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.user-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.btn-primary{padding:8px 16px;border-radius:9px;background:#534AB7;color:#fff;font-size:13px;font-weight:500;border:none;cursor:pointer}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;width:240px;height:100vh;background:#1a1a1a;z-index:300;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 18px 14px;border-bottom:0.5px solid #333;display:flex;align-items:center;justify-content:space-between}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:transparent;border:none;cursor:pointer;color:#666;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:#fff;background:#333}
+.drawer-nav{padding:12px 10px;flex:1}
+.nav-lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#888;margin-bottom:2px}
+.nav-item:hover{background:#222;color:#ccc}
+.nav-item.active{background:#534AB7;color:#fff}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.drawer-footer{padding:14px;border-top:0.5px solid #333;display:flex;align-items:center;gap:8px}
+.df-av{width:28px;height:28px;border-radius:50%;background:#534AB7;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#fff}
+.df-name{font-size:12px;color:#888}
+.content{padding:24px 28px;max-width:1200px;margin:0 auto}
+
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:20px}
+.plan-card{background:#fff;border-radius:14px;border:1.5px solid #e8e8e8;overflow:hidden;display:flex;flex-direction:column}
+.plan-card.featured{border-color:#534AB7}
+.plan-card.enterprise{border-color:#185FA5}
+.plan-header{padding:18px 20px;border-bottom:0.5px solid #f0f0f0}
+.plan-badge{font-size:10px;font-weight:500;padding:3px 9px;border-radius:6px;display:inline-block;margin-bottom:10px}
+.badge-basic{background:#F1EFE8;color:#5F5E5A}
+.badge-pro{background:#EEEDFE;color:#3C3489}
+.badge-agency{background:#E6F1FB;color:#0C447C}
+.badge-agency-pro{background:#042C53;color:#85B7EB}
+.plan-name{font-size:17px;font-weight:500;color:#1a1a1a}
+.plan-price{font-size:26px;font-weight:500;color:#534AB7;margin-top:6px}
+.plan-price span{font-size:13px;color:#999;font-weight:400}
+.plan-price-extra{font-size:11px;color:#999;margin-top:3px}
+.plan-agents-count{font-size:12px;color:#bbb;margin-top:4px}
+
+.plan-limits{padding:14px 20px;border-bottom:0.5px solid #f0f0f0;display:flex;flex-direction:column;gap:8px}
+.limit-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.limit-label{font-size:11px;color:#999}
+.limit-value{font-size:12px;font-weight:500;color:#1a1a1a}
+.limit-bar-wrap{flex:1;height:4px;background:#f0f0f0;border-radius:2px;margin:0 8px}
+.limit-bar{height:4px;border-radius:2px;background:#534AB7}
+.limit-bar.blue{background:#185FA5}
+.limit-unlimited{font-size:11px;font-weight:500;color:#1D9E75}
+
+.plan-features{padding:14px 20px;flex:1}
+.feature-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:12px;color:#444}
+.feature-row:last-child{margin-bottom:0}
+.f-check{width:15px;height:15px;border-radius:4px;background:#EAF3DE;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.f-cross{width:15px;height:15px;border-radius:4px;background:#f5f5f3;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+
+.plan-footer{padding:14px 20px;border-top:0.5px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+.plan-edit-btn{padding:7px 14px;border-radius:8px;border:1px solid #e8e8e8;background:#fff;color:#534AB7;font-size:12px;font-weight:500;cursor:pointer}
+.plan-stats{font-size:11px;color:#999;text-align:right}
+.plan-stats strong{color:#534AB7;display:block;font-size:13px}
+
+.warning-banner{background:#FAEEDA;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+.wb-icon{width:34px;height:34px;border-radius:9px;background:#BA7517;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wb-body{flex:1}
+.wb-title{font-size:13px;font-weight:500;color:#633806}
+.wb-sub{font-size:12px;color:#854F0B;margin-top:2px}
+
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8e8e8;overflow:hidden;margin-bottom:14px}
+.card-header{padding:13px 18px;border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500;color:#1a1a1a}
+.field-row{padding:11px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f8f8f8;gap:20px}
+.field-row:last-child{border-bottom:none}
+.field-label{font-size:12px;color:#555;flex:1}
+.field-sub{font-size:11px;color:#bbb;margin-top:2px}
+.field-input{padding:6px 10px;border-radius:7px;border:1px solid #e8e8e8;font-size:12px;color:#1a1a1a;background:#fff;width:120px;text-align:right;font-family:inherit}
+
+.spec-panel{background:#fff;border-radius:12px;border:0.5px solid #e5e5e5;padding:20px;margin-top:14px}
+.sp-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sp-badge{font-size:10px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:6px;font-weight:500}
+.sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sp-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sp-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;font-size:12px;color:#444;line-height:1.4}
+.sp-item:before{content:"·";color:#534AB7;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="drawer-overlay" id="overlay" onclick="closeMenu()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <div><div style="font-size:14px;font-weight:500;color:#fff">Nudofy</div><div style="font-size:10px;color:#555">Administración</div></div>
+    </div>
+    <button class="drawer-close" onclick="closeMenu()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-lbl">Principal</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.2" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" opacity=".5"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Agentes</div>
+    <div class="nav-item active" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3 1.5.6-3.5L3 4.5l3.5-.5L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>Planes</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.3"/></svg>Facturación</div>
+    <div class="nav-item" onclick="closeMenu()"><svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1 1M11.9 11.9l1 1M11.9 3.1l-1 1M3.1 11.9l1-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Configuración</div>
+  </div>
+  <div class="drawer-footer"><div class="df-av">NX</div><div class="df-name">Admin Nudofy</div></div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="openMenu()"><span></span><span></span><span></span></button>
+    <div class="logo-wrap">
+      <div class="logo-mark"><svg viewBox="0 0 18 18" fill="none" width="14" height="14"><circle cx="4" cy="9" r="2.5" fill="white" opacity="0.6"/><circle cx="14" cy="4" r="2.5" fill="white"/><circle cx="14" cy="14" r="2.5" fill="white"/><line x1="6.2" y1="7.8" x2="12" y2="5.2" stroke="white" stroke-width="1.2"/><line x1="6.2" y1="10.2" x2="12" y2="12.8" stroke="white" stroke-width="1.2"/></svg></div>
+      <span class="logo-text">Nudofy</span><span class="logo-sub">Admin</span>
+    </div>
+  </div>
+  <div class="topbar-center">Planes</div>
+  <div class="topbar-right">
+    <button class="btn-primary">Guardar cambios</button>
+    <div class="user-av">NX</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="warning-banner">
+    <div class="wb-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.3"/><path d="M8 5v4M8 11v.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+    <div class="wb-body">
+      <div class="wb-title">Cuando un agente supera el límite de su plan</div>
+      <div class="wb-sub">Se le avisa automáticamente pero puede seguir usando la app. No puede añadir nuevos clientes ni productos hasta que cambie de plan.</div>
+    </div>
+  </div>
+
+  <div class="plans-grid">
+
+    <!-- BÁSICO -->
+    <div class="plan-card">
+      <div class="plan-header">
+        <div class="plan-badge badge-basic">Básico</div>
+        <div class="plan-name">Plan Básico</div>
+        <div class="plan-price">15 €<span>/mes</span></div>
+        <div class="plan-agents-count">1 agente · 42 activos</div>
+      </div>
+      <div class="plan-limits">
+        <div class="limit-row">
+          <span class="limit-label">Productos</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:5%"></div></div>
+          <span class="limit-value">100</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Clientes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:2%"></div></div>
+          <span class="limit-value">20</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Agentes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:1%"></div></div>
+          <span class="limit-value">1</span>
+        </div>
+      </div>
+      <div class="plan-features">
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Catálogos digitales</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Generación de PDF</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Portal cliente básico</div>
+        <div class="feature-row"><div class="f-cross"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 2l5 5M7 2L2 7" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div><span style="color:#bbb">Estadísticas</span></div>
+        <div class="feature-row"><div class="f-cross"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 2l5 5M7 2L2 7" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div><span style="color:#bbb">Multiagente</span></div>
+      </div>
+      <div class="plan-footer">
+        <button class="plan-edit-btn">Editar</button>
+        <div class="plan-stats"><strong>630 €/mes</strong>42 agentes</div>
+      </div>
+    </div>
+
+    <!-- PRO -->
+    <div class="plan-card featured">
+      <div class="plan-header">
+        <div class="plan-badge badge-pro">Pro — Más popular</div>
+        <div class="plan-name">Plan Pro</div>
+        <div class="plan-price">25 €<span>/mes</span></div>
+        <div class="plan-agents-count">1 agente · 186 activos</div>
+      </div>
+      <div class="plan-limits">
+        <div class="limit-row">
+          <span class="limit-label">Productos</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:40%"></div></div>
+          <span class="limit-value">2.000</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Clientes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:20%"></div></div>
+          <span class="limit-value">200</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Agentes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:1%"></div></div>
+          <span class="limit-value">1</span>
+        </div>
+      </div>
+      <div class="plan-features">
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Catálogos digitales</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Generación de PDF</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Portal cliente completo</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Estadísticas avanzadas</div>
+        <div class="feature-row"><div class="f-cross"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 2l5 5M7 2L2 7" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div><span style="color:#bbb">Multiagente</span></div>
+      </div>
+      <div class="plan-footer">
+        <button class="plan-edit-btn">Editar</button>
+        <div class="plan-stats"><strong>4.650 €/mes</strong>186 agentes</div>
+      </div>
+    </div>
+
+    <!-- AGENCIA -->
+    <div class="plan-card">
+      <div class="plan-header">
+        <div class="plan-badge badge-agency">Agencia</div>
+        <div class="plan-name">Plan Agencia</div>
+        <div class="plan-price">45 €<span>/mes base</span></div>
+        <div class="plan-price-extra">+ 15 €/agente adicional</div>
+        <div class="plan-agents-count">hasta 10 agentes · 14 empresas</div>
+      </div>
+      <div class="plan-limits">
+        <div class="limit-row">
+          <span class="limit-label">Productos</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:70%"></div></div>
+          <span class="limit-value">5.000</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Clientes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:50%"></div></div>
+          <span class="limit-value">500</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Agentes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar" style="width:10%"></div></div>
+          <span class="limit-value">10</span>
+        </div>
+      </div>
+      <div class="plan-features">
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Todo lo del Plan Pro</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Panel administrador empresa</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Gestión equipo de agentes</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Factura única empresa</div>
+        <div class="feature-row"><div class="f-cross"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M2 2l5 5M7 2L2 7" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg></div><span style="color:#bbb">Clientes ilimitados</span></div>
+      </div>
+      <div class="plan-footer">
+        <button class="plan-edit-btn">Editar</button>
+        <div class="plan-stats"><strong>1.260 €/mes</strong>14 empresas</div>
+      </div>
+    </div>
+
+    <!-- AGENCIA PRO -->
+    <div class="plan-card enterprise">
+      <div class="plan-header">
+        <div class="plan-badge badge-agency-pro">Agencia Pro</div>
+        <div class="plan-name">Plan Agencia Pro</div>
+        <div class="plan-price" style="color:#185FA5">150 €<span>/mes base</span></div>
+        <div class="plan-price-extra">+ 20 €/agente adicional</div>
+        <div class="plan-agents-count">agentes ilimitados · 5 empresas</div>
+      </div>
+      <div class="plan-limits">
+        <div class="limit-row">
+          <span class="limit-label">Productos</span>
+          <div class="limit-bar-wrap"><div class="limit-bar blue" style="width:100%"></div></div>
+          <span class="limit-unlimited">Ilimitados</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Clientes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar blue" style="width:100%"></div></div>
+          <span class="limit-unlimited">Ilimitados</span>
+        </div>
+        <div class="limit-row">
+          <span class="limit-label">Agentes</span>
+          <div class="limit-bar-wrap"><div class="limit-bar blue" style="width:100%"></div></div>
+          <span class="limit-unlimited">Ilimitados</span>
+        </div>
+      </div>
+      <div class="plan-features">
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Todo lo del Plan Agencia</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Clientes ilimitados con portal</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Acceso catálogos ilimitado</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Soporte prioritario</div>
+        <div class="feature-row"><div class="f-check"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div>Marca propia en PDF</div>
+      </div>
+      <div class="plan-footer">
+        <button class="plan-edit-btn" style="color:#185FA5;border-color:#85B7EB">Editar</button>
+        <div class="plan-stats"><strong style="color:#185FA5">1.150 €/mes</strong>5 empresas</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Límites y precios editables</div></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Básico — precio mensual</div></div><input class="field-input" type="text" value="15,00 €"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Básico — máx. productos</div></div><input class="field-input" type="text" value="100"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Básico — máx. clientes</div></div><input class="field-input" type="text" value="20"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Pro — precio mensual</div></div><input class="field-input" type="text" value="25,00 €"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Pro — máx. productos</div></div><input class="field-input" type="text" value="2.000"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Pro — máx. clientes</div></div><input class="field-input" type="text" value="200"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Agencia — precio base</div></div><input class="field-input" type="text" value="45,00 €"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Agencia — precio por agente adicional</div></div><input class="field-input" type="text" value="15,00 €"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Agencia — máx. agentes</div></div><input class="field-input" type="text" value="10"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Agencia Pro — precio base</div></div><input class="field-input" type="text" value="150,00 €"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Agencia Pro — precio por agente adicional</div></div><input class="field-input" type="text" value="20,00 €"></div>
+    <div class="field-row"><div><div style="font-size:12px;color:#555">Periodo de prueba gratuito</div></div><input class="field-input" type="text" value="14 días"></div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="sp-title">ADM-04 · Planes <span class="sp-badge">Admin</span></div>
+    <div class="sp-grid">
+      <div>
+        <div class="sp-lbl">4 planes</div>
+        <div class="sp-item">Básico 15 €/mes — 100 productos · 20 clientes · 1 agente</div>
+        <div class="sp-item">Pro 25 €/mes — 2.000 productos · 200 clientes · 1 agente</div>
+        <div class="sp-item">Agencia 45 € + 15 €/agente — 5.000 prod · 500 clientes · 10 agentes</div>
+        <div class="sp-item">Agencia Pro 150 € + 20 €/agente — todo ilimitado</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Límites visuales</div>
+        <div class="sp-item">Barras proporcionales para productos, clientes y agentes</div>
+        <div class="sp-item">Agencia Pro muestra "Ilimitados" en verde</div>
+        <div class="sp-item">Ingresos actuales por plan visibles en cada tarjeta</div>
+      </div>
+      <div>
+        <div class="sp-lbl">Comportamiento límites</div>
+        <div class="sp-item">Al superar el límite: aviso automático al agente</div>
+        <div class="sp-item">El agente puede seguir usando la app</div>
+        <div class="sp-item">No puede añadir nuevos clientes ni productos hasta cambiar de plan</div>
+        <div class="sp-item">Todos los precios y límites editables desde el panel inferior</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function openMenu(){document.getElementById('drawer').classList.add('open');document.getElementById('overlay').classList.add('open')}
+function closeMenu(){document.getElementById('drawer').classList.remove('open');document.getElementById('overlay').classList.remove('open')}
+</script>
+</body>
+</html>
