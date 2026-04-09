@@ -131,8 +131,10 @@ export function useAdminAgents() {
 
   useEffect(() => { fetchAgents(); }, [fetchAgents]);
 
-  async function updateAgentPlan(id: string, plan: AdminAgent['plan']) {
-    const { error } = await supabase.from('agents').update({ plan }).eq('id', id);
+  async function updateAgentPlan(id: string, plan: AdminAgent['plan'], expiresAt?: string | null) {
+    const update: Record<string, any> = { plan };
+    if (expiresAt !== undefined) update.plan_expires_at = expiresAt;
+    const { error } = await supabase.from('agents').update(update).eq('id', id);
     if (!error) fetchAgents();
     return { error: error?.message ?? null };
   }

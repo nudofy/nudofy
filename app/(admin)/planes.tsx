@@ -1,253 +1,228 @@
 // ADM-04 · Gestión de planes
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  Modal, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView,
+} from 'react-native';
 import AdminShell from '@/components/AdminShell';
-import { useAdminAgents } from '@/hooks/useAdmin';
+import { supabase } from '@/lib/supabase';
 
-const PLANS = [
-  {
-    key: 'basic',
-    label: 'Básico',
-    price: 9,
-    badgeBg: '#F1EFE8', badgeText: '#5F5E5A',
-    limits: [
-      { label: 'Clientes', value: '50', pct: 40 },
-      { label: 'Catálogos', value: '5', pct: 20 },
-      { label: 'Pedidos/mes', value: '100', pct: 30 },
-    ],
-    features: [
-      { label: 'Portal del cliente', ok: false },
-      { label: 'Estadísticas básicas', ok: true },
-      { label: 'Exportación CSV', ok: false },
-      { label: 'Soporte email', ok: true },
-    ],
-  },
-  {
-    key: 'pro',
-    label: 'Pro',
-    price: 19,
-    featured: true,
-    badgeBg: '#EEEDFE', badgeText: '#3C3489',
-    limits: [
-      { label: 'Clientes', value: '500', pct: 70 },
-      { label: 'Catálogos', value: '30', pct: 60 },
-      { label: 'Pedidos/mes', value: '1.000', pct: 65 },
-    ],
-    features: [
-      { label: 'Portal del cliente', ok: true },
-      { label: 'Estadísticas avanzadas', ok: true },
-      { label: 'Exportación CSV', ok: true },
-      { label: 'Soporte prioritario', ok: true },
-    ],
-  },
-  {
-    key: 'agency',
-    label: 'Agencia',
-    price: 39,
-    badgeBg: '#E6F1FB', badgeText: '#0C447C',
-    limits: [
-      { label: 'Agentes incluidos', value: '5', pct: 50 },
-      { label: 'Clientes', value: 'Ilimitados', pct: 100, unlimited: true },
-      { label: 'Catálogos', value: 'Ilimitados', pct: 100, unlimited: true },
-    ],
-    features: [
-      { label: 'Panel empresa multi-agente', ok: true },
-      { label: 'Estadísticas consolidadas', ok: true },
-      { label: 'API acceso', ok: true },
-      { label: 'Soporte dedicado', ok: true },
-    ],
-  },
-  {
-    key: 'agency_pro',
-    label: 'Agencia Pro',
-    price: 79,
-    enterprise: true,
-    badgeBg: '#042C53', badgeText: '#85B7EB',
-    limits: [
-      { label: 'Agentes incluidos', value: '20', pct: 100 },
-      { label: 'Clientes', value: 'Ilimitados', pct: 100, unlimited: true },
-      { label: 'Catálogos', value: 'Ilimitados', pct: 100, unlimited: true },
-    ],
-    features: [
-      { label: 'Todo de Agencia', ok: true },
-      { label: 'Onboarding personalizado', ok: true },
-      { label: 'SLA garantizado', ok: true },
-      { label: 'Account manager', ok: true },
-    ],
-  },
-];
+type PlanDef = {
+  key: string;
+  label: string;
+  price: number;
+  max_clients: number | null;
+  max_catalogs: number | null;
+  max_orders_month: number | null;
+  active: boolean;
+  sort_order: number;
+};
 
 export default function AdminPlanesScreen() {
-  const { agents } = useAdminAgents();
+  const [plans, setPlans] = useState<PlanDef[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<PlanDef | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  function agentCount(planKey: string) {
-    return agents.filter(a => a.plan === planKey && a.active).length;
+  async function fetchPlans() {
+    const { data } = await supabase
+      .from('plan_definitions')
+      .select('*')
+      .order('sort_order');
+    if (data) setPlans(data);
+    setLoading(false);
   }
 
-  function planRevenue(planKey: string, price: number) {
-    return agentCount(planKey) * price;
+  useEffect(() => { fetchPlans(); }, []);
+
+  async function savePlan() {
+    if (!editing) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from('plan_definitions')
+      .update({
+        label: editing.label,
+        price: editing.price,
+        max_clients: editing.max_clients,
+        max_catalogs: editing.max_catalogs,
+        max_orders_month: editing.max_orders_month,
+      })
+      .eq('key', editing.key);
+    setSaving(false);
+    if (error) {
+      Alert.alert('Error', 'No se pudo guardar el plan.');
+    } else {
+      setEditing(null);
+      fetchPlans();
+    }
   }
+
+  function openEdit(plan: PlanDef) {
+    setEditing({ ...plan });
+  }
+
+  function updateField(field: keyof PlanDef, value: string) {
+    if (!editing) return;
+    const numFields = ['price', 'max_clients', 'max_catalogs', 'max_orders_month'];
+    if (numFields.includes(field)) {
+      setEditing({ ...editing, [field]: value === '' ? null : Number(value) });
+    } else {
+      setEditing({ ...editing, [field]: value });
+    }
+  }
+
+  const isFree = (key: string) => key === 'free' || key === 'free_pro';
 
   return (
     <AdminShell activeSection="planes" title="Planes">
-      {/* Banner aviso */}
-      {agents.filter(a => !a.active).length > 0 && (
-        <View style={styles.warningBanner}>
-          <View style={styles.wbIcon}>
-            <Text style={styles.wbIconText}>⚠</Text>
-          </View>
-          <View style={styles.wbBody}>
-            <Text style={styles.wbTitle}>Pagos pendientes</Text>
-            <Text style={styles.wbText}>
-              {agents.filter(a => !a.active).length} agentes con cuenta inactiva. Revisa facturación.
-            </Text>
-          </View>
+      {loading ? (
+        <ActivityIndicator color="#534AB7" style={{ marginTop: 40 }} />
+      ) : (
+        <View style={styles.list}>
+          {plans.map(plan => (
+            <View key={plan.key} style={styles.row}>
+              <View style={styles.rowLeft}>
+                <View style={[styles.badge, isFree(plan.key) && styles.badgeFree]}>
+                  <Text style={[styles.badgeText, isFree(plan.key) && styles.badgeTextFree]}>
+                    {plan.label}
+                  </Text>
+                </View>
+                <Text style={styles.price}>
+                  {plan.price === 0 ? 'Gratis' : `${plan.price} €/mes`}
+                </Text>
+              </View>
+              <View style={styles.rowMeta}>
+                <Text style={styles.meta}>
+                  {plan.max_clients != null ? `${plan.max_clients} clientes` : 'Ilimitado'}
+                </Text>
+                <Text style={styles.meta}>
+                  {plan.max_catalogs != null ? `${plan.max_catalogs} catálogos` : 'Ilimitado'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(plan)}>
+                <Text style={styles.editBtnText}>Editar</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
       )}
 
-      {/* Grid de planes */}
-      <View style={styles.plansGrid}>
-        {PLANS.map(plan => {
-          const count = agentCount(plan.key);
-          const rev = planRevenue(plan.key, plan.price);
-          return (
-            <View
-              key={plan.key}
-              style={[
-                styles.planCard,
-                plan.featured && styles.planCardFeatured,
-                plan.enterprise && styles.planCardEnterprise,
-              ]}
-            >
-              {/* Header */}
-              <View style={styles.planHeader}>
-                <View style={[styles.planBadge, { backgroundColor: plan.badgeBg }]}>
-                  <Text style={[styles.planBadgeText, { color: plan.badgeText }]}>{plan.label}</Text>
-                </View>
-                <Text style={styles.planName}>{plan.label}</Text>
-                <Text style={styles.planPrice}>
-                  {plan.price} <Text style={styles.planPriceSub}>€/mes</Text>
-                </Text>
-                <Text style={styles.planAgentsCount}>{count} agentes activos</Text>
-              </View>
+      {/* Modal de edición */}
+      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Editar plan — {editing?.label}</Text>
 
-              {/* Límites */}
-              <View style={styles.planLimits}>
-                {plan.limits.map(l => (
-                  <View key={l.label} style={styles.limitRow}>
-                    <Text style={styles.limitLabel}>{l.label}</Text>
-                    {!l.unlimited ? (
-                      <>
-                        <View style={styles.limitBarWrap}>
-                          <View style={[styles.limitBar, { width: `${l.pct}%` as any }]} />
-                        </View>
-                        <Text style={styles.limitValue}>{l.value}</Text>
-                      </>
-                    ) : (
-                      <Text style={styles.limitUnlimited}>Ilimitado</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
+            <Text style={styles.fieldLabel}>Nombre</Text>
+            <TextInput
+              style={styles.input}
+              value={editing?.label ?? ''}
+              onChangeText={v => updateField('label', v)}
+            />
 
-              {/* Features */}
-              <View style={styles.planFeatures}>
-                {plan.features.map(f => (
-                  <View key={f.label} style={styles.featureRow}>
-                    <View style={[styles.featureIcon, f.ok ? styles.featureIconOk : styles.featureIconNo]}>
-                      <Text style={styles.featureIconText}>{f.ok ? '✓' : '✕'}</Text>
-                    </View>
-                    <Text style={[styles.featureLabel, !f.ok && styles.featureLabelNo]}>{f.label}</Text>
-                  </View>
-                ))}
-              </View>
+            <Text style={styles.fieldLabel}>Precio (€/mes)</Text>
+            <TextInput
+              style={styles.input}
+              value={editing?.price?.toString() ?? ''}
+              keyboardType="numeric"
+              onChangeText={v => updateField('price', v)}
+            />
 
-              {/* Footer */}
-              <View style={styles.planFooter}>
-                <TouchableOpacity style={styles.planEditBtn}>
-                  <Text style={styles.planEditBtnText}>Editar plan</Text>
-                </TouchableOpacity>
-                <View>
-                  <Text style={styles.planRevenue}>{rev} €/mes</Text>
-                  <Text style={styles.planStatsLabel}>{count} agentes</Text>
-                </View>
-              </View>
+            <Text style={styles.fieldLabel}>Máx. clientes (vacío = ilimitado)</Text>
+            <TextInput
+              style={styles.input}
+              value={editing?.max_clients?.toString() ?? ''}
+              keyboardType="numeric"
+              placeholder="Ilimitado"
+              onChangeText={v => updateField('max_clients', v)}
+            />
+
+            <Text style={styles.fieldLabel}>Máx. catálogos (vacío = ilimitado)</Text>
+            <TextInput
+              style={styles.input}
+              value={editing?.max_catalogs?.toString() ?? ''}
+              keyboardType="numeric"
+              placeholder="Ilimitado"
+              onChangeText={v => updateField('max_catalogs', v)}
+            />
+
+            <Text style={styles.fieldLabel}>Máx. pedidos/mes (vacío = ilimitado)</Text>
+            <TextInput
+              style={styles.input}
+              value={editing?.max_orders_month?.toString() ?? ''}
+              keyboardType="numeric"
+              placeholder="Ilimitado"
+              onChangeText={v => updateField('max_orders_month', v)}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(null)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={savePlan} disabled={saving}>
+                {saving
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.saveBtnText}>Guardar</Text>}
+              </TouchableOpacity>
             </View>
-          );
-        })}
-      </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </AdminShell>
   );
 }
 
 const styles = StyleSheet.create({
-  warningBanner: {
-    backgroundColor: '#FAEEDA', borderRadius: 12,
-    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
+  list: { gap: 10 },
+  row: {
+    backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 1, borderColor: '#ebebeb',
+    padding: 14, flexDirection: 'row',
+    alignItems: 'center', gap: 10,
   },
-  wbIcon: {
-    width: 34, height: 34, borderRadius: 9,
-    backgroundColor: '#BA7517',
-    alignItems: 'center', justifyContent: 'center',
+  rowLeft: { flex: 1, gap: 4 },
+  badge: {
+    backgroundColor: '#EEEDFE', borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 3,
+    alignSelf: 'flex-start',
   },
-  wbIconText: { color: '#fff', fontSize: 16 },
-  wbBody: { flex: 1 },
-  wbTitle: { fontSize: 13, fontWeight: '600', color: '#633806' },
-  wbText: { fontSize: 12, color: '#854F0B', marginTop: 2 },
-  plansGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  planCard: {
-    flex: 1, minWidth: 240,
-    backgroundColor: '#fff', borderRadius: 14,
-    borderWidth: 1.5, borderColor: '#e8e8e8',
-    overflow: 'hidden',
+  badgeFree: { backgroundColor: '#E6F7EF' },
+  badgeText: { fontSize: 11, fontWeight: '600', color: '#3C3489' },
+  badgeTextFree: { color: '#1D7A4E' },
+  price: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
+  rowMeta: { gap: 2 },
+  meta: { fontSize: 11, color: '#999' },
+  editBtn: {
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 8, borderWidth: 1, borderColor: '#e0e0e0',
   },
-  planCardFeatured: { borderColor: '#534AB7' },
-  planCardEnterprise: { borderColor: '#185FA5' },
-  planHeader: {
-    padding: 18, paddingBottom: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+  editBtnText: { fontSize: 13, fontWeight: '500', color: '#534AB7' },
+
+  // Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
   },
-  planBadge: {
-    paddingHorizontal: 9, paddingVertical: 3,
-    borderRadius: 6, alignSelf: 'flex-start', marginBottom: 10,
+  modalBox: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 24, gap: 4,
   },
-  planBadgeText: { fontSize: 10, fontWeight: '500' },
-  planName: { fontSize: 17, fontWeight: '500', color: '#1a1a1a' },
-  planPrice: { fontSize: 26, fontWeight: '500', color: '#534AB7', marginTop: 6 },
-  planPriceSub: { fontSize: 13, color: '#999', fontWeight: '400' },
-  planAgentsCount: { fontSize: 12, color: '#bbb', marginTop: 4 },
-  planLimits: {
-    padding: 14, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0', gap: 8,
+  modalTitle: { fontSize: 16, fontWeight: '600', color: '#1a1a1a', marginBottom: 12 },
+  fieldLabel: { fontSize: 12, color: '#888', marginTop: 10 },
+  input: {
+    borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, color: '#1a1a1a', marginTop: 4,
   },
-  limitRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  cancelBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: '#e0e0e0', alignItems: 'center',
   },
-  limitLabel: { fontSize: 11, color: '#999', width: 90 },
-  limitBarWrap: { flex: 1, height: 4, backgroundColor: '#f0f0f0', borderRadius: 2 },
-  limitBar: { height: 4, borderRadius: 2, backgroundColor: '#534AB7' },
-  limitValue: { fontSize: 11, fontWeight: '500', color: '#1a1a1a', width: 50, textAlign: 'right' },
-  limitUnlimited: { fontSize: 11, fontWeight: '500', color: '#1D9E75', flex: 1 },
-  planFeatures: { padding: 14, flex: 1, gap: 8 },
-  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  featureIcon: {
-    width: 15, height: 15, borderRadius: 4,
-    alignItems: 'center', justifyContent: 'center', marginTop: 1,
+  cancelBtnText: { fontSize: 14, color: '#666' },
+  saveBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 10,
+    backgroundColor: '#534AB7', alignItems: 'center',
   },
-  featureIconOk: { backgroundColor: '#EAF3DE' },
-  featureIconNo: { backgroundColor: '#f5f5f3' },
-  featureIconText: { fontSize: 9, fontWeight: '700', color: '#3B6D11' },
-  featureLabel: { fontSize: 12, color: '#444', flex: 1 },
-  featureLabelNo: { color: '#bbb' },
-  planFooter: {
-    padding: 14,
-    borderTopWidth: 0.5, borderTopColor: '#f0f0f0',
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  planEditBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 8, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
-  },
-  planEditBtnText: { fontSize: 12, fontWeight: '500', color: '#534AB7' },
-  planRevenue: { fontSize: 13, fontWeight: '600', color: '#534AB7', textAlign: 'right' },
-  planStatsLabel: { fontSize: 11, color: '#999', textAlign: 'right', marginTop: 1 },
+  saveBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 });

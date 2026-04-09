@@ -16,9 +16,13 @@ function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 0 }) + ' €';
 }
 
-const PLAN_META: Record<string, { bg: string; text: string; label: string; maxAgents: number; maxClients: number; maxProducts: number }> = {
-  agency:     { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia',     maxAgents: 10,  maxClients: 500, maxProducts: 5000    },
-  agency_pro: { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro', maxAgents: 999, maxClients: 999999, maxProducts: 999999 },
+const PLAN_META: Record<string, { bg: string; text: string; label: string; maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
+  free:       { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free',        maxAgents: 1,   maxClients: 10,     maxProducts: 50,     price: 0  },
+  free_pro:   { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free Pro',    maxAgents: 5,   maxClients: 500,    maxProducts: 5000,   price: 0  },
+  basic:      { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico',      maxAgents: 1,   maxClients: 50,     maxProducts: 500,    price: 9  },
+  pro:        { bg: '#EEEDFE', text: '#3C3489', label: 'Pro',         maxAgents: 1,   maxClients: 500,    maxProducts: 5000,   price: 19 },
+  agency:     { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia',     maxAgents: 10,  maxClients: 500,    maxProducts: 5000,   price: 39 },
+  agency_pro: { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro', maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 79 },
 };
 
 function UsageBar({ label, current, max }: { label: string; current: number; max: number }) {
@@ -64,11 +68,10 @@ export default function AdminEmpresaDetailScreen() {
   const plan = PLAN_META[company.plan] ?? PLAN_META.agency;
   const initials = company.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
-  // Facturación mensual: plan base + agentes extra
-  const basePrice = company.plan === 'agency' ? 45 : 150;
-  const agentPrice = company.plan === 'agency' ? 15 : 20;
   const activeAgentCount = agents.filter(a => a.active).length;
-  const monthlyTotal = basePrice + activeAgentCount * agentPrice;
+  // Facturación mensual: precio del plan × agentes activos
+  const basePrice = plan.price ?? 0;
+  const monthlyTotal = basePrice * activeAgentCount;
 
   // Upgrade suggestion: show if agency plan and usage > 70%
   const showUpgrade = company.plan === 'agency' && (
@@ -196,7 +199,7 @@ export default function AdminEmpresaDetailScreen() {
           <Text style={[styles.kpiLabel, { color: '#AFA9EC' }]}>Facturación mensual</Text>
           <Text style={[styles.kpiValue, { color: '#fff' }]}>{formatEur(monthlyTotal)}</Text>
           <Text style={[styles.kpiSub, { color: '#AFA9EC' }]}>
-            {basePrice} € base + {activeAgentCount} × {agentPrice} €
+            {activeAgentCount} agentes × {basePrice} €/mes
           </Text>
         </View>
       </View>

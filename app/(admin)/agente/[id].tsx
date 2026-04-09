@@ -13,14 +13,22 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-const PLAN_META: Record<string, { bg: string; text: string; label: string; price: string }> = {
-  basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico',      price: '9 €/mes'  },
-  pro:         { bg: '#EEEDFE', text: '#3C3489', label: 'Pro',          price: '19 €/mes' },
-  agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia',      price: '39 €/mes' },
-  agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro',  price: '79 €/mes' },
+const PLAN_META: Record<string, { bg: string; text: string; label: string; price: string; free?: boolean }> = {
+  free:        { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free',         price: 'Gratis',   free: true },
+  free_pro:    { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free Pro',     price: 'Gratis',   free: true },
+  basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico',       price: '9 €/mes'  },
+  pro:         { bg: '#EEEDFE', text: '#3C3489', label: 'Pro',           price: '19 €/mes' },
+  agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia',       price: '39 €/mes' },
+  agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro',   price: '79 €/mes' },
 };
 
-const PLANS = ['basic', 'pro', 'agency', 'agency_pro'] as const;
+const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency', 'agency_pro'] as const;
+
+const DURATIONS = [
+  { label: '15 días', days: 15 },
+  { label: '1 mes',   days: 30 },
+  { label: 'Ilimitado', days: null },
+];
 
 export default function AdminAgenteDetailScreen() {
   const router = useRouter();
@@ -28,6 +36,8 @@ export default function AdminAgenteDetailScreen() {
   const { agent, clientCount, orderCount, supplierCount, loading } = useAdminAgentDetail(id);
   const { updateAgentPlan, toggleAgentActive } = useAdminAgents();
   const [changingPlan, setChangingPlan] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[number] | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(30);
 
   if (loading || !agent) {
     return (
@@ -40,21 +50,23 @@ export default function AdminAgenteDetailScreen() {
   const plan = PLAN_META[agent.plan] ?? PLAN_META.basic;
   const initials = agent.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
-  function handleChangePlan(newPlan: typeof PLANS[number]) {
-    Alert.alert(
-      'Cambiar plan',
-      `¿Cambiar a ${agent!.name} al plan ${PLAN_META[newPlan].label} (${PLAN_META[newPlan].price})?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            await updateAgentPlan(agent!.id, newPlan);
-            setChangingPlan(false);
-          },
-        },
-      ]
-    );
+  function handleSelectPlan(newPlan: typeof PLANS[number]) {
+    setSelectedPlan(newPlan);
+    setSelectedDuration(PLAN_META[newPlan].free ? 30 : null);
+  }
+
+  async function confirmPlanChange() {
+    if (!selectedPlan) return;
+    const pm = PLAN_META[selectedPlan];
+    let expiresAt: string | null = null;
+    if (pm.free && selectedDuration !== null) {
+      const d = new Date();
+      d.setDate(d.getDate() + selectedDuration);
+      expiresAt = d.toISOString();
+    }
+    await updateAgentPlan(agent!.id, selectedPlan, expiresAt);
+    setChangingPlan(false);
+    setSelectedPlan(null);
   }
 
   function handleToggleActive() {
@@ -133,20 +145,53 @@ export default function AdminAgenteDetailScreen() {
               {PLANS.map(p => {
                 const pm = PLAN_META[p];
                 const isActive = p === agent.plan;
+                const isSelected = p === selectedPlan;
                 return (
                   <TouchableOpacity
                     key={p}
-                    style={[styles.planOpt, isActive && styles.planOptSelected]}
-                    onPress={() => handleChangePlan(p)}
-                    disabled={isActive}
+                    style={[styles.planOpt, isActive && styles.planOptActive, isSelected && styles.planOptSelected]}
+                    onPress={() => handleSelectPlan(p)}
                   >
-                    <Text style={[styles.planOptName, isActive && styles.planOptNameSelected]}>
+                    <Text style={[styles.planOptName, (isActive || isSelected) && styles.planOptNameSelected]}>
                       {pm.label}
                     </Text>
                     <Text style={styles.planOptPrice}>{pm.price}</Text>
+                    {isActive && <Text style={styles.planOptCurrent}>actual</Text>}
                   </TouchableOpacity>
                 );
               })}
+
+              {/* Selector de duración para planes free */}
+              {selectedPlan && PLAN_META[selectedPlan].free && (
+                <View style={styles.durationWrap}>
+                  <Text style={styles.durationTitle}>Duración del acceso gratuito</Text>
+                  <View style={styles.durationRow}>
+                    {DURATIONS.map(d => (
+                      <TouchableOpacity
+                        key={d.label}
+                        style={[styles.durationOpt, selectedDuration === d.days && styles.durationOptSelected]}
+                        onPress={() => setSelectedDuration(d.days)}
+                      >
+                        <Text style={[styles.durationOptText, selectedDuration === d.days && styles.durationOptTextSelected]}>
+                          {d.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Botón confirmar */}
+              {selectedPlan && (
+                <TouchableOpacity style={styles.confirmBtn} onPress={confirmPlanChange}>
+                  <Text style={styles.confirmBtnText}>
+                    Confirmar — {PLAN_META[selectedPlan].label}
+                    {PLAN_META[selectedPlan].free && selectedDuration
+                      ? ` (${DURATIONS.find(d => d.days === selectedDuration)?.label})`
+                      : PLAN_META[selectedPlan].free ? ' (Ilimitado)' : ''}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -257,10 +302,27 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#e8e8e8',
     borderRadius: 10, padding: 10,
   },
+  planOptActive: { borderColor: '#ccc', backgroundColor: '#fafafa' },
   planOptSelected: { borderColor: '#534AB7', backgroundColor: '#EEEDFE' },
   planOptName: { fontSize: 12, fontWeight: '500', color: '#1a1a1a' },
   planOptNameSelected: { color: '#3C3489' },
   planOptPrice: { fontSize: 11, color: '#999', marginTop: 2 },
+  planOptCurrent: { fontSize: 9, color: '#999', marginTop: 2 },
+  durationWrap: { width: '100%', marginTop: 4 },
+  durationTitle: { fontSize: 12, color: '#666', marginBottom: 8 },
+  durationRow: { flexDirection: 'row', gap: 8 },
+  durationOpt: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    borderWidth: 1.5, borderColor: '#e8e8e8', alignItems: 'center',
+  },
+  durationOptSelected: { borderColor: '#534AB7', backgroundColor: '#EEEDFE' },
+  durationOptText: { fontSize: 12, color: '#555' },
+  durationOptTextSelected: { color: '#3C3489', fontWeight: '600' },
+  confirmBtn: {
+    width: '100%', paddingVertical: 11, borderRadius: 10,
+    backgroundColor: '#534AB7', alignItems: 'center', marginTop: 4,
+  },
+  confirmBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
   dangerCard: {
     backgroundColor: '#fff', borderRadius: 12,
     borderWidth: 0.5, borderColor: '#e8e8e8',
