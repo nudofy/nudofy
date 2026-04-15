@@ -343,14 +343,7 @@ function PortalTab({ client }: { client: Client }) {
   }
 
   function handleInvite() {
-    Alert.alert(
-      sent ? 'Reenviar acceso' : 'Crear acceso al portal',
-      `Se creará una cuenta para:\n${client.email}`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: sent ? 'Recrear' : 'Crear', onPress: sendInvite },
-      ]
-    );
+    sendInvite();
   }
 
   return (
