@@ -320,20 +320,26 @@ function PortalTab({ client }: { client: Client }) {
       return;
     }
     setSending(true);
-    const { error } = await supabase.functions.invoke('invite-client', {
-      body: { email: client.email, clientName: client.name },
-    });
-    setSending(false);
-    if (error) {
-      if (error.message?.toLowerCase().includes('already')) {
-        Alert.alert('Ya registrado', 'Este cliente ya tiene acceso al portal.');
-      } else {
-        Alert.alert('Error', error.message ?? 'Error al crear el acceso');
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-client', {
+        body: { email: client.email, clientName: client.name },
+      });
+      if (error) {
+        const msg = error.message ?? '';
+        if (msg.toLowerCase().includes('already')) {
+          Alert.alert('Ya registrado', 'Este cliente ya tiene acceso al portal.');
+        } else {
+          Alert.alert('Error', msg || 'Error al crear el acceso');
+        }
+        return;
       }
-      return;
+      setSent(true);
+      Alert.alert('Acceso creado', `Se ha enviado un email a ${client.email} con sus credenciales de acceso.`);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Error inesperado. Inténtalo de nuevo.');
+    } finally {
+      setSending(false);
     }
-    setSent(true);
-    Alert.alert('Acceso creado', `Se ha enviado un email a ${client.email} con sus credenciales de acceso.`);
   }
 
   function handleInvite() {
