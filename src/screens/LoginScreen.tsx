@@ -5,14 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   ActivityIndicator,
   Linking,
-  Alert,
-} from 'react-native';
+  Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -174,55 +173,45 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
+    backgroundColor: colors.white },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 28,
     paddingTop: 32,
-    paddingBottom: 28,
-  },
+    paddingBottom: 28 },
   backBtn: {
     marginBottom: 32,
-    alignSelf: 'flex-start',
-  },
+    alignSelf: 'flex-start' },
   backText: {
     fontSize: 14,
-    color: colors.purple,
-  },
+    color: colors.purple },
   title: {
     fontSize: 26,
     fontWeight: '500',
     color: colors.text,
     letterSpacing: -0.3,
-    marginBottom: 6,
-  },
+    marginBottom: 6 },
   subtitle: {
     fontSize: 14,
     color: colors.textLight,
     marginBottom: 36,
-    lineHeight: 20,
-  },
+    lineHeight: 20 },
   errorBox: {
     backgroundColor: colors.redLight,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   errorText: {
     fontSize: 13,
-    color: colors.red,
-  },
+    color: colors.red },
   formGroup: {
-    marginBottom: 18,
-  },
+    marginBottom: 18 },
   label: {
     fontSize: 12,
     fontWeight: '500',
     color: colors.textSecondary,
-    marginBottom: 7,
-  },
+    marginBottom: 7 },
   input: {
     width: '100%',
     paddingHorizontal: 16,
@@ -232,61 +221,48 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     fontSize: 15,
     color: colors.text,
-    backgroundColor: colors.white,
-  },
+    backgroundColor: colors.white },
   inputActive: {
-    borderColor: colors.purple,
-  },
+    borderColor: colors.purple },
   inputWrap: {
-    position: 'relative',
-  },
+    position: 'relative' },
   eyeBtn: {
     position: 'absolute',
     right: 14,
     top: 0,
     bottom: 0,
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   eyeIcon: {
-    fontSize: 16,
-  },
+    fontSize: 16 },
   forgot: {
     fontSize: 13,
     color: colors.purple,
     textAlign: 'right',
-    marginTop: 8,
-  },
+    marginTop: 8 },
   btnPrimary: {
     paddingVertical: 16,
     borderRadius: 14,
     backgroundColor: colors.purple,
     alignItems: 'center',
-    marginTop: 8,
-  },
+    marginTop: 8 },
   btnDisabled: {
-    opacity: 0.7,
-  },
+    opacity: 0.7 },
   btnPrimaryText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '500',
-  },
+    fontWeight: '500' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
     marginTop: 'auto',
-    paddingTop: 24,
-  },
+    paddingTop: 24 },
   footerLink: {
     fontSize: 12,
-    color: colors.textMuted,
-  },
+    color: colors.textMuted },
   footerSep: {
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#dddddd',
-  },
-});
+    backgroundColor: '#dddddd' } });

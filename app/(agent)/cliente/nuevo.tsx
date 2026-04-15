@@ -2,8 +2,10 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput, Alert, ActivityIndicator,
+  StyleSheet, TextInput, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import { useClients } from '@/hooks/useAgent';
@@ -19,6 +21,7 @@ export default function NuevoClienteScreen() {
     email: '',
     phone: '',
     address: '',
+    contact_name: '',
     client_type: '',
     payment_method: '',
     iban: '',
@@ -49,28 +52,31 @@ export default function NuevoClienteScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Section title="Datos del establecimiento">
-          <FormField label="Nombre *" value={form.name} onChangeText={set('name')} placeholder="Juguetería El Globo" />
-          <FormField label="Tipo de establecimiento" value={form.client_type} onChangeText={set('client_type')} placeholder="Juguetería, Farmacia..." />
-          <FormField label="Dirección" value={form.address} onChangeText={set('address')} placeholder="C/ Mayor 14, Madrid" />
-        </Section>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Section title="Datos del establecimiento">
+            <FormField label="Nombre *" value={form.name} onChangeText={set('name')} placeholder="Nombre del establecimiento" />
+            <FormField label="Tipo de establecimiento" value={form.client_type} onChangeText={set('client_type')} placeholder="Tipo de negocio" />
+            <FormField label="Dirección" value={form.address} onChangeText={set('address')} placeholder="Dirección" />
+          </Section>
 
-        <Section title="Datos fiscales">
-          <FormField label="Nombre fiscal" value={form.fiscal_name} onChangeText={set('fiscal_name')} placeholder="El Globo S.L." />
-          <FormField label="NIF / CIF" value={form.nif} onChangeText={set('nif')} placeholder="B-28456123" />
-        </Section>
+          <Section title="Datos fiscales">
+            <FormField label="Nombre fiscal" value={form.fiscal_name} onChangeText={set('fiscal_name')} placeholder="Nombre fiscal o razón social" />
+            <FormField label="NIF / CIF" value={form.nif} onChangeText={set('nif')} placeholder="NIF o CIF" />
+          </Section>
 
-        <Section title="Contacto">
-          <FormField label="Teléfono" value={form.phone} onChangeText={set('phone')} placeholder="+34 91 234 56 78" keyboardType="phone-pad" />
-          <FormField label="Email" value={form.email} onChangeText={set('email')} placeholder="contacto@establecimiento.com" keyboardType="email-address" />
-        </Section>
+          <Section title="Contacto">
+            <FormField label="Persona de contacto" value={form.contact_name} onChangeText={set('contact_name')} placeholder="Nombre del contacto" />
+            <FormField label="Teléfono" value={form.phone} onChangeText={set('phone')} placeholder="+34 91 234 56 78" keyboardType="phone-pad" />
+            <FormField label="Email" value={form.email} onChangeText={set('email')} placeholder="contacto@establecimiento.com" keyboardType="email-address" />
+          </Section>
 
-        <Section title="Condiciones comerciales">
-          <FormField label="Forma de pago" value={form.payment_method} onChangeText={set('payment_method')} placeholder="30 días factura" />
-          <FormField label="IBAN" value={form.iban} onChangeText={set('iban')} placeholder="ES76 2100 0418 ..." />
-        </Section>
-      </ScrollView>
+          <Section title="Condiciones comerciales">
+            <FormField label="Forma de pago" value={form.payment_method} onChangeText={set('payment_method')} placeholder="30 días factura" />
+            <FormField label="IBAN" value={form.iban} onChangeText={set('iban')} placeholder="ES76 2100 0418 ..." />
+          </Section>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

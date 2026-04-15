@@ -2,8 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput,
-} from 'react-native';
+  StyleSheet, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -130,14 +130,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-  },
+    borderBottomColor: '#efefef' },
   title: { fontSize: 18, fontWeight: '500', color: colors.text },
   addBtn: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.purple,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   addBtnText: { color: colors.white, fontSize: 20, lineHeight: 22 },
   searchWrap: {
     backgroundColor: colors.white,
@@ -146,8 +144,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-  },
+    borderBottomColor: '#efefef' },
   searchIcon: { fontSize: 14, marginRight: 8 },
   searchInput: {
     flex: 1,
@@ -158,20 +155,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderWidth: 1,
-    borderColor: colors.border,
-  },
+    borderColor: colors.border },
   filtersBar: {
     backgroundColor: colors.white,
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef',
-    maxHeight: 48,
-  },
+    maxHeight: 48 },
   filtersContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 7, flexDirection: 'row' },
   pill: {
     paddingHorizontal: 13, paddingVertical: 5,
     borderRadius: 20, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.white,
-  },
+    backgroundColor: colors.white },
   pillActive: { backgroundColor: colors.purple, borderColor: colors.purple },
   pillText: { fontSize: 12, fontWeight: '500', color: '#666' },
   pillTextActive: { color: colors.white },
@@ -182,8 +176,7 @@ const styles = StyleSheet.create({
     padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12 },
   cardBody: { flex: 1, minWidth: 0 },
   cardName: { fontSize: 14, fontWeight: '500', color: colors.text },
   cardMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
@@ -193,11 +186,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    alignSelf: 'flex-start',
-  },
+    alignSelf: 'flex-start' },
   typeTagText: { fontSize: 10, color: colors.purpleDark, fontWeight: '500' },
   cardRight: { alignItems: 'flex-end' },
   cardAmount: { fontSize: 13, fontWeight: '500', color: colors.text },
   cardDate: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 },
-});
+  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });

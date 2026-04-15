@@ -2,8 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput, FlatList,
-} from 'react-native';
+  StyleSheet, TextInput, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -184,8 +184,7 @@ function SupplierCard({ supplier, onPress }: { supplier: PortalSupplier; onPress
 
 // ——— Product grid con carrito ———
 function ProductGrid({
-  products, supplierId, supplierName, catalogId, catalogName, agentId, clientId, onGoCart,
-}: {
+  products, supplierId, supplierName, catalogId, catalogName, agentId, clientId, onGoCart }: {
   products: PortalProduct[];
   supplierId: string; supplierName: string;
   catalogId: string; catalogName: string;
@@ -204,8 +203,7 @@ function ProductGrid({
       name: product.name,
       reference: product.reference,
       unit_price: product.price,
-      quantity: qty + 1,
-    });
+      quantity: qty + 1 });
   }
 
   function handleIncrement(product: PortalProduct) {
@@ -286,8 +284,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center',
     borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-    gap: 10,
-  },
+    gap: 10 },
   backBtn: { padding: 2 },
   back: { fontSize: 20, color: colors.purple },
   title: { fontSize: 17, fontWeight: '500', color: colors.text },
@@ -297,22 +294,19 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, right: 0,
     backgroundColor: colors.purple,
     borderRadius: 8, minWidth: 16, height: 16,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   cartBadgeText: { color: colors.white, fontSize: 9, fontWeight: '700' },
   searchWrap: {
     backgroundColor: colors.white,
     paddingHorizontal: 14, paddingVertical: 9,
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-  },
+    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
   searchIcon: { fontSize: 14 },
   searchInput: {
     flex: 1, fontSize: 13, color: colors.text,
     backgroundColor: colors.bg, borderRadius: 10,
     paddingHorizontal: 11, paddingVertical: 8,
-    borderWidth: 1, borderColor: colors.border,
-  },
+    borderWidth: 1, borderColor: colors.border },
   camBtn: { padding: 4 },
   camIcon: { fontSize: 20 },
   gridContent: { padding: 12 },
@@ -322,23 +316,19 @@ const styles = StyleSheet.create({
     width: '47%',
     backgroundColor: colors.white,
     borderRadius: 14, padding: 16,
-    alignItems: 'center', gap: 10,
-  },
+    alignItems: 'center', gap: 10 },
   supplierLogo: {
     width: 56, height: 56, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   supplierLogoText: { fontSize: 22, fontWeight: '600' },
   supplierName: { fontSize: 13, fontWeight: '500', color: colors.text, textAlign: 'center' },
   catalogCard: {
     backgroundColor: colors.white, borderRadius: 12,
-    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
-  },
+    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   catalogIcon: {
     width: 42, height: 42, borderRadius: 11,
     backgroundColor: colors.purpleLight,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   catalogIconText: { fontSize: 20, color: colors.purple },
   catalogBody: { flex: 1 },
   catalogName: { fontSize: 14, fontWeight: '500', color: colors.text },
@@ -351,12 +341,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 10,
-  },
+    marginBottom: 10 },
   productImg: {
     height: 100, backgroundColor: colors.bg,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   productEmoji: { fontSize: 36 },
   productBody: { padding: 10, gap: 2 },
   productName: { fontSize: 13, fontWeight: '500', color: colors.text },
@@ -365,35 +353,29 @@ const styles = StyleSheet.create({
   addBtn: {
     margin: 8, marginTop: 4,
     backgroundColor: colors.purple,
-    borderRadius: 8, paddingVertical: 8, alignItems: 'center',
-  },
+    borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
   addBtnText: { color: colors.white, fontSize: 12, fontWeight: '500' },
   qtyRow: {
     flexDirection: 'row', alignItems: 'center',
     margin: 8, marginTop: 4,
     backgroundColor: colors.purpleLight,
-    borderRadius: 8, overflow: 'hidden',
-  },
+    borderRadius: 8, overflow: 'hidden' },
   qtyBtn: {
     width: 36, height: 32,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   qtyBtnText: { fontSize: 18, color: colors.purple, fontWeight: '500' },
   qtyValue: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '500', color: colors.purple },
   inCartBadge: {
     marginHorizontal: 8, marginBottom: 8,
     backgroundColor: colors.greenLight,
-    borderRadius: 6, paddingVertical: 3, alignItems: 'center',
-  },
+    borderRadius: 6, paddingVertical: 3, alignItems: 'center' },
   inCartText: { fontSize: 10, color: colors.green, fontWeight: '500' },
   cartBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: colors.purple,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 14,
-  },
+    paddingHorizontal: 20, paddingVertical: 14 },
   cartBarTitle: { color: colors.white, fontSize: 14, fontWeight: '600' },
   cartBarSub: { color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 1 },
   cartBarTotal: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 },
-});
+  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });

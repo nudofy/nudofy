@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nudofy",
     "slug": "nudofy",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.nudofy.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para subir el logo del proveedor."
       }
     },
     "android": {
@@ -23,7 +24,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#534AB7"
       },
-      "package": "com.nudofy.app"
+      "package": "com.nudofy.app",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#534AB7"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,6 +39,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      "expo-document-picker",
       [
         "expo-build-properties",
         {

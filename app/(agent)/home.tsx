@@ -2,15 +2,15 @@
 import React from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, RefreshControl,
+  StyleSheet, RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import StatusBadge from '@/components/StatusBadge';
-import { useAuth } from '@/contexts/AuthContext';
-import { useDashboardKPIs } from '@/hooks/useAgent';
+import { useDashboardKPIs, useAgent } from '@/hooks/useAgent';
 import type { Order } from '@/hooks/useAgent';
 
 function formatEur(n: number) {
@@ -30,11 +30,11 @@ function formatRelativeDate(iso: string) {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { agent } = useAgent();
   const { kpis, recentOrders, loading } = useDashboardKPIs();
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const firstName = profile?.name?.split(' ')[0] ?? 'Agente';
+  const firstName = agent?.name?.split(' ')[0] ?? '...';
 
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Buenos días' : now.getHours() < 20 ? 'Buenas tardes' : 'Buenas noches';
@@ -49,7 +49,7 @@ export default function HomeScreen() {
 
   const quickActions = [
     { icon: '＋', label: 'Nuevo pedido', sub: 'Selecciona cliente', bg: '#EEEDFE', iconColor: colors.purple, route: '/(agent)/pedido/nuevo' },
-    { icon: '▦', label: 'Mis catálogos', sub: `Proveedores`, bg: '#E1F5EE', iconColor: '#1D9E75', route: '/(agent)/catalogos' },
+    { icon: '▦', label: 'Proveedores', sub: 'Ver', bg: '#E1F5EE', iconColor: '#1D9E75', route: '/(agent)/catalogos' },
     { icon: '≡', label: 'Mis pedidos', sub: 'Realizados · Pendientes', bg: '#FAEEDA', iconColor: colors.amber, route: '/(agent)/pedidos' },
     { icon: '＋', label: 'Añadir cliente', sub: 'Dar de alta', bg: '#E6F1FB', iconColor: '#185FA5', route: '/(agent)/cliente/nuevo' },
     { icon: '▲', label: 'Estadísticas', sub: 'Ventas y rendimiento', bg: '#FBEAF0', iconColor: '#993556', route: '/(agent)/mas' },
@@ -64,9 +64,6 @@ export default function HomeScreen() {
           <Text style={styles.date}>{dateCapitalized}</Text>
         </View>
         <View style={styles.topbarActions}>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Text style={styles.iconEmoji}>✉</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/(agent)/pedidos')}>
             <Text style={styles.iconEmoji}>🔔</Text>
           </TouchableOpacity>

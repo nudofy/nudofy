@@ -2,8 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput,
-} from 'react-native';
+  StyleSheet, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -17,8 +17,7 @@ type TabKey = 'realizados' | 'pendientes' | 'cancelados';
 const TAB_STATUS: Record<TabKey, Order['status'][]> = {
   realizados: ['sent_to_supplier', 'confirmed'],
   pendientes: ['confirmed'],
-  cancelados: ['cancelled'],
-};
+  cancelados: ['cancelled'] };
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -175,15 +174,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-  },
+    borderBottomColor: '#efefef' },
   back: { fontSize: 13, color: colors.purple, marginRight: 10 },
   title: { flex: 1, fontSize: 17, fontWeight: '500', color: colors.text },
   newBtn: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.purple,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   newBtnText: { color: colors.white, fontSize: 20, lineHeight: 22 },
   searchWrap: {
     backgroundColor: colors.white,
@@ -193,8 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef',
-    gap: 8,
-  },
+    gap: 8 },
   searchIcon: { fontSize: 14 },
   searchInput: {
     flex: 1,
@@ -205,15 +201,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: colors.border,
-  },
+    borderColor: colors.border },
   tabBar: {
     backgroundColor: colors.white,
     flexDirection: 'row',
     paddingHorizontal: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-  },
+    borderBottomColor: '#efefef' },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' },
   tabInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   tabText: { fontSize: 12, fontWeight: '500', color: colors.textMuted },
@@ -225,8 +219,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     padding: 12,
-    paddingBottom: 4,
-  },
+    paddingBottom: 4 },
   kpi: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 10, alignItems: 'center' },
   kpiV: { fontSize: 17, fontWeight: '500', color: colors.text },
   kpiL: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
@@ -247,16 +240,13 @@ const styles = StyleSheet.create({
     borderTopColor: '#f5f5f5',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   cardActions: { flexDirection: 'row', gap: 6 },
   actBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 7,
     borderWidth: 1,
-    borderColor: colors.border,
-  },
+    borderColor: colors.border },
   actBtnText: { fontSize: 10, fontWeight: '500', color: colors.purple },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 },
-});
+  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });

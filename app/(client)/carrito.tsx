@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput, Alert,
-} from 'react-native';
+  StyleSheet, TextInput, Alert,
+  KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -60,7 +61,7 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
         {carts.length === 0 && (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>🛒</Text>
@@ -111,8 +112,7 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
 
 // ——— Detalle de un carrito ———
 function CartDetail({
-  cart, onBack, onConfirmed,
-}: {
+  cart, onBack, onConfirmed }: {
   cart: Cart; onBack: () => void; onConfirmed: (orderId: string) => void;
 }) {
   const { updateQty, removeItem, setCartNotes, clearCart } = useCart();
@@ -133,10 +133,8 @@ function CartDetail({
       items: cart.items.map(i => ({
         product_id: i.product_id,
         unit_price: i.unit_price,
-        quantity: i.quantity,
-      })),
-      notes: cart.notes,
-    });
+        quantity: i.quantity })),
+      notes: cart.notes });
     setConfirming(false);
     if (error) { Alert.alert('Error', error); return; }
     clearCart(cart.supplier_id);
@@ -155,7 +153,8 @@ function CartDetail({
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.detailContent} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.detailContent} showsVerticalScrollIndicator={false}>
         {/* Líneas */}
         <View style={styles.block}>
           <Text style={styles.blockTitle}>Artículos ({cartUnits})</Text>
@@ -233,6 +232,7 @@ function CartDetail({
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -253,8 +253,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center',
     borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-    gap: 10,
-  },
+    gap: 10 },
   backBtn: { padding: 2 },
   back: { fontSize: 20, color: colors.purple },
   topbarCenter: { flex: 1 },
@@ -265,8 +264,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef',
-    paddingVertical: 12,
-  },
+    paddingVertical: 12 },
   kpiItem: { flex: 1, alignItems: 'center' },
   kpiValue: { fontSize: 18, fontWeight: '600', color: colors.text },
   kpiLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
@@ -275,27 +273,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 16, padding: 28,
     alignItems: 'center', gap: 8,
-    marginTop: 16,
-  },
+    marginTop: 16 },
   emptyIcon: { fontSize: 36 },
   emptyTitle: { fontSize: 16, fontWeight: '500', color: colors.text },
   emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   emptyBtn: {
     marginTop: 8, backgroundColor: colors.purple,
-    borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10,
-  },
+    borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
   emptyBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' },
   cartCard: {
-    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden',
-  },
+    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
   cartCardHead: {
-    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
-  },
+    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cartLogo: {
     width: 44, height: 44, borderRadius: 12,
     backgroundColor: colors.purpleLight,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   cartLogoText: { fontSize: 18, fontWeight: '600', color: colors.purple },
   cartCardBody: { flex: 1 },
   cartSupplier: { fontSize: 15, fontWeight: '500', color: colors.text },
@@ -304,26 +297,22 @@ const styles = StyleSheet.create({
   cartCardFoot: {
     paddingHorizontal: 14, paddingVertical: 10,
     flexDirection: 'row', justifyContent: 'space-between',
-    borderTopWidth: 0.5, borderTopColor: colors.borderLight,
-  },
+    borderTopWidth: 0.5, borderTopColor: colors.borderLight },
   cartMeta: { fontSize: 11, color: colors.textMuted },
   cartTotal: { fontSize: 14, fontWeight: '600', color: colors.purple },
   detailContent: { padding: 12, gap: 10 },
   block: {
     backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden',
-    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4,
-  },
+    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
   blockTitle: {
     fontSize: 11, fontWeight: '500', color: colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 10,
-  },
+    marginBottom: 10 },
   lineRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     paddingVertical: 10,
     borderTopWidth: 0.5, borderTopColor: colors.borderLight,
-    gap: 10,
-  },
+    gap: 10 },
   lineBody: { flex: 1 },
   lineName: { fontSize: 13, fontWeight: '500', color: colors.text },
   lineRef: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
@@ -333,8 +322,7 @@ const styles = StyleSheet.create({
   removeBtn: { fontSize: 13, color: colors.red, padding: 4 },
   qtyRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.purpleLight, borderRadius: 8, overflow: 'hidden',
-  },
+    backgroundColor: colors.purpleLight, borderRadius: 8, overflow: 'hidden' },
   qtyBtn: { width: 32, height: 28, alignItems: 'center', justifyContent: 'center' },
   qtyBtnText: { fontSize: 16, color: colors.purple, fontWeight: '500' },
   qtyValue: { paddingHorizontal: 10, fontSize: 13, fontWeight: '500', color: colors.purple },
@@ -343,26 +331,21 @@ const styles = StyleSheet.create({
     borderRadius: 10, padding: 10,
     fontSize: 13, color: colors.text,
     minHeight: 80, textAlignVertical: 'top',
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   totalBlock: {
     backgroundColor: colors.white, borderRadius: 14,
-    padding: 16, gap: 4,
-  },
+    padding: 16, gap: 4 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 15, fontWeight: '500', color: colors.text },
   totalValue: { fontSize: 20, fontWeight: '700', color: colors.purple },
   totalUnits: { fontSize: 11, color: colors.textMuted },
   agentInfo: {
     backgroundColor: colors.greenLight,
-    borderRadius: 12, padding: 12,
-  },
+    borderRadius: 12, padding: 12 },
   agentInfoText: { fontSize: 13, color: colors.green, textAlign: 'center' },
   agentInfoName: { fontWeight: '600' },
   confirmBtn: {
     backgroundColor: colors.green,
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center',
-  },
+    borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   confirmBtnDisabled: { opacity: 0.6 },
-  confirmBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' },
-});
+  confirmBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' } });

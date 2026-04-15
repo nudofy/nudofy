@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 
@@ -18,9 +19,10 @@ const TABS: { key: ClientTab; label: string; route: string; icon: string }[] = [
 
 export default function ClientBottomTabBar({ activeTab }: Props) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 6) }]}>
       {TABS.map(tab => {
         const isActive = tab.key === activeTab;
         return (
@@ -48,7 +50,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 0.5,
     borderTopColor: colors.border,
-    paddingBottom: 6,
+    paddingBottom: 0,
     paddingTop: 4,
   },
   tab: {

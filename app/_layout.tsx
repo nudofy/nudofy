@@ -1,11 +1,29 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 function RootLayoutNav() {
   const { session, profile, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  // Procesar deep links (magic link de invitación al portal)
+  useEffect(() => {
+    async function handleUrl(url: string) {
+      const parsed = Linking.parse(url);
+      const code = parsed.queryParams?.code as string | undefined;
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
+      }
+    }
+
+    Linking.getInitialURL().then(url => { if (url) handleUrl(url); });
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -46,8 +64,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

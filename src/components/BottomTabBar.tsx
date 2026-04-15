@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import { colors } from '@/theme/colors';
 
@@ -81,16 +82,17 @@ const IconMas = ({ active }: { active: boolean }) => (
 const TABS: Tab[] = [
   { key: 'home', label: 'Inicio', route: '/(agent)/home', icon: (a) => <IconHome active={a} /> },
   { key: 'clientes', label: 'Clientes', route: '/(agent)/clientes', icon: (a) => <IconClientes active={a} /> },
-  { key: 'catalogos', label: 'Catálogos', route: '/(agent)/catalogos', icon: (a) => <IconCatalogos active={a} /> },
+  { key: 'catalogos', label: 'Proveedores', route: '/(agent)/catalogos', icon: (a) => <IconCatalogos active={a} /> },
   { key: 'pedidos', label: 'Pedidos', route: '/(agent)/pedidos', icon: (a) => <IconPedidos active={a} /> },
   { key: 'mas', label: 'Más', route: '/(agent)/mas', icon: (a) => <IconMas active={a} /> },
 ];
 
 export default function BottomTabBar({ activeTab }: { activeTab: string }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       {TABS.map(tab => {
         const active = activeTab === tab.key;
         return (
@@ -117,7 +119,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: '#efefef',
     paddingTop: 10,
-    paddingBottom: 20,
   },
   tab: {
     flex: 1,

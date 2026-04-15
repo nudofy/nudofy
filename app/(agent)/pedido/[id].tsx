@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Alert, Share,
-} from 'react-native';
+  StyleSheet, Alert, Share } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
 import StatusBadge from '@/components/StatusBadge';
@@ -64,8 +64,7 @@ export default function PedidoScreen() {
 
   async function shareOrder() {
     await Share.share({
-      message: `Pedido ${order?.order_number} · ${formatEur(order?.total ?? 0)}\nNudofy`,
-    });
+      message: `Pedido ${order?.order_number} · ${formatEur(order?.total ?? 0)}\nNudofy` });
   }
 
   if (loading || !order) {
@@ -210,47 +209,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-  },
+    borderBottomColor: '#efefef' },
   back: { fontSize: 13, color: colors.purple, marginRight: 10 },
   title: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.text },
   content: { padding: 12, gap: 8 },
   statusBadge: {
-    borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-  },
+    borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   statusIcon: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: colors.green,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   statusIconText: { color: colors.white, fontSize: 18 },
   statusTitle: { fontSize: 13, fontWeight: '500', color: '#27500A' },
   statusDate: { fontSize: 11, color: colors.green, marginTop: 2 },
   orderNumBadge: {
     backgroundColor: colors.white, borderRadius: 6,
-    paddingHorizontal: 8, paddingVertical: 2, marginTop: 4, alignSelf: 'flex-start',
-  },
+    paddingHorizontal: 8, paddingVertical: 2, marginTop: 4, alignSelf: 'flex-start' },
   orderNum: { fontSize: 11, fontWeight: '500', color: colors.green },
   block: { backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' },
   blockHeader: {
     padding: 9, paddingHorizontal: 13,
     borderBottomWidth: 0.5, borderBottomColor: colors.borderLight,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-  },
+    flexDirection: 'row', alignItems: 'center', gap: 8 },
   blockIcon: { width: 22, height: 22, borderRadius: 6 },
   blockTitle: { fontSize: 11, fontWeight: '500', color: '#555' },
   dataRow: {
     paddingHorizontal: 13, paddingVertical: 8,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 10,
-  },
+    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 10 },
   dataLabel: { fontSize: 11, color: colors.textMuted, flex: 1 },
   dataValue: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'right', flex: 1 },
   dataValueBold: { color: colors.purple, fontSize: 13 },
   notesCard: {
     backgroundColor: colors.white, borderRadius: 12,
-    padding: 12, gap: 4,
-  },
+    padding: 12, gap: 4 },
   notesLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   notesText: { fontSize: 12, color: colors.text, lineHeight: 18 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
@@ -260,13 +252,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
-    gap: 6,
-  },
+    gap: 6 },
   actIcon: { fontSize: 20 },
   actLabel: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'center' },
   sendBtn: {
     backgroundColor: colors.navy,
-    borderRadius: 12, paddingVertical: 14, alignItems: 'center',
-  },
-  sendBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' },
-});
+    borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  sendBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' } });

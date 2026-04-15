@@ -2,8 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput,
-} from 'react-native';
+  StyleSheet, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -14,8 +14,7 @@ import type { Order } from '@/hooks/useAgent';
 const STATUS_LABELS: Record<string, string> = {
   confirmed: 'Recibido',
   sent_to_supplier: 'Enviado',
-  cancelled: 'Cancelado',
-};
+  cancelled: 'Cancelado' };
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -170,8 +169,7 @@ export default function ClientPedidosScreen() {
 }
 
 function FilterPill({
-  label, active, onPress, variant = 'status',
-}: {
+  label, active, onPress, variant = 'status' }: {
   label: string; active: boolean; onPress: () => void; variant?: 'status' | 'supplier';
 }) {
   return (
@@ -203,55 +201,46 @@ const styles = StyleSheet.create({
   topbar: {
     backgroundColor: colors.white,
     paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-  },
+    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
   title: { fontSize: 18, fontWeight: '500', color: colors.text },
   searchWrap: {
     backgroundColor: colors.white,
     paddingHorizontal: 14, paddingVertical: 9,
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-  },
+    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
   searchIcon: { fontSize: 14 },
   searchInput: {
     flex: 1, fontSize: 13, color: colors.text,
     backgroundColor: colors.bg, borderRadius: 10,
     paddingHorizontal: 11, paddingVertical: 8,
-    borderWidth: 1, borderColor: colors.border,
-  },
+    borderWidth: 1, borderColor: colors.border },
   filtersScroll: { maxHeight: 48, borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
   filtersContent: {
-    paddingHorizontal: 12, paddingVertical: 9, gap: 7, flexDirection: 'row',
-  },
+    paddingHorizontal: 12, paddingVertical: 9, gap: 7, flexDirection: 'row' },
   pill: {
     paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: 20, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.white,
-  },
+    backgroundColor: colors.white },
   pillActive: { backgroundColor: colors.purple, borderColor: colors.purple },
   pillSupplier: { borderColor: colors.blue, backgroundColor: colors.white },
   pillSupplierActive: { backgroundColor: colors.blue, borderColor: colors.blue },
   pillText: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
   pillTextActive: { color: colors.white },
   kpiRow: {
-    flexDirection: 'row', padding: 10, gap: 8, paddingBottom: 4,
-  },
+    flexDirection: 'row', padding: 10, gap: 8, paddingBottom: 4 },
   kpiCard: {
     flex: 1, backgroundColor: colors.white,
-    borderRadius: 10, padding: 10, alignItems: 'center',
-  },
+    borderRadius: 10, padding: 10, alignItems: 'center' },
   kpiValue: { fontSize: 16, fontWeight: '600', color: colors.text },
   kpiLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
   listContent: { padding: 10, gap: 7 },
   orderCard: {
-    backgroundColor: colors.white, borderRadius: 13, overflow: 'hidden',
-  },
+    backgroundColor: colors.white, borderRadius: 13, overflow: 'hidden' },
   cardHead: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   supplierLogo: {
     width: 40, height: 40, borderRadius: 11,
     backgroundColor: colors.purpleLight,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   supplierLogoText: { fontSize: 16, fontWeight: '600', color: colors.purple },
   cardBody: { flex: 1 },
   cardNum: { fontSize: 10, color: colors.textMuted },
@@ -262,7 +251,5 @@ const styles = StyleSheet.create({
   cardDate: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
   cardFoot: {
     paddingHorizontal: 13, paddingVertical: 8,
-    borderTopWidth: 0.5, borderTopColor: '#f5f5f5',
-  },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 },
-});
+    borderTopWidth: 0.5, borderTopColor: '#f5f5f5' },
+  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });

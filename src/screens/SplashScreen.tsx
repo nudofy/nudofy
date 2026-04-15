@@ -4,9 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  Linking,
-} from 'react-native';
+  Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 
@@ -75,76 +74,64 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
+    backgroundColor: colors.white },
   hero: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
     paddingTop: 40,
-    paddingBottom: 24,
-  },
+    paddingBottom: 24 },
   logoMark: {
     width: 72,
     height: 72,
     borderRadius: 20,
     backgroundColor: colors.purple,
     marginBottom: 20,
-    position: 'relative',
-  },
+    position: 'relative' },
   logoDot: {
     position: 'absolute',
     width: 11,
     height: 11,
     borderRadius: 6,
-    backgroundColor: colors.white,
-  },
+    backgroundColor: colors.white },
   appName: {
     fontSize: 32,
     fontWeight: '500',
     color: colors.text,
     letterSpacing: -0.5,
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   appSlogan: {
     fontSize: 15,
     color: colors.textLight,
     textAlign: 'center',
     lineHeight: 22,
-    maxWidth: 240,
-  },
+    maxWidth: 240 },
   dots: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: 32,
-  },
+    marginTop: 32 },
   dot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#e0e0e0',
-  },
+    backgroundColor: '#e0e0e0' },
   dotActive: {
     width: 20,
-    backgroundColor: colors.purple,
-  },
+    backgroundColor: colors.purple },
   actions: {
     paddingHorizontal: 28,
     paddingBottom: 12,
-    gap: 12,
-  },
+    gap: 12 },
   btnPrimary: {
     paddingVertical: 16,
     borderRadius: 14,
     backgroundColor: colors.purple,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   btnPrimaryText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '500',
-  },
+    fontWeight: '500' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,16 +141,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 28,
     borderTopWidth: 0.5,
-    borderTopColor: colors.borderLight,
-  },
+    borderTopColor: colors.borderLight },
   footerLink: {
     fontSize: 12,
-    color: colors.textMuted,
-  },
+    color: colors.textMuted },
   footerSep: {
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#d0d0d0',
-  },
-});
+    backgroundColor: '#d0d0d0' } });

@@ -1,10 +1,11 @@
-// A-07 · Nuevo pedido — flujo en 3 pasos:
-// 1. Seleccionar proveedor/catálogo  2. Añadir productos al carrito  3. Carrito + cliente
+// A-07 · Nuevo pedido — flujo:
+// 0. Elegir modo cliente  1. Proveedor/catálogo  2. Productos  3. Carrito + confirmar
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, TextInput, Alert, ActivityIndicator,
-} from 'react-native';
+  StyleSheet, TextInput, Alert, ActivityIndicator, Modal,
+  KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
 import Avatar from '@/components/Avatar';
@@ -12,11 +13,12 @@ import { useClients, useSuppliers, useCatalogs, useProducts, useAgent } from '@/
 import { supabase } from '@/lib/supabase';
 import type { Client, Supplier, Catalog, Product } from '@/hooks/useAgent';
 
-type Step = 'proveedor' | 'productos' | 'carrito';
-type ClientMode = 'none' | 'search' | 'new';
+type Step = 'modo' | 'proveedor' | 'productos' | 'carrito';
+type ClientMode = 'existing' | 'new_now' | 'new_later';
 
 interface CartItem { product: Product; quantity: number; }
-interface NewClientData { name: string; phone: string; email: string; }
+interface NewClientData { name: string; phone: string; email: string; address: string; }
+interface ClientAddress { id: string; label: string; address?: string; city?: string; postal_code?: string; }
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -27,11 +29,16 @@ export default function NuevoPedidoScreen() {
   const params = useLocalSearchParams<{ clientId?: string }>();
   const { agent } = useAgent();
 
-  const [step, setStep] = useState<Step>('proveedor');
+  const [step, setStep] = useState<Step>(params.clientId ? 'proveedor' : 'modo');
+  const [clientMode, setClientMode] = useState<ClientMode | null>(params.clientId ? 'existing' : null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientMode, setClientMode] = useState<ClientMode>('none');
-  const [newClient, setNewClient] = useState<NewClientData>({ name: '', phone: '', email: '' });
   const [clientSearch, setClientSearch] = useState('');
+  const [showClientSearch, setShowClientSearch] = useState(false);
+  const [newClientNow, setNewClientNow] = useState<NewClientData>({ name: '', phone: '', email: '', address: '' });
+  const [newClientLater, setNewClientLater] = useState<NewClientData>({ name: '', phone: '', email: '', address: '' });
+  const [clientAddresses, setClientAddresses] = useState<ClientAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedCatalog, setSelectedCatalog] = useState<Catalog | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -49,9 +56,36 @@ export default function NuevoPedidoScreen() {
   React.useEffect(() => {
     if (params.clientId && clients.length > 0) {
       const c = clients.find(c => c.id === params.clientId);
-      if (c) { setSelectedClient(c); setClientMode('search'); }
+      if (c) {
+        setSelectedClient(c);
+        setClientMode('existing');
+        loadAddresses(c.id);
+      }
     }
   }, [params.clientId, clients]);
+
+  async function loadAddresses(clientId: string) {
+    const { data } = await supabase
+      .from('client_addresses')
+      .select('id, label, address, city, postal_code')
+      .eq('client_id', clientId)
+      .order('is_default', { ascending: false });
+    const addrs = (data as ClientAddress[]) ?? [];
+    setClientAddresses(addrs);
+    if (addrs.length > 0) setSelectedAddressId(addrs[0].id);
+  }
+
+  function selectClient(c: Client) {
+    setSelectedClient(c);
+    setShowClientSearch(false);
+    setClientSearch('');
+    loadAddresses(c.id);
+  }
+
+  const filteredClients = useMemo(() =>
+    !clientSearch ? clients : clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())),
+    [clients, clientSearch]
+  );
 
   const filteredSuppliers = useMemo(() =>
     !search ? suppliers : suppliers.filter(s => s.name.toLowerCase().includes(search.toLowerCase())),
@@ -64,11 +98,6 @@ export default function NuevoPedidoScreen() {
       (p.reference ?? '').toLowerCase().includes(search.toLowerCase())
     ),
     [products, search]
-  );
-
-  const filteredClients = useMemo(() =>
-    !clientSearch ? clients : clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())),
-    [clients, clientSearch]
   );
 
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
@@ -94,44 +123,38 @@ export default function NuevoPedidoScreen() {
     return cart.find(i => i.product.id === productId)?.quantity ?? 0;
   }
 
-  function handleBack() {
-    if (step === 'proveedor') { router.back(); return; }
-    if (step === 'productos') { setStep('proveedor'); return; }
-    if (step === 'carrito') { setStep('productos'); return; }
+  async function confirmNewClientNow() {
+    if (!newClientNow.name.trim()) { Alert.alert('El nombre es obligatorio'); return; }
+    if (!agent) return;
+    const { data, error } = await supabase.from('clients').insert({
+      agent_id: agent.id,
+      name: newClientNow.name.trim(),
+      phone: newClientNow.phone.trim() || null,
+      email: newClientNow.email.trim() || null,
+      address: newClientNow.address.trim() || null }).select().single();
+    if (error || !data) { Alert.alert('Error', 'No se pudo crear el cliente'); return; }
+    setSelectedClient(data as Client);
+    setClientMode('existing');
+    setStep('proveedor');
   }
 
   async function confirmOrder() {
     if (!agent || !selectedSupplier) return;
-    const hasClient = selectedClient || (clientMode === 'new' && newClient.name.trim());
-    if (!hasClient) {
-      Alert.alert('Falta el cliente', 'Selecciona un cliente existente o introduce los datos del cliente nuevo.');
-      return;
-    }
     setSaving(true);
 
     let clientId: string | null = selectedClient?.id ?? null;
 
-    // Crear cliente nuevo si es necesario
-    if (clientMode === 'new' && newClient.name.trim()) {
-      const { data: created, error: clientError } = await supabase
-        .from('clients')
-        .insert({
-          agent_id: agent.id,
-          name: newClient.name.trim(),
-          phone: newClient.phone.trim() || null,
-          email: newClient.email.trim() || null,
-        })
-        .select()
-        .single();
-      if (clientError || !created) {
-        Alert.alert('Error', 'No se pudo crear el cliente.');
-        setSaving(false);
-        return;
-      }
-      clientId = created.id;
+    if (clientMode === 'new_later' && newClientLater.name.trim()) {
+      const { data, error } = await supabase.from('clients').insert({
+        agent_id: agent.id,
+        name: newClientLater.name.trim(),
+        phone: newClientLater.phone.trim() || null,
+        email: newClientLater.email.trim() || null,
+        address: newClientLater.address.trim() || null }).select().single();
+      if (error || !data) { Alert.alert('Error', 'No se pudo crear el cliente'); setSaving(false); return; }
+      clientId = (data as any).id;
     }
 
-    // Crear pedido
     const { data: order, error } = await supabase
       .from('orders')
       .insert({
@@ -143,60 +166,145 @@ export default function NuevoPedidoScreen() {
         total: cartTotal,
         discount_code: discountCode || null,
         notes: notes || null,
-      })
+        shipping_address_id: selectedAddressId || null })
       .select()
       .single();
 
     if (error || !order) { Alert.alert('Error', error?.message ?? 'No se pudo crear el pedido'); setSaving(false); return; }
 
-    // Insertar líneas
     await supabase.from('order_items').insert(
       cart.map(i => ({
         order_id: order.id,
         product_id: i.product.id,
         quantity: i.quantity,
-        unit_price: i.product.price,
-      }))
+        unit_price: i.product.price }))
     );
 
     setSaving(false);
     router.replace(`/(agent)/pedido/${order.id}` as any);
   }
 
-  const stepTitle = { proveedor: 'Selecciona proveedor', productos: 'Añade productos', carrito: 'Carrito' }[step];
+  const selectedAddress = clientAddresses.find(a => a.id === selectedAddressId);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={handleBack}>
-          <Text style={styles.back}>← {step === 'proveedor' ? 'Cancelar' : 'Atrás'}</Text>
+        <TouchableOpacity onPress={() => {
+          if (step === 'modo') { router.back(); return; }
+          if (step === 'proveedor') { setStep('modo'); return; }
+          if (step === 'productos') { setStep('proveedor'); return; }
+          if (step === 'carrito') { setStep('productos'); return; }
+        }}>
+          <Text style={styles.back}>← {step === 'modo' ? 'Cancelar' : 'Atrás'}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{stepTitle}</Text>
-        {step !== 'carrito' && cart.length > 0 && (
+        <Text style={styles.title}>
+          {{ modo: 'Nuevo pedido', proveedor: 'Proveedor', productos: 'Productos', carrito: 'Carrito' }[step]}
+        </Text>
+        {step !== 'carrito' && step !== 'modo' && cart.length > 0 && (
           <TouchableOpacity onPress={() => setStep('carrito')}>
             <Text style={styles.cartBtn}>🛒 {cart.length}</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Breadcrumb */}
-      <View style={styles.breadcrumb}>
-        {(['proveedor', 'productos', 'carrito'] as Step[]).map((s, i) => (
-          <React.Fragment key={s}>
-            <Text style={[styles.crumb, step === s && styles.crumbActive]}>
-              {i + 1}. {s.charAt(0).toUpperCase() + s.slice(1)}
-            </Text>
-            {i < 2 && <Text style={styles.crumbSep}>›</Text>}
-          </React.Fragment>
-        ))}
-      </View>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* PASO 0: Elegir modo cliente */}
+      {step === 'modo' && (
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modoContent}>
+          <Text style={styles.modoTitle}>¿Cómo quieres empezar?</Text>
+
+          {/* Opción 1: Cliente existente */}
+          <TouchableOpacity style={styles.modoCard} onPress={() => { setClientMode('existing'); setShowClientSearch(true); }}>
+            <View style={[styles.modoIcon, { backgroundColor: colors.purpleLight }]}>
+              <Text style={styles.modoIconText}>👤</Text>
+            </View>
+            <View style={styles.modoBody}>
+              <Text style={styles.modoCardTitle}>Cliente existente</Text>
+              <Text style={styles.modoCardSub}>Selecciona un cliente de tu lista</Text>
+            </View>
+            <Text style={styles.modoChevron}>›</Text>
+          </TouchableOpacity>
+
+          {showClientSearch && (
+            <View style={styles.clientSearchBox}>
+              <TextInput
+                style={styles.clientSearchInput}
+                placeholder="Buscar cliente..."
+                placeholderTextColor={colors.textMuted}
+                value={clientSearch}
+                onChangeText={setClientSearch}
+                autoFocus
+              />
+              <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }} nestedScrollEnabled>
+                {filteredClients.map(c => (
+                  <TouchableOpacity key={c.id} style={styles.clientSearchItem} onPress={() => { selectClient(c); setStep('proveedor'); }}>
+                    <Avatar name={c.name} size={28} fontSize={11} />
+                    <Text style={styles.clientSearchName}>{c.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity onPress={() => setShowClientSearch(false)}>
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Opción 2: Dar de alta cliente nuevo ahora */}
+          <TouchableOpacity
+            style={styles.modoCard}
+            onPress={() => setClientMode(clientMode === 'new_now' ? null : 'new_now')}
+          >
+            <View style={[styles.modoIcon, { backgroundColor: '#E6F7EF' }]}>
+              <Text style={styles.modoIconText}>➕</Text>
+            </View>
+            <View style={styles.modoBody}>
+              <Text style={styles.modoCardTitle}>Dar de alta cliente nuevo</Text>
+              <Text style={styles.modoCardSub}>Crea el cliente antes de empezar el pedido</Text>
+            </View>
+            <Text style={styles.modoChevron}>›</Text>
+          </TouchableOpacity>
+
+          {clientMode === 'new_now' && (
+            <View style={styles.newClientForm}>
+              <TextInput style={styles.newClientInput} placeholder="Nombre *" placeholderTextColor={colors.textMuted} value={newClientNow.name} onChangeText={v => setNewClientNow(p => ({ ...p, name: v }))} />
+              <TextInput style={styles.newClientInput} placeholder="Teléfono" placeholderTextColor={colors.textMuted} value={newClientNow.phone} onChangeText={v => setNewClientNow(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+              <TextInput style={styles.newClientInput} placeholder="Email" placeholderTextColor={colors.textMuted} value={newClientNow.email} onChangeText={v => setNewClientNow(p => ({ ...p, email: v }))} keyboardType="email-address" autoCapitalize="none" />
+              <TextInput style={styles.newClientInput} placeholder="Dirección" placeholderTextColor={colors.textMuted} value={newClientNow.address} onChangeText={v => setNewClientNow(p => ({ ...p, address: v }))} />
+              <TouchableOpacity style={styles.confirmNewClientBtn} onPress={confirmNewClientNow}>
+                <Text style={styles.confirmNewClientBtnText}>Crear cliente y continuar →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Opción 3: Empezar sin cliente */}
+          <TouchableOpacity style={styles.modoCard} onPress={() => { setClientMode('new_later'); setStep('proveedor'); }}>
+            <View style={[styles.modoIcon, { backgroundColor: '#FAEEDA' }]}>
+              <Text style={styles.modoIconText}>📋</Text>
+            </View>
+            <View style={styles.modoBody}>
+              <Text style={styles.modoCardTitle}>Empezar sin cliente</Text>
+              <Text style={styles.modoCardSub}>Añade los datos del cliente al finalizar el pedido</Text>
+            </View>
+            <Text style={styles.modoChevron}>›</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
 
       {/* PASO 1: Proveedor → Catálogo */}
       {step === 'proveedor' && (
         <>
+          {selectedClient && (
+            <View style={styles.clientBanner}>
+              <Avatar name={selectedClient.name} size={22} fontSize={9} />
+              <Text style={styles.clientBannerText}>{selectedClient.name}</Text>
+              <TouchableOpacity onPress={() => setStep('modo')}>
+                <Text style={styles.clientBannerChange}>Cambiar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar proveedor..." />
-          <ScrollView contentContainerStyle={styles.listContent}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.listContent}>
             {!selectedSupplier ? (
               filteredSuppliers.map(s => (
                 <TouchableOpacity key={s.id} style={styles.item} onPress={() => { setSelectedSupplier(s); setSearch(''); }}>
@@ -237,7 +345,7 @@ export default function NuevoPedidoScreen() {
       {step === 'productos' && (
         <>
           <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar por nombre o ref..." />
-          <ScrollView contentContainerStyle={styles.listContent}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.listContent}>
             {filteredProducts.map(p => {
               const qty = getQty(p.id);
               return (
@@ -277,104 +385,50 @@ export default function NuevoPedidoScreen() {
       {/* PASO 3: Carrito */}
       {step === 'carrito' && (
         <>
-          <ScrollView contentContainerStyle={styles.cartContent}>
-            {/* Resumen */}
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.cartContent}>
+            {/* Resumen proveedor */}
             <View style={styles.cartSummaryCard}>
               <Text style={styles.cartSummaryTitle}>{selectedSupplier?.name} · {selectedCatalog?.name}</Text>
               <Text style={styles.cartSummarySub}>{cart.length} productos · {cart.reduce((s, i) => s + i.quantity, 0)} unidades</Text>
             </View>
 
-            {/* Sección cliente */}
-            <View style={styles.clientSection}>
-              <Text style={styles.clientSectionTitle}>Cliente</Text>
-
-              {/* Sin cliente seleccionado — botones de opción */}
-              {clientMode === 'none' && (
-                <View style={styles.clientOptions}>
-                  <TouchableOpacity style={styles.clientOptBtn} onPress={() => setClientMode('search')}>
-                    <Text style={styles.clientOptBtnText}>👤 Cliente existente</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.clientOptBtn, styles.clientOptBtnNew]} onPress={() => setClientMode('new')}>
-                    <Text style={[styles.clientOptBtnText, { color: colors.purple }]}>+ Cliente nuevo</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Buscar cliente existente */}
-              {clientMode === 'search' && !selectedClient && (
-                <View style={styles.clientSearchWrap}>
-                  <TextInput
-                    style={styles.clientSearchInput}
-                    placeholder="Buscar cliente..."
-                    placeholderTextColor={colors.textMuted}
-                    value={clientSearch}
-                    onChangeText={setClientSearch}
-                    autoFocus
-                  />
-                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                    {filteredClients.map(c => (
-                      <TouchableOpacity
-                        key={c.id}
-                        style={styles.clientSearchItem}
-                        onPress={() => { setSelectedClient(c); setClientSearch(''); }}
-                      >
-                        <Avatar name={c.name} size={28} fontSize={11} />
-                        <Text style={styles.clientSearchName}>{c.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                  <TouchableOpacity onPress={() => setClientMode('none')}>
-                    <Text style={styles.clientCancelText}>Cancelar</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Cliente seleccionado */}
-              {clientMode === 'search' && selectedClient && (
-                <View style={styles.clientSelectedBanner}>
+            {/* Cliente */}
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Cliente</Text>
+              {clientMode === 'existing' && selectedClient && (
+                <View style={styles.clientSelectedRow}>
                   <Avatar name={selectedClient.name} size={28} fontSize={11} />
                   <Text style={styles.clientSelectedName}>{selectedClient.name}</Text>
-                  <TouchableOpacity onPress={() => { setSelectedClient(null); setClientMode('none'); }}>
-                    <Text style={styles.clientChangeText}>Cambiar</Text>
+                  <TouchableOpacity onPress={() => setStep('modo')}>
+                    <Text style={styles.changeLink}>Cambiar</Text>
                   </TouchableOpacity>
                 </View>
               )}
-
-              {/* Formulario cliente nuevo */}
-              {clientMode === 'new' && (
-                <View style={styles.newClientForm}>
-                  <TextInput
-                    style={styles.newClientInput}
-                    placeholder="Nombre del cliente *"
-                    placeholderTextColor={colors.textMuted}
-                    value={newClient.name}
-                    onChangeText={v => setNewClient(p => ({ ...p, name: v }))}
-                  />
-                  <TextInput
-                    style={styles.newClientInput}
-                    placeholder="Teléfono (opcional)"
-                    placeholderTextColor={colors.textMuted}
-                    value={newClient.phone}
-                    onChangeText={v => setNewClient(p => ({ ...p, phone: v }))}
-                    keyboardType="phone-pad"
-                  />
-                  <TextInput
-                    style={styles.newClientInput}
-                    placeholder="Email (opcional)"
-                    placeholderTextColor={colors.textMuted}
-                    value={newClient.email}
-                    onChangeText={v => setNewClient(p => ({ ...p, email: v }))}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity onPress={() => { setClientMode('none'); setNewClient({ name: '', phone: '', email: '' }); }}>
-                    <Text style={styles.clientCancelText}>Cancelar</Text>
-                  </TouchableOpacity>
+              {clientMode === 'new_later' && (
+                <View style={styles.newClientLaterForm}>
+                  <TextInput style={styles.newClientInput} placeholder="Nombre del cliente *" placeholderTextColor={colors.textMuted} value={newClientLater.name} onChangeText={v => setNewClientLater(p => ({ ...p, name: v }))} />
+                  <TextInput style={styles.newClientInput} placeholder="Teléfono" placeholderTextColor={colors.textMuted} value={newClientLater.phone} onChangeText={v => setNewClientLater(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+                  <TextInput style={styles.newClientInput} placeholder="Email" placeholderTextColor={colors.textMuted} value={newClientLater.email} onChangeText={v => setNewClientLater(p => ({ ...p, email: v }))} keyboardType="email-address" autoCapitalize="none" />
+                  <TextInput style={styles.newClientInput} placeholder="Dirección" placeholderTextColor={colors.textMuted} value={newClientLater.address} onChangeText={v => setNewClientLater(p => ({ ...p, address: v }))} />
                 </View>
               )}
             </View>
 
-            {/* Líneas del carrito */}
+            {/* Dirección de envío — solo si hay cliente existente con direcciones */}
+            {clientMode === 'existing' && clientAddresses.length > 0 && (
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>Dirección de envío</Text>
+                <TouchableOpacity style={styles.addressPicker} onPress={() => setShowAddressPicker(true)}>
+                  <View style={styles.addressPickerBody}>
+                    <Text style={styles.addressPickerLabel}>{selectedAddress?.label ?? 'Seleccionar dirección'}</Text>
+                    {selectedAddress?.address && <Text style={styles.addressPickerSub}>{selectedAddress.address}{selectedAddress.city ? `, ${selectedAddress.city}` : ''}</Text>}
+                  </View>
+                  <Text style={styles.addressPickerChevron}>▾</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Líneas */}
             {cart.map(item => (
               <View key={item.product.id} style={styles.cartLine}>
                 <View style={styles.cartLineInfo}>
@@ -390,30 +444,15 @@ export default function NuevoPedidoScreen() {
 
             {/* Código descuento */}
             <View style={styles.discRow}>
-              <TextInput
-                style={styles.discInput}
-                placeholder="Código descuento"
-                placeholderTextColor={colors.textMuted}
-                value={discountCode}
-                onChangeText={setDiscountCode}
-              />
-              <TouchableOpacity style={styles.discBtn}>
-                <Text style={styles.discBtnText}>Aplicar</Text>
-              </TouchableOpacity>
+              <TextInput style={styles.discInput} placeholder="Código descuento" placeholderTextColor={colors.textMuted} value={discountCode} onChangeText={setDiscountCode} />
+              <TouchableOpacity style={styles.discBtn}><Text style={styles.discBtnText}>Aplicar</Text></TouchableOpacity>
             </View>
 
             {/* Observaciones */}
-            <TextInput
-              style={styles.notesInput}
-              multiline
-              placeholder="Observaciones, instrucciones de entrega..."
-              placeholderTextColor={colors.textMuted}
-              value={notes}
-              onChangeText={setNotes}
-            />
+            <TextInput style={styles.notesInput} multiline placeholder="Observaciones, instrucciones de entrega..." placeholderTextColor={colors.textMuted} value={notes} onChangeText={setNotes} />
           </ScrollView>
 
-          {/* Total y botón confirmar */}
+          {/* Total y confirmar */}
           <View style={styles.totalBar}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} uds.)</Text>
@@ -423,16 +462,35 @@ export default function NuevoPedidoScreen() {
               <Text style={styles.totalFinalLabel}>Total pedido</Text>
               <Text style={styles.totalFinalValue}>{formatEur(cartTotal)}</Text>
             </View>
-            <TouchableOpacity
-              style={[styles.confirmBtn, saving && styles.confirmBtnDisabled]}
-              onPress={confirmOrder}
-              disabled={saving}
-            >
+            <TouchableOpacity style={[styles.confirmBtn, saving && styles.confirmBtnDisabled]} onPress={confirmOrder} disabled={saving}>
               {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.confirmBtnText}>Confirmar y generar PDF</Text>}
             </TouchableOpacity>
           </View>
         </>
       )}
+
+      {/* Modal selector de dirección */}
+      <Modal visible={showAddressPicker} transparent animationType="slide" onRequestClose={() => setShowAddressPicker(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Seleccionar dirección</Text>
+            {clientAddresses.map(addr => (
+              <TouchableOpacity
+                key={addr.id}
+                style={[styles.addrOption, selectedAddressId === addr.id && styles.addrOptionSelected]}
+                onPress={() => { setSelectedAddressId(addr.id); setShowAddressPicker(false); }}
+              >
+                <Text style={[styles.addrOptionLabel, selectedAddressId === addr.id && styles.addrOptionLabelSelected]}>{addr.label}</Text>
+                {addr.address && <Text style={styles.addrOptionSub}>{addr.address}{addr.city ? `, ${addr.city}` : ''}</Text>}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAddressPicker(false)}>
+              <Text style={styles.modalCancelText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -441,13 +499,7 @@ function SearchBar({ value, onChangeText, placeholder }: { value: string; onChan
   return (
     <View style={styles.searchWrap}>
       <Text style={styles.searchIcon}>🔍</Text>
-      <TextInput
-        style={styles.searchInput}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
-        value={value}
-        onChangeText={onChangeText}
-      />
+      <TextInput style={styles.searchInput} placeholder={placeholder} placeholderTextColor={colors.textMuted} value={value} onChangeText={onChangeText} />
     </View>
   );
 }
@@ -455,39 +507,64 @@ function SearchBar({ value, onChangeText, placeholder }: { value: string; onChan
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 18, paddingVertical: 13,
-    flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-  },
+    backgroundColor: colors.white, paddingHorizontal: 18, paddingVertical: 13,
+    flexDirection: 'row', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
   back: { fontSize: 14, color: colors.purple, marginRight: 10 },
   title: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
   cartBtn: { fontSize: 14, color: colors.purple, fontWeight: '500' },
-  breadcrumb: {
-    backgroundColor: colors.white,
-    flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8,
-    alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-  },
-  crumb: { fontSize: 11, color: colors.textMuted },
-  crumbActive: { color: colors.purple, fontWeight: '500' },
-  crumbSep: { fontSize: 11, color: '#ccc', marginHorizontal: 4 },
+
+  // Modo cliente
+  modoContent: { padding: 16, gap: 12 },
+  modoTitle: { fontSize: 16, fontWeight: '500', color: colors.text, marginBottom: 4 },
+  modoCard: {
+    backgroundColor: colors.white, borderRadius: 14,
+    padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderWidth: 1, borderColor: colors.border },
+  modoIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modoIconText: { fontSize: 20 },
+  modoBody: { flex: 1 },
+  modoCardTitle: { fontSize: 14, fontWeight: '500', color: colors.text },
+  modoCardSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  modoChevron: { fontSize: 20, color: '#ccc' },
+  clientSearchBox: {
+    backgroundColor: colors.white, borderRadius: 12,
+    padding: 12, gap: 8, borderWidth: 1, borderColor: colors.border },
+  clientSearchInput: {
+    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: colors.text, backgroundColor: colors.bg },
+  clientSearchItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 9, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
+  clientSearchName: { fontSize: 13, color: colors.text },
+  cancelText: { fontSize: 12, color: colors.textMuted, textAlign: 'right', marginTop: 4 },
+  newClientForm: {
+    backgroundColor: colors.white, borderRadius: 12,
+    padding: 12, gap: 8, borderWidth: 1, borderColor: colors.border },
+  newClientLaterForm: { gap: 8, marginTop: 8 },
+  newClientInput: {
+    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: colors.text, backgroundColor: colors.bg },
+  confirmNewClientBtn: {
+    backgroundColor: colors.purple, borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center', marginTop: 4 },
+  confirmNewClientBtnText: { fontSize: 13, fontWeight: '600', color: colors.white },
+
+  // Proveedor
+  clientBanner: {
+    backgroundColor: colors.purpleLight, paddingHorizontal: 16, paddingVertical: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8 },
+  clientBannerText: { flex: 1, fontSize: 12, fontWeight: '500', color: colors.purpleDark },
+  clientBannerChange: { fontSize: 12, color: colors.purple },
   searchWrap: {
     backgroundColor: colors.white, paddingHorizontal: 14, paddingVertical: 9,
-    flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef', gap: 8,
-  },
+    flexDirection: 'row', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#efefef', gap: 8 },
   searchIcon: { fontSize: 14 },
   searchInput: {
-    flex: 1, fontSize: 14, color: colors.text,
-    backgroundColor: colors.bg, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, borderColor: colors.border,
-  },
+    flex: 1, fontSize: 14, color: colors.text, backgroundColor: colors.bg,
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: colors.border },
   listContent: { padding: 12, gap: 8 },
-  item: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12,
-  },
+  item: { backgroundColor: colors.white, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   logo: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   itemBody: { flex: 1 },
   itemName: { fontSize: 14, fontWeight: '500', color: colors.text },
@@ -495,124 +572,76 @@ const styles = StyleSheet.create({
   chevron: { fontSize: 18, color: '#ccc' },
   changeBtn: { padding: 12, paddingBottom: 0 },
   changeBtnText: { fontSize: 13, color: colors.purple },
-  productRow: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12,
-  },
+
+  // Productos
+  productRow: { backgroundColor: colors.white, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   productInfo: { flex: 1 },
   productName: { fontSize: 13, fontWeight: '500', color: colors.text },
   productRef: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   qtyControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  qtyBtn: {
-    width: 32, height: 32, borderRadius: 9,
-    borderWidth: 1.5, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  qtyBtn: { width: 32, height: 32, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   qtyBtnAdd: { backgroundColor: colors.purple, borderColor: colors.purple },
   qtyBtnText: { fontSize: 18, color: colors.purple, lineHeight: 20 },
   qtyVal: { fontSize: 16, fontWeight: '500', color: colors.text, minWidth: 20, textAlign: 'center' },
   cartBar: {
     backgroundColor: colors.white, borderTopWidth: 0.5, borderTopColor: '#efefef',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-  },
+    paddingHorizontal: 16, paddingVertical: 12 },
   cartBarText: { fontSize: 13, fontWeight: '500', color: colors.text },
   cartBarBtn: { backgroundColor: colors.purple, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   cartBarBtnText: { color: colors.white, fontSize: 13, fontWeight: '500' },
+
+  // Carrito
   cartContent: { padding: 12, gap: 8 },
   cartSummaryCard: {
-    backgroundColor: colors.purpleLight, borderRadius: 12,
-    padding: 12, flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', flexWrap: 'wrap', gap: 4,
-  },
+    backgroundColor: colors.purpleLight, borderRadius: 12, padding: 12,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
   cartSummaryTitle: { fontSize: 12, fontWeight: '500', color: colors.purpleDark },
   cartSummarySub: { fontSize: 11, color: colors.purple },
-
-  // Cliente
-  clientSection: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 14, gap: 10,
-  },
-  clientSectionTitle: { fontSize: 13, fontWeight: '600', color: colors.text },
-  clientOptions: { flexDirection: 'row', gap: 8 },
-  clientOptBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: colors.border,
-    alignItems: 'center',
-  },
-  clientOptBtnNew: { borderColor: colors.purple, borderStyle: 'dashed' },
-  clientOptBtnText: { fontSize: 13, fontWeight: '500', color: colors.text },
-  clientSearchWrap: { gap: 8 },
-  clientSearchInput: {
+  sectionCard: { backgroundColor: colors.white, borderRadius: 12, padding: 14, gap: 8 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.text },
+  clientSelectedRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  clientSelectedName: { flex: 1, fontSize: 13, fontWeight: '500', color: colors.text },
+  changeLink: { fontSize: 12, color: colors.purple },
+  addressPicker: {
     borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 9,
-    fontSize: 14, color: colors.text, backgroundColor: colors.bg,
-  },
-  clientSearchItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 9, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
-  },
-  clientSearchName: { fontSize: 13, color: colors.text },
-  clientSelectedBanner: {
-    backgroundColor: colors.greenLight, borderRadius: 10,
-    padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8,
-  },
-  clientSelectedName: { flex: 1, fontSize: 13, fontWeight: '500', color: colors.green },
-  clientChangeText: { fontSize: 12, color: colors.green, fontWeight: '500' },
-  clientCancelText: { fontSize: 12, color: colors.textMuted, textAlign: 'right', marginTop: 4 },
-  newClientForm: { gap: 8 },
-  newClientInput: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 9,
-    fontSize: 14, color: colors.text, backgroundColor: colors.bg,
-  },
-
-  cartLine: {
-    backgroundColor: colors.white, borderRadius: 10,
-    padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10,
-  },
+    paddingHorizontal: 12, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center' },
+  addressPickerBody: { flex: 1 },
+  addressPickerLabel: { fontSize: 13, fontWeight: '500', color: colors.text },
+  addressPickerSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  addressPickerChevron: { fontSize: 16, color: colors.textMuted },
+  cartLine: { backgroundColor: colors.white, borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   cartLineInfo: { flex: 1 },
   cartLineName: { fontSize: 12, fontWeight: '500', color: colors.text },
   cartLineRef: { fontSize: 10, color: colors.textMuted, marginTop: 1 },
   cartLineRight: { alignItems: 'flex-end' },
   cartLineQty: { fontSize: 10, color: colors.textMuted },
   cartLineTotal: { fontSize: 12, fontWeight: '500', color: colors.text, marginTop: 2 },
-  discRow: {
-    flexDirection: 'row', gap: 8,
-    backgroundColor: colors.white, borderRadius: 10, padding: 10,
-  },
-  discInput: {
-    flex: 1, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 7, paddingHorizontal: 9, paddingVertical: 6,
-    fontSize: 12, color: colors.text, backgroundColor: colors.bg,
-  },
+  discRow: { flexDirection: 'row', gap: 8, backgroundColor: colors.white, borderRadius: 10, padding: 10 },
+  discInput: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 7, paddingHorizontal: 9, paddingVertical: 6, fontSize: 12, color: colors.text, backgroundColor: colors.bg },
   discBtn: { paddingHorizontal: 12, borderRadius: 7, backgroundColor: colors.purple, justifyContent: 'center' },
   discBtnText: { fontSize: 11, fontWeight: '500', color: colors.white },
-  notesInput: {
-    backgroundColor: colors.white, borderRadius: 10,
-    padding: 10, fontSize: 12, color: colors.text,
-    minHeight: 60, textAlignVertical: 'top',
-    borderWidth: 1, borderColor: colors.border,
-  },
-  totalBar: {
-    backgroundColor: colors.white,
-    borderTopWidth: 0.5, borderTopColor: '#efefef',
-    padding: 14,
-  },
+  notesInput: { backgroundColor: colors.white, borderRadius: 10, padding: 10, fontSize: 12, color: colors.text, minHeight: 60, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.border },
+  totalBar: { backgroundColor: colors.white, borderTopWidth: 0.5, borderTopColor: '#efefef', padding: 14 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   totalLabel: { fontSize: 11, color: colors.textMuted },
   totalValue: { fontSize: 11, fontWeight: '500', color: colors.text },
-  totalFinal: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline',
-    borderTopWidth: 0.5, borderTopColor: colors.borderLight,
-    marginTop: 7, paddingTop: 7, marginBottom: 10,
-  },
+  totalFinal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', borderTopWidth: 0.5, borderTopColor: colors.borderLight, marginTop: 7, paddingTop: 7, marginBottom: 10 },
   totalFinalLabel: { fontSize: 13, fontWeight: '500', color: colors.text },
   totalFinalValue: { fontSize: 20, fontWeight: '500', color: colors.purple },
-  confirmBtn: {
-    backgroundColor: colors.purple, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-  },
+  confirmBtn: { backgroundColor: colors.purple, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   confirmBtnDisabled: { backgroundColor: '#d0cce8' },
   confirmBtnText: { color: colors.white, fontSize: 15, fontWeight: '500' },
-});
+
+  // Modal dirección
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalBox: { backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 4 },
+  modalTitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 8 },
+  addrOption: { padding: 14, borderRadius: 10, borderWidth: 1.5, borderColor: colors.border, marginBottom: 8 },
+  addrOptionSelected: { borderColor: colors.purple, backgroundColor: colors.purpleLight },
+  addrOptionLabel: { fontSize: 14, fontWeight: '500', color: colors.text },
+  addrOptionLabelSelected: { color: colors.purpleDark },
+  addrOptionSub: { fontSize: 12, color: colors.textMuted, marginTop: 3 },
+  modalCancel: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  modalCancelText: { fontSize: 14, color: colors.textMuted } });

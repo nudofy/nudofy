@@ -21,6 +21,7 @@ export interface Client {
   email?: string;
   phone?: string;
   address?: string;
+  contact_name?: string;
   client_type?: string;
   payment_method?: string;
   iban?: string;
@@ -32,7 +33,12 @@ export interface Supplier {
   id: string;
   name: string;
   contact?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  description?: string;
   conditions?: string;
+  logo_url?: string;
   active: boolean;
   catalog_count?: number;
 }
@@ -52,11 +58,26 @@ export interface Product {
   catalog_id: string;
   name: string;
   reference?: string;
+  reference_2?: string;
   barcode?: string;
+  familia?: string;
+  subfamilia?: string;
   price: number;
+  pvpr?: number;
   description?: string;
+  measures?: string;
+  stock?: number;
+  standard_box?: number;
+  min_units?: number;
   image_url?: string;
   active: boolean;
+}
+
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  url: string;
+  position: number;
 }
 
 export interface Order {
@@ -163,7 +184,7 @@ export function useSuppliers() {
     if (!agent) return;
     const { data } = await supabase
       .from('suppliers')
-      .select('id, name, contact, conditions, active, catalogs(count)')
+      .select('id, name, contact, conditions, logo_url, active, catalogs(count)')
       .eq('agent_id', agent.id)
       .order('name');
 
@@ -178,12 +199,14 @@ export function useSuppliers() {
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
   async function createSupplier(values: Omit<Supplier, 'id' | 'catalog_count'>) {
-    if (!agent) return { error: 'No hay agente' };
-    const { error } = await supabase
+    if (!agent) return { error: 'No hay agente', data: null };
+    const { data, error } = await supabase
       .from('suppliers')
-      .insert({ ...values, agent_id: agent.id });
+      .insert({ ...values, agent_id: agent.id })
+      .select('id')
+      .single();
     if (!error) fetchSuppliers();
-    return { error: error?.message ?? null };
+    return { error: error?.message ?? null, data };
   }
 
   async function updateSupplier(id: string, values: Partial<Supplier>) {
@@ -250,7 +273,24 @@ export function useProducts(catalogId?: string) {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  return { products, loading, refetch: fetchProducts };
+  async function createProduct(values: Omit<Product, 'id' | 'catalog_id' | 'active'>) {
+    if (!catalogId) return { error: 'Sin catálogo', data: null };
+    const { data, error } = await supabase
+      .from('products')
+      .insert({ ...values, catalog_id: catalogId, active: true })
+      .select('id')
+      .single();
+    if (!error) fetchProducts();
+    return { error: error?.message ?? null, data };
+  }
+
+  async function updateProduct(productId: string, values: Partial<Product>) {
+    const { error } = await supabase.from('products').update(values).eq('id', productId);
+    if (!error) fetchProducts();
+    return { error: error?.message ?? null };
+  }
+
+  return { products, loading, createProduct, updateProduct, refetch: fetchProducts };
 }
 
 // ——————————————————————————————
@@ -311,6 +351,76 @@ export function useOrders(status?: Order['status'] | Order['status'][]) {
   }
 
   return { orders, loading, createOrder, updateOrderStatus, refetch: fetchOrders };
+}
+
+// ——————————————————————————————
+// Estadísticas
+// ——————————————————————————————
+export interface MonthStat { month: number; year: number; orders: number; total: number; label: string; }
+export interface YearStat  { year: number; orders: number; total: number; }
+
+export function useStats() {
+  const { agent } = useAgent();
+  const [monthStats, setMonthStats] = useState<MonthStat[]>([]);
+  const [yearStats, setYearStats]   = useState<YearStat[]>([]);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  useEffect(() => {
+    if (!agent) return;
+    supabase
+      .from('orders')
+      .select('total, created_at, status')
+      .eq('agent_id', agent.id)
+      .in('status', ['confirmed', 'sent_to_supplier'])
+      .then(({ data }) => {
+        const orders = data ?? [];
+        setTotalOrders(orders.length);
+        setTotalRevenue(orders.reduce((s, o) => s + (o.total ?? 0), 0));
+
+        // Group by month (current year)
+        const currentYear = new Date().getFullYear();
+        const byMonth: Record<number, { orders: number; total: number }> = {};
+        for (let m = 0; m < 12; m++) byMonth[m] = { orders: 0, total: 0 };
+
+        // Group by year
+        const byYear: Record<number, { orders: number; total: number }> = {};
+
+        orders.forEach(o => {
+          const d = new Date(o.created_at);
+          const y = d.getFullYear();
+          const m = d.getMonth();
+          if (y === currentYear) {
+            byMonth[m].orders++;
+            byMonth[m].total += o.total ?? 0;
+          }
+          if (!byYear[y]) byYear[y] = { orders: 0, total: 0 };
+          byYear[y].orders++;
+          byYear[y].total += o.total ?? 0;
+        });
+
+        setMonthStats(
+          Object.entries(byMonth).map(([m, v]) => ({
+            month: Number(m), year: currentYear,
+            orders: v.orders, total: v.total,
+            label: MONTH_NAMES[Number(m)],
+          }))
+        );
+
+        setYearStats(
+          Object.entries(byYear)
+            .sort((a, b) => Number(b[0]) - Number(a[0]))
+            .map(([y, v]) => ({ year: Number(y), orders: v.orders, total: v.total }))
+        );
+
+        setLoading(false);
+      });
+  }, [agent]);
+
+  return { monthStats, yearStats, totalOrders, totalRevenue, loading };
 }
 
 // ——————————————————————————————

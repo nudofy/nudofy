@@ -2,8 +2,8 @@
 import React from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Linking,
-} from 'react-native';
+  StyleSheet, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -172,8 +172,7 @@ export default function ClientHomeScreen() {
 }
 
 function ActionCard({
-  icon, label, color, iconColor, onPress,
-}: {
+  icon, label, color, iconColor, onPress }: {
   icon: string; label: string; color: string; iconColor: string; onPress: () => void;
 }) {
   return (
@@ -197,13 +196,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef',
-    gap: 8,
-  },
+    gap: 8 },
   logoMark: {
     width: 30, height: 30, borderRadius: 8,
     backgroundColor: colors.purple,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   logoText: { color: colors.white, fontSize: 16, fontWeight: '700' },
   logoLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
   bellBtn: { padding: 4 },
@@ -215,8 +212,7 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-  },
+    gap: 14 },
   greetingBody: { flex: 1 },
   greetingLabel: { fontSize: 12, color: colors.textMuted },
   greetingName: { fontSize: 18, fontWeight: '600', color: colors.text, marginTop: 2 },
@@ -224,8 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 14,
     padding: 14,
-    gap: 12,
-  },
+    gap: 12 },
   agentTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   agentBody: { flex: 1 },
   agentLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -236,8 +231,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#25D366',
     borderRadius: 10,
     paddingVertical: 10,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   agentBtnSecondary: { backgroundColor: colors.purpleLight },
   agentBtnText: { fontSize: 13, fontWeight: '500', color: colors.white },
   agentBtnTextSecondary: { color: colors.purple },
@@ -248,20 +242,17 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
-    gap: 8,
-  },
+    gap: 8 },
   actionIcon: {
     width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   actionIconText: { fontSize: 20, fontWeight: '500' },
   actionLabel: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'center' },
   section: { gap: 8 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle: {
     fontSize: 12, fontWeight: '500', color: colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-  },
+    textTransform: 'uppercase', letterSpacing: 0.5 },
   seeAll: { fontSize: 12, color: colors.purple },
   orderCard: {
     backgroundColor: colors.white,
@@ -269,8 +260,7 @@ const styles = StyleSheet.create({
     padding: 13,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   orderLeft: { flex: 1 },
   orderNum: { fontSize: 11, color: colors.textMuted },
   orderMeta: { fontSize: 13, fontWeight: '500', color: colors.text, marginTop: 2 },
@@ -282,8 +272,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 28,
     alignItems: 'center',
-    gap: 8,
-  },
+    gap: 8 },
   emptyIcon: { fontSize: 36 },
   emptyTitle: { fontSize: 16, fontWeight: '500', color: colors.text },
   emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
@@ -292,7 +281,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple,
     borderRadius: 10,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  emptyBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' },
-});
+    paddingVertical: 10 },
+  emptyBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' } });

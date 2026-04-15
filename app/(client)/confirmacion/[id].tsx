@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Share, Linking,
-} from 'react-native';
+  StyleSheet, Share, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
@@ -161,80 +161,66 @@ const styles = StyleSheet.create({
     backgroundColor: colors.greenLight,
     borderRadius: 20, padding: 28,
     alignItems: 'center', gap: 10,
-    marginTop: 8,
-  },
+    marginTop: 8 },
   heroIcon: {
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: colors.green,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   heroCheck: { color: colors.white, fontSize: 36, fontWeight: '700' },
   heroTitle: { fontSize: 22, fontWeight: '700', color: '#1A3A0A', marginTop: 4 },
   orderNumBadge: {
     backgroundColor: colors.white,
-    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4,
-  },
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
   orderNum: { fontSize: 13, fontWeight: '600', color: colors.green },
   heroDate: { fontSize: 12, color: colors.green },
   summaryBlock: {
     backgroundColor: colors.white, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 12,
-    gap: 0,
-  },
+    gap: 0 },
   summaryTitle: {
     fontSize: 11, fontWeight: '500', color: colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   summaryRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingVertical: 8,
-    borderTopWidth: 0.5, borderTopColor: colors.borderLight,
-  },
+    borderTopWidth: 0.5, borderTopColor: colors.borderLight },
   summaryLabel: { fontSize: 13, color: colors.textMuted },
   summaryValue: { fontSize: 13, fontWeight: '500', color: colors.text },
   summaryValueBold: { color: colors.purple, fontSize: 15 },
   agentCard: {
     backgroundColor: '#E1F5EE',
-    borderRadius: 14, padding: 14,
-  },
+    borderRadius: 14, padding: 14 },
   agentCardTitle: { fontSize: 13, fontWeight: '600', color: '#0B5E38', marginBottom: 4 },
   agentCardName: { fontSize: 12, color: '#0B5E38' },
   timelineCard: {
-    backgroundColor: colors.white, borderRadius: 14, padding: 16, gap: 0,
-  },
+    backgroundColor: colors.white, borderRadius: 14, padding: 16, gap: 0 },
   timelineTitle: {
     fontSize: 11, fontWeight: '500', color: colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 14,
-  },
+    marginBottom: 14 },
   timelineStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   timelineLeft: { alignItems: 'center', width: 20 },
   timelineDot: {
     width: 20, height: 20, borderRadius: 10,
     borderWidth: 2, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
+    alignItems: 'center', justifyContent: 'center' },
   timelineDotDone: { backgroundColor: colors.green, borderColor: colors.green },
   timelineDotCheck: { color: colors.white, fontSize: 10, fontWeight: '700' },
   timelineLine: { width: 2, height: 24, backgroundColor: colors.border, marginVertical: 2 },
   timelineLineDone: { backgroundColor: colors.green },
   timelineLabel: {
     fontSize: 13, color: colors.textMuted,
-    paddingBottom: 28, paddingTop: 1,
-  },
+    paddingBottom: 28, paddingTop: 1 },
   timelineLabelDone: { color: colors.green, fontWeight: '500' },
   actions: { flexDirection: 'row', gap: 8 },
   actionBtn: {
     flex: 1, backgroundColor: colors.purple,
-    borderRadius: 12, paddingVertical: 13, alignItems: 'center',
-  },
+    borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
   actionBtnSecondary: { backgroundColor: '#25D366' },
   actionBtnText: { color: colors.white, fontSize: 13, fontWeight: '500' },
   actionBtnTextSecondary: { color: colors.white },
   homeBtn: {
     backgroundColor: colors.white, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-  },
-  homeBtnText: { fontSize: 14, color: colors.textMuted, fontWeight: '500' },
-});
+    paddingVertical: 14, alignItems: 'center' },
+  homeBtnText: { fontSize: 14, color: colors.textMuted, fontWeight: '500' } });

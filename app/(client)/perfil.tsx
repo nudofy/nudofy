@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Switch,
-} from 'react-native';
+  StyleSheet, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/theme/colors';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import Avatar from '@/components/Avatar';
@@ -141,57 +141,47 @@ const styles = StyleSheet.create({
   topbar: {
     backgroundColor: colors.white,
     paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-  },
+    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
   title: { fontSize: 18, fontWeight: '500', color: colors.text },
   content: { padding: 14, gap: 14 },
   profileCard: {
     backgroundColor: colors.white, borderRadius: 16,
-    padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16,
-  },
+    padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16 },
   profileBody: { flex: 1, gap: 2 },
   profileName: { fontSize: 18, fontWeight: '600', color: colors.text },
   profileType: {
     fontSize: 12, color: colors.purple,
     backgroundColor: colors.purpleLight, alignSelf: 'flex-start',
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-    marginTop: 2,
-  },
+    marginTop: 2 },
   profileEmail: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   section: { gap: 6 },
   sectionTitle: {
     fontSize: 11, fontWeight: '500', color: colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-  },
+    textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionBlock: {
-    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden',
-  },
+    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
   dataRow: {
     paddingHorizontal: 14, paddingVertical: 11,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, gap: 10,
-  },
+    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, gap: 10 },
   dataLabel: { fontSize: 13, color: colors.textMuted, flex: 1 },
   dataValue: { fontSize: 13, color: colors.text, fontWeight: '500', flex: 1.5, textAlign: 'right' },
   switchRow: {
     paddingHorizontal: 14, paddingVertical: 11,
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, gap: 12,
-  },
+    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, gap: 12 },
   switchBody: { flex: 1 },
   switchLabel: { fontSize: 14, color: colors.text, fontWeight: '500' },
   switchSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   menuItem: {
     paddingHorizontal: 14, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight,
-  },
+    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
   menuIcon: { fontSize: 18 },
   menuLabel: { flex: 1, fontSize: 14, color: colors.text },
   chevron: { fontSize: 18, color: '#ccc' },
   signOutBtn: {
     backgroundColor: colors.white, borderRadius: 14,
-    padding: 14, alignItems: 'center',
-  },
-  signOutText: { fontSize: 15, color: colors.red, fontWeight: '500' },
-});
+    padding: 14, alignItems: 'center' },
+  signOutText: { fontSize: 15, color: colors.red, fontWeight: '500' } });

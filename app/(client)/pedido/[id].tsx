@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, Linking, Share,
-} from 'react-native';
+  StyleSheet, Linking, Share } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
 import StatusBadge from '@/components/StatusBadge';
@@ -174,8 +174,7 @@ export default function ClientPedidoDetailScreen() {
 }
 
 function DataBlock({
-  title, iconBg, children,
-}: { title: string; iconBg: string; children: React.ReactNode }) {
+  title, iconBg, children }: { title: string; iconBg: string; children: React.ReactNode }) {
   return (
     <View style={styles.block}>
       <View style={styles.blockHeader}>
@@ -204,50 +203,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center',
     borderBottomWidth: 0.5, borderBottomColor: '#efefef',
-    gap: 10,
-  },
+    gap: 10 },
   backBtn: {},
   back: { fontSize: 13, color: colors.purple, marginRight: 10 },
   title: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.text },
   content: { padding: 12, gap: 8 },
   statusCard: {
     backgroundColor: colors.white, borderRadius: 12,
-    padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
+    padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusLeft: { gap: 4 },
   orderNumBadge: {
     backgroundColor: colors.purpleLight,
-    borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
-  },
+    borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
   orderNum: { fontSize: 13, fontWeight: '600', color: colors.purple },
   statusDate: { fontSize: 11, color: colors.textMuted },
   block: { backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' },
   blockHeader: {
     padding: 9, paddingHorizontal: 13,
     borderBottomWidth: 0.5, borderBottomColor: colors.borderLight,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-  },
+    flexDirection: 'row', alignItems: 'center', gap: 8 },
   blockIcon: { width: 22, height: 22, borderRadius: 6 },
   blockTitle: { fontSize: 11, fontWeight: '500', color: '#555' },
   dataRow: {
     paddingHorizontal: 13, paddingVertical: 9,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 10,
-  },
+    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 10 },
   dataLabel: { fontSize: 12, color: colors.textMuted, flex: 1 },
   dataValue: { fontSize: 12, fontWeight: '500', color: colors.text, textAlign: 'right', flex: 1 },
   dataValueBold: { color: colors.purple, fontSize: 14 },
   notesCard: {
-    backgroundColor: colors.white, borderRadius: 12, padding: 12, gap: 4,
-  },
+    backgroundColor: colors.white, borderRadius: 12, padding: 12, gap: 4 },
   notesLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   notesText: { fontSize: 12, color: colors.text, lineHeight: 18 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   actBtn: {
     width: '47.5%',
     backgroundColor: colors.white, borderRadius: 10,
-    padding: 12, alignItems: 'center', gap: 6,
-  },
+    padding: 12, alignItems: 'center', gap: 6 },
   actIcon: { fontSize: 20 },
-  actLabel: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'center' },
-});
+  actLabel: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'center' } });
