@@ -336,16 +336,14 @@ function PortalTab({ client }: { client: Client }) {
       );
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg = json?.error ?? 'Error al crear el acceso';
-        if (msg.toLowerCase().includes('already')) {
-          Alert.alert('Ya registrado', 'Este cliente ya tiene acceso al portal.');
-        } else {
-          Alert.alert('Error', msg);
-        }
+        Alert.alert('Error', json?.error ?? 'Error al crear el acceso');
         return;
       }
       setSent(true);
-      Alert.alert('Acceso creado', `Se ha enviado un email a ${client.email} con sus credenciales de acceso.`);
+      const msg = json?.type === 'recovery'
+        ? `Se ha enviado un email a ${client.email} para restablecer su contraseña.`
+        : `Se ha enviado un email a ${client.email} con sus credenciales de acceso.`;
+      Alert.alert('Email enviado', msg);
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Error inesperado. Inténtalo de nuevo.');
     } finally {
