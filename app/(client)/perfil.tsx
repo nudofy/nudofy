@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Switch } from 'react-native';
+  StyleSheet, Switch, Alert, TextInput, Modal, ActivityIndicator } from 'react-native';
+import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/theme/colors';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -15,6 +16,23 @@ export default function ClientPerfilScreen() {
   const { client, agent, loading } = useClientData();
   const [notifPedidos, setNotifPedidos] = useState(true);
   const [notifPromos, setNotifPromos] = useState(false);
+  const [pwdModal, setPwdModal] = useState(false);
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [savingPwd, setSavingPwd] = useState(false);
+
+  async function handleChangePassword() {
+    if (newPwd.length < 6) { Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres'); return; }
+    if (newPwd !== confirmPwd) { Alert.alert('Error', 'Las contraseñas no coinciden'); return; }
+    setSavingPwd(true);
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    setSavingPwd(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    Alert.alert('Listo', 'Contraseña actualizada correctamente');
+    setPwdModal(false);
+    setNewPwd('');
+    setConfirmPwd('');
+  }
 
   if (loading) {
     return (
@@ -93,8 +111,41 @@ export default function ClientPerfilScreen() {
 
         {/* Seguridad */}
         <Section title="Seguridad">
-          <MenuItem icon="🔑" label="Cambiar contraseña" />
+          <MenuItem icon="🔑" label="Cambiar contraseña" onPress={() => setPwdModal(true)} />
         </Section>
+
+        {/* Modal cambiar contraseña */}
+        <Modal visible={pwdModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Cambiar contraseña</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nueva contraseña"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry
+                value={newPwd}
+                onChangeText={setNewPwd}
+              />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Confirmar contraseña"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry
+                value={confirmPwd}
+                onChangeText={setConfirmPwd}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => { setPwdModal(false); setNewPwd(''); setConfirmPwd(''); }}>
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalSave} onPress={handleChangePassword} disabled={savingPwd}>
+                  {savingPwd ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalSaveText}>Guardar</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* Cerrar sesión */}
         <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
@@ -125,9 +176,9 @@ function DataRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MenuItem({ icon, label }: { icon: string; label: string }) {
+function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress?: () => void }) {
   return (
-    <TouchableOpacity style={styles.menuItem}>
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <Text style={styles.menuIcon}>{icon}</Text>
       <Text style={styles.menuLabel}>{label}</Text>
       <Text style={styles.chevron}>›</Text>
@@ -184,4 +235,24 @@ const styles = StyleSheet.create({
   signOutBtn: {
     backgroundColor: colors.white, borderRadius: 14,
     padding: 14, alignItems: 'center' },
-  signOutText: { fontSize: 15, color: colors.red, fontWeight: '500' } });
+  signOutText: { fontSize: 15, color: colors.red, fontWeight: '500' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 24, gap: 12 },
+  modalTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  modalInput: {
+    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 11,
+    fontSize: 15, color: colors.text },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  modalCancel: {
+    flex: 1, paddingVertical: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  modalCancelText: { fontSize: 15, color: colors.textMuted },
+  modalSave: {
+    flex: 1, paddingVertical: 12, borderRadius: 10,
+    backgroundColor: colors.purple, alignItems: 'center' },
+  modalSaveText: { fontSize: 15, fontWeight: '600', color: colors.white } });

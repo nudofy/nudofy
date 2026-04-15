@@ -302,9 +302,17 @@ export default function ClienteScreen() {
   );
 }
 
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = 'Nf';
+  for (let i = 0; i < 6; i++) result += chars[Math.floor(Math.random() * chars.length)];
+  return result;
+}
+
 function PortalTab({ client }: { client: Client }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
 
   async function sendInvite() {
     if (!client.email?.trim()) {
@@ -312,25 +320,29 @@ function PortalTab({ client }: { client: Client }) {
       return;
     }
     setSending(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: client.email!,
-      options: { shouldCreateUser: true, data: { role: 'client' }, emailRedirectTo: 'nudofy://' },
+    const { error } = await supabase.functions.invoke('invite-client', {
+      body: { email: client.email, clientName: client.name },
     });
     setSending(false);
     if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      setSent(true);
+      if (error.message?.toLowerCase().includes('already')) {
+        Alert.alert('Ya registrado', 'Este cliente ya tiene acceso al portal.');
+      } else {
+        Alert.alert('Error', error.message ?? 'Error al crear el acceso');
+      }
+      return;
     }
+    setSent(true);
+    Alert.alert('Acceso creado', `Se ha enviado un email a ${client.email} con sus credenciales de acceso.`);
   }
 
   function handleInvite() {
     Alert.alert(
-      sent ? 'Reenviar invitación' : 'Invitar al portal',
-      `Se enviará un enlace de acceso a:\n${client.email}`,
+      sent ? 'Reenviar acceso' : 'Crear acceso al portal',
+      `Se creará una cuenta para:\n${client.email}`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Enviar', onPress: sendInvite },
+        { text: sent ? 'Recrear' : 'Crear', onPress: sendInvite },
       ]
     );
   }
