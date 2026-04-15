@@ -321,15 +321,26 @@ function PortalTab({ client }: { client: Client }) {
     }
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke('invite-client', {
-        body: { email: client.email, clientName: client.name },
-      });
-      if (error) {
-        const msg = error.message ?? '';
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/invite-client`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+          },
+          body: JSON.stringify({ email: client.email, clientName: client.name }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = json?.error ?? 'Error al crear el acceso';
         if (msg.toLowerCase().includes('already')) {
           Alert.alert('Ya registrado', 'Este cliente ya tiene acceso al portal.');
         } else {
-          Alert.alert('Error', msg || 'Error al crear el acceso');
+          Alert.alert('Error', msg);
         }
         return;
       }
