@@ -1,0 +1,8 @@
+<svg width="1242" height="2688" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1242" height="2688" fill="#E73121"/>
+
+  <!-- N centrada, trazo fino negrita -->
+  <polyline points="541,1379 541,1209 701,1379 701,1209"
+            stroke="white" stroke-width="56"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
