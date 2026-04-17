@@ -68,15 +68,17 @@ export default function EditarProductoScreen() {
   const canSave = name.trim().length > 0 && price.trim().length > 0;
 
   async function pickImage() {
+    if (images.length >= 10) { Alert.alert('Límite alcanzado', 'Máximo 10 imágenes por producto.'); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsMultipleSelection: true,
+      selectionLimit: 10 - images.length,
       quality: 0.8 });
-    if (!result.canceled && result.assets[0]) {
-      setImages(prev => [...prev, result.assets[0].uri]);
+    if (!result.canceled) {
+      const newUris = result.assets.map(a => a.uri);
+      setImages(prev => [...prev, ...newUris].slice(0, 10));
     }
   }
 
@@ -147,7 +149,7 @@ export default function EditarProductoScreen() {
   if (!loaded) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.purple} />
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand} />
       </SafeAreaView>
     );
   }
@@ -173,20 +175,26 @@ export default function EditarProductoScreen() {
 
           {/* Imágenes */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Imágenes</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Imágenes</Text>
+              <Text style={styles.imgCounter}>{images.length}/10</Text>
+            </View>
             <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
               {images.map((uri, i) => (
                 <View key={i} style={styles.imageThumbWrap}>
                   <Image source={{ uri }} style={styles.imageThumb} />
+                  {i === 0 && <View style={styles.imgPrincipalBadge}><Text style={styles.imgPrincipalText}>Principal</Text></View>}
                   <TouchableOpacity style={styles.imageRemove} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
                     <Text style={styles.imageRemoveText}>✕</Text>
                   </TouchableOpacity>
                 </View>
               ))}
-              <TouchableOpacity style={styles.imageAdd} onPress={pickImage}>
-                <Text style={styles.imageAddIcon}>📷</Text>
-                <Text style={styles.imageAddText}>Añadir</Text>
-              </TouchableOpacity>
+              {images.length < 10 && (
+                <TouchableOpacity style={styles.imageAdd} onPress={pickImage}>
+                  <Text style={styles.imageAddIcon}>📷</Text>
+                  <Text style={styles.imageAddText}>Añadir</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
 
@@ -265,9 +273,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white, paddingHorizontal: 18, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple },
+  back: { fontSize: 14, color: colors.brand },
   title: { fontSize: 16, fontWeight: '500', color: colors.text },
-  saveBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.purple },
+  saveBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.brand },
   saveBtnDisabled: { opacity: 0.4 },
   saveBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
   content: { padding: 16, gap: 16 },
@@ -282,9 +290,18 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
   fieldInput: { fontSize: 15, color: colors.text },
   fieldTextarea: { minHeight: 70, paddingTop: 4 },
-  imagesRow: { padding: 16, gap: 10, flexDirection: 'row', alignItems: 'center' },
+  sectionHeaderRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
+  imgCounter: { fontSize: 11, color: colors.textMuted },
+  imagesRow: { paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8, gap: 10, flexDirection: 'row', alignItems: 'center' },
   imageThumbWrap: { position: 'relative' },
   imageThumb: { width: 80, height: 80, borderRadius: 10 },
+  imgPrincipalBadge: {
+    position: 'absolute', bottom: 4, left: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4,
+    paddingHorizontal: 5, paddingVertical: 2 },
+  imgPrincipalText: { fontSize: 9, color: '#fff', fontWeight: '600' },
   imageRemove: {
     position: 'absolute', top: -6, right: -6,
     width: 20, height: 20, borderRadius: 10,
@@ -297,6 +314,6 @@ const styles = StyleSheet.create({
   imageAddIcon: { fontSize: 20 },
   imageAddText: { fontSize: 10, color: colors.textMuted },
   mainSaveBtn: {
-    backgroundColor: colors.purple, borderRadius: 14,
+    backgroundColor: colors.brand, borderRadius: 14,
     paddingVertical: 15, alignItems: 'center' },
   mainSaveBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' } });

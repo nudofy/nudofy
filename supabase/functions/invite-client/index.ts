@@ -44,6 +44,7 @@ serve(async (req) => {
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email,
+        options: { redirectTo: 'nudofy://reset-password' },
       });
       if (linkError) {
         return new Response(JSON.stringify({ error: linkError.message }), { status: 400, headers: corsHeaders });
@@ -56,7 +57,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Nudofy <onboarding@resend.dev>',
+          from: 'Nudofy <no-reply@nudofy.app>',
           to: email,
           subject: 'Recupera tu acceso al portal Nudofy',
           html: `
@@ -71,7 +72,9 @@ serve(async (req) => {
         }),
       });
       if (!resendRecovery.ok) {
-        return new Response(JSON.stringify({ error: 'Error enviando email de recuperación' }), { status: 500, headers: corsHeaders });
+        const resendError = await resendRecovery.json().catch(() => ({}));
+        console.error('Resend error (recovery):', JSON.stringify(resendError));
+        return new Response(JSON.stringify({ error: resendError?.message ?? resendError?.name ?? 'Error enviando email de recuperación', detail: resendError }), { status: 500, headers: corsHeaders });
       }
       return new Response(JSON.stringify({ success: true, type: 'recovery' }), { headers: corsHeaders });
     }
@@ -84,7 +87,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Nudofy <onboarding@resend.dev>',
+        from: 'Nudofy <no-reply@nudofy.app>',
         to: email,
         subject: 'Tu acceso al portal Nudofy',
         html: `
@@ -104,8 +107,9 @@ serve(async (req) => {
     });
 
     if (!resendRes.ok) {
-      const resendError = await resendRes.json();
-      return new Response(JSON.stringify({ error: 'Error enviando email', detail: resendError }), { status: 500, headers: corsHeaders });
+      const resendError = await resendRes.json().catch(() => ({}));
+      console.error('Resend error (new user):', JSON.stringify(resendError));
+      return new Response(JSON.stringify({ error: resendError?.message ?? resendError?.name ?? 'Error enviando email', detail: resendError }), { status: 500, headers: corsHeaders });
     }
 
     return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });

@@ -48,7 +48,7 @@ export default function NuevoClienteScreen() {
         </TouchableOpacity>
         <Text style={styles.title}>Nuevo cliente</Text>
         <TouchableOpacity onPress={handleCreate} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.purple} /> : <Text style={styles.save}>Guardar</Text>}
+          {loading ? <ActivityIndicator color={colors.brand} /> : <Text style={styles.save}>Guardar</Text>}
         </TouchableOpacity>
       </View>
 
@@ -113,18 +113,18 @@ function FormField({ label, value, onChangeText, placeholder, keyboardType }: {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  back: { fontSize: 14, color: colors.purple },
-  title: { fontSize: 16, fontWeight: '500', color: colors.text },
-  save: { fontSize: 14, color: colors.purple, fontWeight: '500' },
+  back: { fontSize: 14, color: '#ffffff' },
+  title: { fontSize: 16, fontWeight: '500', color: '#ffffff' },
+  save: { fontSize: 14, color: '#ffffff', fontWeight: '500' },
   content: { padding: 16, gap: 16 },
   section: { gap: 8 },
   sectionTitle: {

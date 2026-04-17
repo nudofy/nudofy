@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: colors.white,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.border,
+    borderTopWidth: 2,
+    borderTopColor: colors.brand,
     paddingBottom: 0,
     paddingTop: 4,
   },
@@ -67,14 +67,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   iconWrapActive: {
-    backgroundColor: colors.purpleLight,
+    backgroundColor: colors.brandLight,
   },
   icon: {
     fontSize: 18,
     color: colors.textMuted,
   },
   iconActive: {
-    color: colors.purple,
+    color: colors.brand,
   },
   label: {
     fontSize: 10,
@@ -82,13 +82,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   labelActive: {
-    color: colors.purple,
+    color: colors.brand,
     fontWeight: '500',
   },
   dot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
   },
 });

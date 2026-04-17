@@ -18,7 +18,7 @@ const IconHome = ({ active }: { active: boolean }) => (
       {[0, 1, 2, 3].map(i => (
         <View key={i} style={{
           width: 6, height: 6, borderRadius: 1.5,
-          backgroundColor: active ? (i === 0 ? colors.purple : colors.purple) : '#bbbbbb',
+          backgroundColor: active ? (i === 0 ? colors.brand : colors.brand) : '#bbbbbb',
           opacity: active ? (i === 0 ? 1 : 0.35) : (i === 0 ? 1 : 0.5),
         }} />
       ))}
@@ -30,13 +30,13 @@ const IconClientes = ({ active }: { active: boolean }) => (
   <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
     <View style={{
       width: 12, height: 12, borderRadius: 6,
-      borderWidth: 1.4, borderColor: active ? colors.purple : '#bbbbbb',
-      backgroundColor: active ? colors.purple : 'transparent',
+      borderWidth: 1.4, borderColor: active ? colors.brand : '#bbbbbb',
+      backgroundColor: active ? colors.brand : 'transparent',
       marginBottom: 2,
     }} />
     <View style={{
       width: 16, height: 1.4, borderRadius: 1,
-      backgroundColor: active ? colors.purple : '#bbbbbb',
+      backgroundColor: active ? colors.brand : '#bbbbbb',
     }} />
   </View>
 );
@@ -45,12 +45,12 @@ const IconCatalogos = ({ active }: { active: boolean }) => (
   <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
     <View style={{ flexDirection: 'row', gap: 2 }}>
       <View style={{ gap: 2 }}>
-        <View style={{ width: 7, height: 9, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.purple : '#bbbbbb' }} />
-        <View style={{ width: 7, height: 5, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.purple : '#bbbbbb' }} />
+        <View style={{ width: 7, height: 9, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.brand : '#bbbbbb' }} />
+        <View style={{ width: 7, height: 5, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.brand : '#bbbbbb' }} />
       </View>
       <View style={{ gap: 2 }}>
-        <View style={{ width: 7, height: 5, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.purple : '#bbbbbb' }} />
-        <View style={{ width: 7, height: 9, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.purple : '#bbbbbb' }} />
+        <View style={{ width: 7, height: 5, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.brand : '#bbbbbb' }} />
+        <View style={{ width: 7, height: 9, borderRadius: 1.5, borderWidth: 1.4, borderColor: active ? colors.brand : '#bbbbbb' }} />
       </View>
     </View>
   </View>
@@ -60,8 +60,8 @@ const IconPedidos = ({ active }: { active: boolean }) => (
   <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
     <View style={{
       width: 16, height: 16, borderRadius: 2,
-      borderWidth: 1.4, borderColor: active ? colors.purple : '#bbbbbb',
-      backgroundColor: active ? colors.purple : 'transparent',
+      borderWidth: 1.4, borderColor: active ? colors.brand : '#bbbbbb',
+      backgroundColor: active ? colors.brand : 'transparent',
       alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 3,
     }}>
       {[1, 1, 0.7].map((w, i) => (
@@ -74,7 +74,7 @@ const IconPedidos = ({ active }: { active: boolean }) => (
 const IconMas = ({ active }: { active: boolean }) => (
   <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
     {[0, 1, 2].map(i => (
-      <View key={i} style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: active ? colors.purple : '#bbbbbb' }} />
+      <View key={i} style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: active ? colors.brand : '#bbbbbb' }} />
     ))}
   </View>
 );
@@ -116,8 +116,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: colors.white,
-    borderTopWidth: 0.5,
-    borderTopColor: '#efefef',
+    borderTopWidth: 2,
+    borderTopColor: colors.brand,
     paddingTop: 10,
   },
   tab: {
@@ -130,13 +130,13 @@ const styles = StyleSheet.create({
     color: '#bbbbbb',
   },
   labelActive: {
-    color: colors.purple,
+    color: colors.brand,
   },
   dot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     marginTop: 2,
   },
 });

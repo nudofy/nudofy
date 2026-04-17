@@ -56,7 +56,7 @@ export default function PerfilScreen() {
         <Text style={styles.title}>Perfil y ajustes</Text>
         <TouchableOpacity onPress={() => editing ? handleSave() : setEditing(true)} disabled={saving}>
           {saving
-            ? <ActivityIndicator size="small" color={colors.purple} />
+            ? <ActivityIndicator size="small" color={colors.brand} />
             : <Text style={styles.editBtn}>{editing ? 'Guardar' : 'Editar'}</Text>
           }
         </TouchableOpacity>
@@ -106,7 +106,7 @@ export default function PerfilScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Plan</Text>
-            <Text style={[styles.value, { color: colors.purple, textTransform: 'capitalize' }]}>
+            <Text style={[styles.value, { color: colors.brand, textTransform: 'capitalize' }]}>
               {agent?.plan ?? '—'}
             </Text>
           </View>
@@ -128,14 +128,14 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, width: 60 },
-  title: { fontSize: 16, fontWeight: '500', color: colors.text },
-  editBtn: { fontSize: 14, color: colors.purple, fontWeight: '500', width: 60, textAlign: 'right' },
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 14, color: '#ffffff', width: 60 },
+  title: { fontSize: 16, fontWeight: '500', color: '#ffffff' },
+  editBtn: { fontSize: 14, color: '#ffffff', fontWeight: '500', width: 60, textAlign: 'right' },
   content: { padding: 16, gap: 16 },
   section: {
     backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },

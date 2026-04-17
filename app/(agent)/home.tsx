@@ -48,7 +48,7 @@ export default function HomeScreen() {
   }
 
   const quickActions = [
-    { icon: '＋', label: 'Nuevo pedido', sub: 'Selecciona cliente', bg: '#EEEDFE', iconColor: colors.purple, route: '/(agent)/pedido/nuevo' },
+    { icon: '＋', label: 'Nuevo pedido', sub: 'Selecciona cliente', bg: '#FDECEA', iconColor: colors.brand, route: '/(agent)/pedido/nuevo' },
     { icon: '▦', label: 'Proveedores', sub: 'Ver', bg: '#E1F5EE', iconColor: '#1D9E75', route: '/(agent)/catalogos' },
     { icon: '≡', label: 'Mis pedidos', sub: 'Realizados · Pendientes', bg: '#FAEEDA', iconColor: colors.amber, route: '/(agent)/pedidos' },
     { icon: '＋', label: 'Añadir cliente', sub: 'Dar de alta', bg: '#E6F1FB', iconColor: '#185FA5', route: '/(agent)/cliente/nuevo' },
@@ -72,7 +72,7 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.purple} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
       >
         {/* KPIs */}
         <View style={styles.kpiGrid}>
@@ -86,7 +86,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity style={[styles.kpi, styles.kpiAccent]} onPress={() => router.push('/(agent)/pedido/nuevo')}>
             <Text style={[styles.kpiValue, { color: '#fff', fontSize: 24 }]}>+</Text>
-            <Text style={[styles.kpiLabel, { color: '#AFA9EC' }]}>Nuevo pedido</Text>
+            <Text style={[styles.kpiLabel, { color: '#FDECEA' }]}>Nuevo pedido</Text>
           </TouchableOpacity>
         </View>
 
@@ -145,19 +145,19 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 20,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  greeting: { fontSize: 18, fontWeight: '500', color: colors.text },
-  date: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  greeting: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
+  date: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   topbarActions: { flexDirection: 'row', gap: 8 },
   iconBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: colors.bg,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center', justifyContent: 'center',
   },
   iconEmoji: { fontSize: 16 },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
   },
-  kpiAccent: { backgroundColor: colors.purple },
+  kpiAccent: { backgroundColor: colors.brand },
   kpiValue: { fontSize: 20, fontWeight: '500', color: colors.text },
   kpiLabel: { fontSize: 10, color: colors.textMuted, marginTop: 3, textAlign: 'center', lineHeight: 13 },
   section: { paddingHorizontal: 16, marginTop: 16 },

@@ -199,10 +199,10 @@ function KpiCard({ value, label }: { value: string; label: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  title: { fontSize: 18, fontWeight: '500', color: colors.text },
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
   searchWrap: {
     backgroundColor: colors.white,
     paddingHorizontal: 14, paddingVertical: 9,
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: 20, borderWidth: 1, borderColor: colors.border,
     backgroundColor: colors.white },
-  pillActive: { backgroundColor: colors.purple, borderColor: colors.purple },
+  pillActive: { backgroundColor: colors.brand, borderColor: colors.brand },
   pillSupplier: { borderColor: colors.blue, backgroundColor: colors.white },
   pillSupplierActive: { backgroundColor: colors.blue, borderColor: colors.blue },
   pillText: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
@@ -239,9 +239,9 @@ const styles = StyleSheet.create({
   cardHead: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   supplierLogo: {
     width: 40, height: 40, borderRadius: 11,
-    backgroundColor: colors.purpleLight,
+    backgroundColor: colors.brandLight,
     alignItems: 'center', justifyContent: 'center' },
-  supplierLogoText: { fontSize: 16, fontWeight: '600', color: colors.purple },
+  supplierLogoText: { fontSize: 16, fontWeight: '600', color: colors.brand },
   cardBody: { flex: 1 },
   cardNum: { fontSize: 10, color: colors.textMuted },
   cardSupplier: { fontSize: 13, fontWeight: '500', color: colors.text, marginTop: 1 },

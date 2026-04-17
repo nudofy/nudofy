@@ -91,7 +91,7 @@ export default function ClientPerfilScreen() {
             <Switch
               value={notifPedidos}
               onValueChange={setNotifPedidos}
-              trackColor={{ true: colors.purple }}
+              trackColor={{ true: colors.brand }}
               thumbColor={colors.white}
             />
           </View>
@@ -103,7 +103,7 @@ export default function ClientPerfilScreen() {
             <Switch
               value={notifPromos}
               onValueChange={setNotifPromos}
-              trackColor={{ true: colors.purple }}
+              trackColor={{ true: colors.brand }}
               thumbColor={colors.white}
             />
           </View>
@@ -190,10 +190,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   loadingText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  title: { fontSize: 18, fontWeight: '500', color: colors.text },
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
   content: { padding: 14, gap: 14 },
   profileCard: {
     backgroundColor: colors.white, borderRadius: 16,
@@ -201,8 +201,8 @@ const styles = StyleSheet.create({
   profileBody: { flex: 1, gap: 2 },
   profileName: { fontSize: 18, fontWeight: '600', color: colors.text },
   profileType: {
-    fontSize: 12, color: colors.purple,
-    backgroundColor: colors.purpleLight, alignSelf: 'flex-start',
+    fontSize: 12, color: colors.brand,
+    backgroundColor: colors.brandLight, alignSelf: 'flex-start',
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
     marginTop: 2 },
   profileEmail: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
@@ -254,5 +254,5 @@ const styles = StyleSheet.create({
   modalCancelText: { fontSize: 15, color: colors.textMuted },
   modalSave: {
     flex: 1, paddingVertical: 12, borderRadius: 10,
-    backgroundColor: colors.purple, alignItems: 'center' },
+    backgroundColor: colors.brand, alignItems: 'center' },
   modalSaveText: { fontSize: 15, fontWeight: '600', color: colors.white } });

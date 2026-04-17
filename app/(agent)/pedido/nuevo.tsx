@@ -216,7 +216,7 @@ export default function NuevoPedidoScreen() {
 
           {/* Opción 1: Cliente existente */}
           <TouchableOpacity style={styles.modoCard} onPress={() => { setClientMode('existing'); setShowClientSearch(true); }}>
-            <View style={[styles.modoIcon, { backgroundColor: colors.purpleLight }]}>
+            <View style={[styles.modoIcon, { backgroundColor: colors.brandLight }]}>
               <Text style={styles.modoIconText}>👤</Text>
             </View>
             <View style={styles.modoBody}>
@@ -308,8 +308,8 @@ export default function NuevoPedidoScreen() {
             {!selectedSupplier ? (
               filteredSuppliers.map(s => (
                 <TouchableOpacity key={s.id} style={styles.item} onPress={() => { setSelectedSupplier(s); setSearch(''); }}>
-                  <View style={[styles.logo, { backgroundColor: colors.purpleLight }]}>
-                    <Text style={{ color: colors.purpleDark, fontWeight: '500' }}>{s.name.charAt(0)}</Text>
+                  <View style={[styles.logo, { backgroundColor: colors.brandLight }]}>
+                    <Text style={{ color: colors.brandDark, fontWeight: '500' }}>{s.name.charAt(0)}</Text>
                   </View>
                   <View style={styles.itemBody}>
                     <Text style={styles.itemName}>{s.name}</Text>
@@ -507,11 +507,11 @@ function SearchBar({ value, onChangeText, placeholder }: { value: string; onChan
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white, paddingHorizontal: 18, paddingVertical: 13,
-    flexDirection: 'row', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, marginRight: 10 },
-  title: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
-  cartBtn: { fontSize: 14, color: colors.purple, fontWeight: '500' },
+    backgroundColor: colors.dark, paddingHorizontal: 18, paddingVertical: 13,
+    flexDirection: 'row', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 14, color: '#ffffff', marginRight: 10 },
+  title: { flex: 1, fontSize: 16, fontWeight: '500', color: '#ffffff' },
+  cartBtn: { fontSize: 14, color: '#ffffff', fontWeight: '500' },
 
   // Modo cliente
   modoContent: { padding: 16, gap: 12 },
@@ -545,16 +545,16 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 9, fontSize: 14, color: colors.text, backgroundColor: colors.bg },
   confirmNewClientBtn: {
-    backgroundColor: colors.purple, borderRadius: 10,
+    backgroundColor: colors.brand, borderRadius: 10,
     paddingVertical: 11, alignItems: 'center', marginTop: 4 },
   confirmNewClientBtnText: { fontSize: 13, fontWeight: '600', color: colors.white },
 
   // Proveedor
   clientBanner: {
-    backgroundColor: colors.purpleLight, paddingHorizontal: 16, paddingVertical: 8,
+    backgroundColor: colors.brandLight, paddingHorizontal: 16, paddingVertical: 8,
     flexDirection: 'row', alignItems: 'center', gap: 8 },
-  clientBannerText: { flex: 1, fontSize: 12, fontWeight: '500', color: colors.purpleDark },
-  clientBannerChange: { fontSize: 12, color: colors.purple },
+  clientBannerText: { flex: 1, fontSize: 12, fontWeight: '500', color: colors.brandDark },
+  clientBannerChange: { fontSize: 12, color: colors.brand },
   searchWrap: {
     backgroundColor: colors.white, paddingHorizontal: 14, paddingVertical: 9,
     flexDirection: 'row', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#efefef', gap: 8 },
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   itemSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   chevron: { fontSize: 18, color: '#ccc' },
   changeBtn: { padding: 12, paddingBottom: 0 },
-  changeBtnText: { fontSize: 13, color: colors.purple },
+  changeBtnText: { fontSize: 13, color: colors.brand },
 
   // Productos
   productRow: { backgroundColor: colors.white, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -580,29 +580,29 @@ const styles = StyleSheet.create({
   productRef: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   qtyControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   qtyBtn: { width: 32, height: 32, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  qtyBtnAdd: { backgroundColor: colors.purple, borderColor: colors.purple },
-  qtyBtnText: { fontSize: 18, color: colors.purple, lineHeight: 20 },
+  qtyBtnAdd: { backgroundColor: colors.brand, borderColor: colors.brand },
+  qtyBtnText: { fontSize: 18, color: colors.brand, lineHeight: 20 },
   qtyVal: { fontSize: 16, fontWeight: '500', color: colors.text, minWidth: 20, textAlign: 'center' },
   cartBar: {
     backgroundColor: colors.white, borderTopWidth: 0.5, borderTopColor: '#efefef',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12 },
   cartBarText: { fontSize: 13, fontWeight: '500', color: colors.text },
-  cartBarBtn: { backgroundColor: colors.purple, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  cartBarBtn: { backgroundColor: colors.brand, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   cartBarBtnText: { color: colors.white, fontSize: 13, fontWeight: '500' },
 
   // Carrito
   cartContent: { padding: 12, gap: 8 },
   cartSummaryCard: {
-    backgroundColor: colors.purpleLight, borderRadius: 12, padding: 12,
+    backgroundColor: colors.brandLight, borderRadius: 12, padding: 12,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
-  cartSummaryTitle: { fontSize: 12, fontWeight: '500', color: colors.purpleDark },
-  cartSummarySub: { fontSize: 11, color: colors.purple },
+  cartSummaryTitle: { fontSize: 12, fontWeight: '500', color: colors.brandDark },
+  cartSummarySub: { fontSize: 11, color: colors.brand },
   sectionCard: { backgroundColor: colors.white, borderRadius: 12, padding: 14, gap: 8 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: colors.text },
   clientSelectedRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   clientSelectedName: { flex: 1, fontSize: 13, fontWeight: '500', color: colors.text },
-  changeLink: { fontSize: 12, color: colors.purple },
+  changeLink: { fontSize: 12, color: colors.brand },
   addressPicker: {
     borderWidth: 1, borderColor: colors.border, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 10,
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
   cartLineTotal: { fontSize: 12, fontWeight: '500', color: colors.text, marginTop: 2 },
   discRow: { flexDirection: 'row', gap: 8, backgroundColor: colors.white, borderRadius: 10, padding: 10 },
   discInput: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 7, paddingHorizontal: 9, paddingVertical: 6, fontSize: 12, color: colors.text, backgroundColor: colors.bg },
-  discBtn: { paddingHorizontal: 12, borderRadius: 7, backgroundColor: colors.purple, justifyContent: 'center' },
+  discBtn: { paddingHorizontal: 12, borderRadius: 7, backgroundColor: colors.brand, justifyContent: 'center' },
   discBtnText: { fontSize: 11, fontWeight: '500', color: colors.white },
   notesInput: { backgroundColor: colors.white, borderRadius: 10, padding: 10, fontSize: 12, color: colors.text, minHeight: 60, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.border },
   totalBar: { backgroundColor: colors.white, borderTopWidth: 0.5, borderTopColor: '#efefef', padding: 14 },
@@ -629,8 +629,8 @@ const styles = StyleSheet.create({
   totalValue: { fontSize: 11, fontWeight: '500', color: colors.text },
   totalFinal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', borderTopWidth: 0.5, borderTopColor: colors.borderLight, marginTop: 7, paddingTop: 7, marginBottom: 10 },
   totalFinalLabel: { fontSize: 13, fontWeight: '500', color: colors.text },
-  totalFinalValue: { fontSize: 20, fontWeight: '500', color: colors.purple },
-  confirmBtn: { backgroundColor: colors.purple, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  totalFinalValue: { fontSize: 20, fontWeight: '500', color: colors.brand },
+  confirmBtn: { backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   confirmBtnDisabled: { backgroundColor: '#d0cce8' },
   confirmBtnText: { color: colors.white, fontSize: 15, fontWeight: '500' },
 
@@ -639,9 +639,9 @@ const styles = StyleSheet.create({
   modalBox: { backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 4 },
   modalTitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 8 },
   addrOption: { padding: 14, borderRadius: 10, borderWidth: 1.5, borderColor: colors.border, marginBottom: 8 },
-  addrOptionSelected: { borderColor: colors.purple, backgroundColor: colors.purpleLight },
+  addrOptionSelected: { borderColor: colors.brand, backgroundColor: colors.brandLight },
   addrOptionLabel: { fontSize: 14, fontWeight: '500', color: colors.text },
-  addrOptionLabelSelected: { color: colors.purpleDark },
+  addrOptionLabelSelected: { color: colors.brandDark },
   addrOptionSub: { fontSize: 12, color: colors.textMuted, marginTop: 3 },
   modalCancel: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
   modalCancelText: { fontSize: 14, color: colors.textMuted } });

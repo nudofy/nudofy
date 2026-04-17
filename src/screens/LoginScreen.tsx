@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start' },
   backText: {
     fontSize: 14,
-    color: colors.purple },
+    color: colors.brand },
   title: {
     fontSize: 26,
     fontWeight: '500',
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.white },
   inputActive: {
-    borderColor: colors.purple },
+    borderColor: colors.brand },
   inputWrap: {
     position: 'relative' },
   eyeBtn: {
@@ -236,13 +236,13 @@ const styles = StyleSheet.create({
     fontSize: 16 },
   forgot: {
     fontSize: 13,
-    color: colors.purple,
+    color: colors.brand,
     textAlign: 'right',
     marginTop: 8 },
   btnPrimary: {
     paddingVertical: 16,
     borderRadius: 14,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     alignItems: 'center',
     marginTop: 8 },
   btnDisabled: {

@@ -95,6 +95,18 @@ export default function ProveedorScreen() {
             key={catalog.id}
             catalog={catalog}
             onPress={() => router.push(`/(agent)/catalogo/${catalog.id}` as any)}
+            onDelete={() => {
+              Alert.alert(
+                'Eliminar catálogo',
+                `¿Eliminar "${catalog.name}"? Se eliminarán también todos sus productos.`,
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Eliminar', style: 'destructive', onPress: async () => {
+                    await supabase.from('catalogs').delete().eq('id', catalog.id);
+                  }},
+                ]
+              );
+            }}
           />
         ))}
       </ScrollView>
@@ -147,29 +159,34 @@ export default function ProveedorScreen() {
   );
 }
 
-function CatalogCard({ catalog, onPress }: { catalog: Catalog; onPress: () => void }) {
+function CatalogCard({ catalog, onPress, onDelete }: { catalog: Catalog; onPress: () => void; onDelete: () => void }) {
   const isActive = catalog.status === 'active';
   const date = new Date(catalog.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <TouchableOpacity style={styles.catCard} onPress={onPress} activeOpacity={0.85}>
-      <View style={[styles.catIcon, { backgroundColor: isActive ? '#EEEDFE' : '#F1EFE8' }]}>
-        <Text style={{ fontSize: 16 }}>📋</Text>
-      </View>
-      <View style={styles.catBody}>
-        <Text style={styles.catName}>{catalog.name}</Text>
-        <Text style={styles.catMeta}>{catalog.season ? `${catalog.season} · ` : ''}Creado el {date}</Text>
-      </View>
-      <View style={styles.catRight}>
-        <Text style={styles.catRefs}>{catalog.product_count ?? 0} refs.</Text>
-        <View style={[styles.statusPill, { backgroundColor: isActive ? '#EAF3DE' : '#F1EFE8' }]}>
-          <Text style={[styles.statusText, { color: isActive ? '#3B6D11' : '#888780' }]}>
-            {isActive ? 'Activo' : 'Archivado'}
-          </Text>
+    <View style={styles.catCard}>
+      <TouchableOpacity style={styles.catCardMain} onPress={onPress} activeOpacity={0.85}>
+        <View style={[styles.catIcon, { backgroundColor: isActive ? colors.brandLight : '#F1EFE8' }]}>
+          <Text style={{ fontSize: 16 }}>📋</Text>
         </View>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </TouchableOpacity>
+        <View style={styles.catBody}>
+          <Text style={styles.catName}>{catalog.name}</Text>
+          <Text style={styles.catMeta}>{catalog.season ? `${catalog.season} · ` : ''}Creado el {date}</Text>
+        </View>
+        <View style={styles.catRight}>
+          <Text style={styles.catRefs}>{catalog.product_count ?? 0} refs.</Text>
+          <View style={[styles.statusPill, { backgroundColor: isActive ? '#EAF3DE' : '#F1EFE8' }]}>
+            <Text style={[styles.statusText, { color: isActive ? '#3B6D11' : '#888780' }]}>
+              {isActive ? 'Activo' : 'Archivado'}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.catDeleteBtn} onPress={onDelete}>
+        <Text style={styles.catDeleteText}>Eliminar</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -183,11 +200,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, marginRight: 12 },
+  back: { fontSize: 14, color: colors.brand, marginRight: 12 },
   title: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
   addBtn: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     alignItems: 'center', justifyContent: 'center' },
   addBtnText: { color: colors.white, fontSize: 18, lineHeight: 20 },
   deleteBtn: { fontSize: 12, color: '#C0392B', fontWeight: '500' },
@@ -201,19 +218,27 @@ const styles = StyleSheet.create({
     borderBottomColor: '#efefef' },
   provLogo: {
     width: 48, height: 48, borderRadius: 13,
-    backgroundColor: colors.purpleLight,
+    backgroundColor: colors.brandLight,
     alignItems: 'center', justifyContent: 'center' },
-  provLogoText: { fontSize: 18, fontWeight: '500', color: colors.purpleDark },
+  provLogoText: { fontSize: 18, fontWeight: '500', color: colors.brandDark },
   provName: { fontSize: 15, fontWeight: '500', color: colors.text },
   provSector: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   listContent: { paddingHorizontal: 14, paddingBottom: 14, gap: 8, paddingTop: 14 },
   catCard: {
     backgroundColor: colors.white,
     borderRadius: 14,
+    overflow: 'hidden' },
+  catCardMain: {
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12 },
+  catDeleteBtn: {
+    borderTopWidth: 0.5,
+    borderTopColor: colors.borderLight,
+    paddingVertical: 9,
+    alignItems: 'center' },
+  catDeleteText: { fontSize: 12, color: '#C0392B', fontWeight: '500' },
   catIcon: {
     width: 40, height: 40, borderRadius: 11,
     alignItems: 'center', justifyContent: 'center' },
@@ -221,7 +246,7 @@ const styles = StyleSheet.create({
   catName: { fontSize: 13, fontWeight: '500', color: colors.text },
   catMeta: { fontSize: 11, color: colors.textMuted, marginTop: 3 },
   catRight: { alignItems: 'flex-end', gap: 5 },
-  catRefs: { fontSize: 11, color: colors.purple, fontWeight: '500' },
+  catRefs: { fontSize: 11, color: colors.brand, fontWeight: '500' },
   statusPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   statusText: { fontSize: 10, fontWeight: '500' },
   chevron: { fontSize: 18, color: '#ccc' },
@@ -249,5 +274,5 @@ const styles = StyleSheet.create({
   modalCancelText: { fontSize: 14, color: colors.textMuted },
   modalConfirmBtn: {
     flex: 2, paddingVertical: 12, borderRadius: 12,
-    backgroundColor: colors.purple, alignItems: 'center' },
+    backgroundColor: colors.brand, alignItems: 'center' },
   modalConfirmText: { fontSize: 14, fontWeight: '600', color: '#fff' } });

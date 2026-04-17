@@ -65,7 +65,7 @@ export default function CatalogosScreen() {
           onChangeText={setSearch}
         />
         <View style={styles.camBtn}>
-          <Text style={{ fontSize: 12, color: colors.purple }}>📷</Text>
+          <Text style={{ fontSize: 12, color: colors.brand }}>📷</Text>
         </View>
       </View>
 
@@ -116,19 +116,19 @@ function SupplierCard({ supplier, onPress }: { supplier: Supplier; onPress: () =
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  title: { fontSize: 18, fontWeight: '500', color: colors.text },
+    borderBottomColor: 'rgba(255,255,255,0.1)' },
+  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
   topbarActions: { flexDirection: 'row', gap: 8 },
   newSupplierBtn: {
     paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: colors.purple },
+    borderRadius: 20, backgroundColor: colors.brand },
   newSupplierBtnText: { fontSize: 12, fontWeight: '500', color: '#fff' },
   searchWrap: {
     backgroundColor: colors.white,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border },
   camBtn: {
     width: 28, height: 28, borderRadius: 7,
-    backgroundColor: colors.purpleLight,
+    backgroundColor: colors.brandLight,
     alignItems: 'center', justifyContent: 'center' },
   gridContent: { padding: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 18, fontWeight: '500' },
   cardName: { fontSize: 13, fontWeight: '500', color: colors.text, textAlign: 'center' },
   cardCats: { fontSize: 11, color: colors.textMuted },
-  cardChevron: { fontSize: 11, color: colors.purple, fontWeight: '500' },
+  cardChevron: { fontSize: 11, color: colors.brand, fontWeight: '500' },
   emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });

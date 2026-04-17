@@ -45,7 +45,7 @@ export default function EstadisticasScreen() {
           </View>
           <View style={[styles.kpi, styles.kpiAccent]}>
             <Text style={[styles.kpiValue, { color: '#fff' }]}>{formatEur(totalRevenue)}</Text>
-            <Text style={[styles.kpiLabel, { color: '#AFA9EC' }]}>Facturación total</Text>
+            <Text style={[styles.kpiLabel, { color: '#FDECEA' }]}>Facturación total</Text>
           </View>
         </View>
 
@@ -201,20 +201,20 @@ function AnualTab({ stats, maxTotal }: { stats: YearStat[]; maxTotal: number }) 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, width: 60 },
-  title: { fontSize: 16, fontWeight: '500', color: colors.text },
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 14, color: '#ffffff', width: 60 },
+  title: { fontSize: 16, fontWeight: '500', color: '#ffffff' },
   kpiRow: {
     flexDirection: 'row', gap: 10,
     paddingHorizontal: 14, paddingTop: 14 },
   kpi: {
     flex: 1, backgroundColor: colors.white,
     borderRadius: 14, padding: 16, gap: 4 },
-  kpiAccent: { backgroundColor: colors.purple },
+  kpiAccent: { backgroundColor: colors.brand },
   kpiValue: { fontSize: 18, fontWeight: '600', color: colors.text },
   kpiLabel: { fontSize: 11, color: colors.textMuted },
   tabBar: {
@@ -225,11 +225,11 @@ const styles = StyleSheet.create({
     borderWidth: 0.5, borderColor: colors.border },
   tabItem: { flex: 1, alignItems: 'center', paddingVertical: 11 },
   tabText: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
-  tabActive: { color: colors.purple },
+  tabActive: { color: colors.brand },
   tabIndicator: {
     position: 'absolute', bottom: 0,
     width: '60%', height: 2,
-    backgroundColor: colors.purple, borderRadius: 1 },
+    backgroundColor: colors.brand, borderRadius: 1 },
   tabContent: { padding: 14, gap: 12 },
   highlightCard: {
     backgroundColor: colors.white, borderRadius: 14, padding: 16, gap: 12 },
@@ -252,11 +252,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1EFE8', borderRadius: 4,
     justifyContent: 'flex-end', overflow: 'hidden' },
   barFill: {
-    width: '100%', backgroundColor: colors.purpleLight,
+    width: '100%', backgroundColor: colors.brandLight,
     borderRadius: 4 },
-  barFillActive: { backgroundColor: colors.purple },
+  barFillActive: { backgroundColor: colors.brand },
   barLabel: { fontSize: 9, color: colors.textMuted, textAlign: 'center' },
-  barLabelActive: { color: colors.purple, fontWeight: '600' },
+  barLabelActive: { color: colors.brand, fontWeight: '600' },
   tableRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 10,
@@ -264,5 +264,5 @@ const styles = StyleSheet.create({
   tableRowActive: { backgroundColor: '#FAFAFE' },
   tableLabel: { flex: 1, fontSize: 13, color: colors.text },
   tableOrders: { fontSize: 12, color: colors.textMuted, marginRight: 12 },
-  tableAmount: { fontSize: 13, fontWeight: '500', color: colors.purple, minWidth: 80, textAlign: 'right' },
+  tableAmount: { fontSize: 13, fontWeight: '500', color: colors.brand, minWidth: 80, textAlign: 'right' },
   empty: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingVertical: 24 } });

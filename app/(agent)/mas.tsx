@@ -113,8 +113,8 @@ function SumItem({ value, label }: { value: string; label: string }) {
 function SupplierRow({ supplier, onPress }: { supplier: Supplier; onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.supplierRow} onPress={onPress} activeOpacity={0.85}>
-      <View style={[styles.supplierLogo, { backgroundColor: supplier.active ? colors.purpleLight : '#F1EFE8' }]}>
-        <Text style={{ color: supplier.active ? colors.purpleDark : '#888', fontWeight: '500' }}>
+      <View style={[styles.supplierLogo, { backgroundColor: supplier.active ? colors.brandLight : '#F1EFE8' }]}>
+        <Text style={{ color: supplier.active ? colors.brandDark : '#888', fontWeight: '500' }}>
           {supplier.name.charAt(0)}
         </Text>
       </View>
@@ -134,22 +134,22 @@ function SupplierRow({ supplier, onPress }: { supplier: Supplier; onPress: () =>
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  title: { fontSize: 18, fontWeight: '500', color: colors.text },
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
   content: { padding: 14, gap: 14 },
   profileCard: {
     backgroundColor: colors.white, borderRadius: 16,
     padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
   profileInfo: { flex: 1 },
   profileName: { fontSize: 16, fontWeight: '500', color: colors.text },
-  profilePlan: { fontSize: 12, color: colors.purple, marginTop: 3, textTransform: 'capitalize' },
+  profilePlan: { fontSize: 12, color: colors.brand, marginTop: 3, textTransform: 'capitalize' },
   chevron: { fontSize: 18, color: '#ccc' },
   section: { gap: 10 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle: { fontSize: 12, fontWeight: '500', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  seeAll: { fontSize: 12, color: colors.purple },
+  seeAll: { fontSize: 12, color: colors.brand },
   summaryBar: {
     backgroundColor: colors.white, borderRadius: 12,
     padding: 12, flexDirection: 'row', justifyContent: 'space-around' },
@@ -170,8 +170,8 @@ const styles = StyleSheet.create({
   addSupplierBtn: {
     backgroundColor: colors.white, borderRadius: 12,
     padding: 14, alignItems: 'center',
-    borderWidth: 1.5, borderColor: colors.purple, borderStyle: 'dashed' },
-  addSupplierText: { fontSize: 14, color: colors.purple, fontWeight: '500' },
+    borderWidth: 1.5, borderColor: colors.brand, borderStyle: 'dashed' },
+  addSupplierText: { fontSize: 14, color: colors.brand, fontWeight: '500' },
   menuBlock: { backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
   menuItem: {
     flexDirection: 'row', alignItems: 'center',

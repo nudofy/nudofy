@@ -249,16 +249,16 @@ function KpiItem({ value, label }: { value: string; label: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)',
     gap: 10 },
   backBtn: { padding: 2 },
-  back: { fontSize: 20, color: colors.purple },
+  back: { fontSize: 20, color: '#ffffff' },
   topbarCenter: { flex: 1 },
-  title: { fontSize: 17, fontWeight: '500', color: colors.text },
-  titleSub: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  title: { fontSize: 17, fontWeight: '500', color: '#ffffff' },
+  titleSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
   kpiBar: {
     flexDirection: 'row',
     backgroundColor: colors.white,
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '500', color: colors.text },
   emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   emptyBtn: {
-    marginTop: 8, backgroundColor: colors.purple,
+    marginTop: 8, backgroundColor: colors.brand,
     borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
   emptyBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' },
   cartCard: {
@@ -287,9 +287,9 @@ const styles = StyleSheet.create({
     padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cartLogo: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: colors.purpleLight,
+    backgroundColor: colors.brandLight,
     alignItems: 'center', justifyContent: 'center' },
-  cartLogoText: { fontSize: 18, fontWeight: '600', color: colors.purple },
+  cartLogoText: { fontSize: 18, fontWeight: '600', color: colors.brand },
   cartCardBody: { flex: 1 },
   cartSupplier: { fontSize: 15, fontWeight: '500', color: colors.text },
   cartCatalog: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     borderTopWidth: 0.5, borderTopColor: colors.borderLight },
   cartMeta: { fontSize: 11, color: colors.textMuted },
-  cartTotal: { fontSize: 14, fontWeight: '600', color: colors.purple },
+  cartTotal: { fontSize: 14, fontWeight: '600', color: colors.brand },
   detailContent: { padding: 12, gap: 10 },
   block: {
     backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden',
@@ -322,10 +322,10 @@ const styles = StyleSheet.create({
   removeBtn: { fontSize: 13, color: colors.red, padding: 4 },
   qtyRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.purpleLight, borderRadius: 8, overflow: 'hidden' },
+    backgroundColor: colors.brandLight, borderRadius: 8, overflow: 'hidden' },
   qtyBtn: { width: 32, height: 28, alignItems: 'center', justifyContent: 'center' },
-  qtyBtnText: { fontSize: 16, color: colors.purple, fontWeight: '500' },
-  qtyValue: { paddingHorizontal: 10, fontSize: 13, fontWeight: '500', color: colors.purple },
+  qtyBtnText: { fontSize: 16, color: colors.brand, fontWeight: '500' },
+  qtyValue: { paddingHorizontal: 10, fontSize: 13, fontWeight: '500', color: colors.brand },
   notesInput: {
     borderWidth: 1, borderColor: colors.border,
     borderRadius: 10, padding: 10,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     padding: 16, gap: 4 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 15, fontWeight: '500', color: colors.text },
-  totalValue: { fontSize: 20, fontWeight: '700', color: colors.purple },
+  totalValue: { fontSize: 20, fontWeight: '700', color: colors.brand },
   totalUnits: { fontSize: 11, color: colors.textMuted },
   agentInfo: {
     backgroundColor: colors.greenLight,

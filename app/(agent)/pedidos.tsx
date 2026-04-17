@@ -168,18 +168,18 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  back: { fontSize: 13, color: colors.purple, marginRight: 10 },
-  title: { flex: 1, fontSize: 17, fontWeight: '500', color: colors.text },
+    borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 13, color: '#ffffff', marginRight: 10 },
+  title: { flex: 1, fontSize: 17, fontWeight: '500', color: '#ffffff' },
   newBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     alignItems: 'center', justifyContent: 'center' },
   newBtnText: { color: colors.white, fontSize: 20, lineHeight: 22 },
   searchWrap: {
@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' },
   tabInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   tabText: { fontSize: 12, fontWeight: '500', color: colors.textMuted },
-  tabActive: { color: colors.purple },
-  tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: colors.purple },
+  tabActive: { color: colors.brand },
+  tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: colors.brand },
   badge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 },
   badgeText: { fontSize: 9, fontWeight: '500' },
   kpiRow: {
@@ -248,5 +248,5 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 1,
     borderColor: colors.border },
-  actBtnText: { fontSize: 10, fontWeight: '500', color: colors.purple },
+  actBtnText: { fontSize: 10, fontWeight: '500', color: colors.brand },
   emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });

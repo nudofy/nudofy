@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, Alert,
+  StyleSheet, TextInput, Alert, ActivityIndicator,
   KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -334,9 +334,11 @@ function PortalTab({ client }: { client: Client }) {
           body: JSON.stringify({ email: client.email, clientName: client.name }),
         }
       );
-      const json = await res.json().catch(() => ({}));
+      const text = await res.text().catch(() => '');
+      let json: any = {};
+      try { json = JSON.parse(text); } catch {}
       if (!res.ok) {
-        Alert.alert('Error', json?.error ?? 'Error al crear el acceso');
+        Alert.alert('Error', json?.error ?? `HTTP ${res.status}: ${text.slice(0, 200)}`);
         return;
       }
       setSent(true);
@@ -380,7 +382,7 @@ function PortalTab({ client }: { client: Client }) {
           disabled={sending || !client.email}
         >
           {sending
-            ? <ActivityIndicator color={sent ? colors.purple : '#fff'} />
+            ? <ActivityIndicator color={sent ? colors.brand : '#fff'} />
             : <Text style={sent ? styles.inviteResendText : styles.inviteBtnText}>
                 {sent ? 'Reenviar invitación' : 'Enviar invitación'}
               </Text>}
@@ -439,10 +441,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, marginRight: 12 },
+  back: { fontSize: 14, color: colors.brand, marginRight: 12 },
   topbarTitle: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
   topbarActions: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  editBtn: { fontSize: 13, color: colors.purple, fontWeight: '500' },
+  editBtn: { fontSize: 13, color: colors.brand, fontWeight: '500' },
   deleteBtn: { fontSize: 13, color: '#C0392B', fontWeight: '500' },
   clientHeader: {
     backgroundColor: colors.white,
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef' },
   clientName: { fontSize: 16, fontWeight: '500', color: colors.text },
-  clientType: { fontSize: 12, color: colors.purple, marginTop: 3 },
+  clientType: { fontSize: 12, color: colors.brand, marginTop: 3 },
   tabBar: {
     backgroundColor: colors.white,
     flexDirection: 'row',
@@ -462,8 +464,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#efefef' },
   tab: { flex: 1, paddingVertical: 11, alignItems: 'center', position: 'relative' },
   tabText: { fontSize: 12, fontWeight: '500', color: colors.textMuted },
-  tabActive: { color: colors.purple },
-  tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: colors.purple },
+  tabActive: { color: colors.brand },
+  tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: colors.brand },
   actionRow: {
     backgroundColor: colors.white,
     flexDirection: 'row',
@@ -478,8 +480,8 @@ const styles = StyleSheet.create({
     padding: 9,
     alignItems: 'center',
     gap: 4 },
-  actionIcon: { fontSize: 16, color: colors.purple },
-  actionText: { fontSize: 12, fontWeight: '500', color: colors.purple },
+  actionIcon: { fontSize: 16, color: colors.brand },
+  actionText: { fontSize: 12, fontWeight: '500', color: colors.brand },
   blocks: { padding: 14, gap: 10 },
   block: { backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
   blockHeader: {
@@ -491,7 +493,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8 },
   addAddrBtn: { marginLeft: 'auto' as any },
-  addAddrBtnText: { fontSize: 12, color: colors.purple, fontWeight: '500' },
+  addAddrBtnText: { fontSize: 12, color: colors.brand, fontWeight: '500' },
   addrRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     paddingHorizontal: 14, paddingVertical: 10,
@@ -499,7 +501,7 @@ const styles = StyleSheet.create({
   addrBody: { flex: 1 },
   addrLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   addrLabel: { fontSize: 13, fontWeight: '500', color: colors.text },
-  addrDefault: { fontSize: 10, color: colors.purple, backgroundColor: colors.purpleLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+  addrDefault: { fontSize: 10, color: colors.brand, backgroundColor: colors.brandLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
   addrText: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   addrNotes: { fontSize: 11, color: '#bbb', marginTop: 2, fontStyle: 'italic' },
   addrDelete: { fontSize: 14, color: '#ccc', padding: 4 },
@@ -512,7 +514,7 @@ const styles = StyleSheet.create({
   addrFormActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   addrCancelBtn: { flex: 1, paddingVertical: 9, borderRadius: 9, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   addrCancelText: { fontSize: 13, color: colors.textMuted },
-  addrSaveBtn: { flex: 1, paddingVertical: 9, borderRadius: 9, backgroundColor: colors.purple, alignItems: 'center' },
+  addrSaveBtn: { flex: 1, paddingVertical: 9, borderRadius: 9, backgroundColor: colors.brand, alignItems: 'center' },
   addrSaveText: { fontSize: 13, fontWeight: '600', color: colors.white },
   blockIcon: { width: 24, height: 24, borderRadius: 7 },
   blockTitle: { fontSize: 12, fontWeight: '500', color: '#555' },
@@ -530,7 +532,7 @@ const styles = StyleSheet.create({
   fieldEmpty: { color: '#ccc', fontStyle: 'italic' },
   fieldInput: {
     fontSize: 12, color: colors.text,
-    borderBottomWidth: 1, borderBottomColor: colors.purple,
+    borderBottomWidth: 1, borderBottomColor: colors.brand,
     flex: 1, textAlign: 'right', paddingVertical: 2 },
   orderRow: {
     backgroundColor: colors.white,
@@ -554,7 +556,7 @@ const styles = StyleSheet.create({
     minHeight: 160,
     textAlignVertical: 'top' },
   saveNotesBtn: {
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center' },
@@ -568,7 +570,7 @@ const styles = StyleSheet.create({
   portalSub: { fontSize: 13, color: colors.textMuted },
   inviteBtn: {
     marginTop: 8,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center' },
@@ -584,8 +586,8 @@ const styles = StyleSheet.create({
   inviteResendBtn: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: colors.purple,
+    borderColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 11,
     alignItems: 'center' },
-  inviteResendText: { color: colors.purple, fontSize: 14, fontWeight: '500' } });
+  inviteResendText: { color: colors.brand, fontSize: 14, fontWeight: '500' } });

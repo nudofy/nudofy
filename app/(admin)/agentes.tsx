@@ -15,7 +15,7 @@ function formatDate(iso: string) {
 
 const PLAN_META: Record<string, { bg: string; text: string; label: string }> = {
   basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico'    },
-  pro:         { bg: '#EEEDFE', text: '#3C3489', label: 'Pro'        },
+  pro:         { bg: '#FDECEA', text: '#C4260F', label: 'Pro'        },
   agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia'    },
   agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Ag. Pro'    },
 };
@@ -405,8 +405,8 @@ export default function AdminAgentesScreen() {
                       onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
                     >
                       <View style={styles.entityCell}>
-                        <View style={[styles.av, { backgroundColor: '#EEEDFE' }]}>
-                          <Text style={[styles.avText, { color: '#3C3489' }]}>{initials}</Text>
+                        <View style={[styles.av, { backgroundColor: '#FDECEA' }]}>
+                          <Text style={[styles.avText, { color: '#C4260F' }]}>{initials}</Text>
                         </View>
                         <View>
                           <Text style={styles.entityName}>{agent.name}</Text>
@@ -544,14 +544,14 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', gap: 6 },
   btnPrimary: {
     paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 8, backgroundColor: '#534AB7',
+    borderRadius: 8, backgroundColor: '#E73121',
   },
   btnPrimaryText: { fontSize: 12, fontWeight: '500', color: '#fff' },
   btnSecondary: {
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 8, borderWidth: 1, borderColor: '#444', backgroundColor: 'transparent',
   },
-  btnSecondaryText: { fontSize: 12, fontWeight: '500', color: '#AFA9EC' },
+  btnSecondaryText: { fontSize: 12, fontWeight: '500', color: '#FDECEA' },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#fff', borderRadius: 10,
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden', alignSelf: 'flex-start',
   },
   tabBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-  tabBtnActive: { backgroundColor: '#534AB7' },
+  tabBtnActive: { backgroundColor: '#E73121' },
   tabBtnText: { fontSize: 13, fontWeight: '500', color: '#999' },
   tabBtnTextActive: { color: '#fff' },
   filtersBar: { gap: 8 },
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
   },
-  pillActive: { backgroundColor: '#534AB7', borderColor: '#534AB7' },
+  pillActive: { backgroundColor: '#E73121', borderColor: '#E73121' },
   pillText: { fontSize: 12, color: '#888', fontWeight: '500' },
   pillTextActive: { color: '#fff' },
   resultsCount: { fontSize: 13, color: '#999' },
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 7, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
   },
-  actBtnText: { fontSize: 11, fontWeight: '500', color: '#534AB7' },
+  actBtnText: { fontSize: 11, fontWeight: '500', color: '#E73121' },
   actBtnSuccess: { borderColor: '#A8DFC9' },
   actBtnSuccessText: { color: '#1D9E75' },
   emptyText: { textAlign: 'center', color: '#aaa', fontSize: 13, padding: 20 },
@@ -672,9 +672,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#e8e8e8',
     borderRadius: 10, padding: 12,
   },
-  planOptSelected: { borderColor: '#534AB7', backgroundColor: '#EEEDFE' },
+  planOptSelected: { borderColor: '#E73121', backgroundColor: '#FDECEA' },
   planOptName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  planOptNameSelected: { color: '#3C3489' },
+  planOptNameSelected: { color: '#C4260F' },
   planOptPrice: { fontSize: 11, color: '#999', marginTop: 3 },
   btnCancel: {
     paddingHorizontal: 16, paddingVertical: 8,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   btnCancelText: { fontSize: 13, fontWeight: '500', color: '#555' },
   btnSave: {
     paddingHorizontal: 18, paddingVertical: 8,
-    borderRadius: 9, backgroundColor: '#534AB7',
+    borderRadius: 9, backgroundColor: '#E73121',
   },
   btnSaveText: { fontSize: 13, fontWeight: '500', color: '#fff' },
 });

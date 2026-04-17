@@ -99,8 +99,8 @@ export default function ClientHomeScreen() {
           <ActionCard
             icon="◫"
             label="Ver catálogo"
-            color={colors.purpleLight}
-            iconColor={colors.purple}
+            color={colors.brandLight}
+            iconColor={colors.brand}
             onPress={() => router.push('/(client)/catalogo')}
           />
           <ActionCard
@@ -189,20 +189,20 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   loadingText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
     gap: 8 },
   logoMark: {
     width: 30, height: 30, borderRadius: 8,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     alignItems: 'center', justifyContent: 'center' },
   logoText: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  logoLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
+  logoLabel: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
   bellBtn: { padding: 4 },
   bellIcon: { fontSize: 18 },
   content: { padding: 14, gap: 12 },
@@ -232,9 +232,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center' },
-  agentBtnSecondary: { backgroundColor: colors.purpleLight },
+  agentBtnSecondary: { backgroundColor: colors.brandLight },
   agentBtnText: { fontSize: 13, fontWeight: '500', color: colors.white },
-  agentBtnTextSecondary: { color: colors.purple },
+  agentBtnTextSecondary: { color: colors.brand },
   actionsRow: { flexDirection: 'row', gap: 8 },
   actionCard: {
     flex: 1,
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12, fontWeight: '500', color: colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5 },
-  seeAll: { fontSize: 12, color: colors.purple },
+  seeAll: { fontSize: 12, color: colors.brand },
   orderCard: {
     backgroundColor: colors.white,
     borderRadius: 12,
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   emptyBtn: {
     marginTop: 8,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     borderRadius: 10,
     paddingHorizontal: 20,
     paddingVertical: 10 },

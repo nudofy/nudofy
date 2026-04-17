@@ -20,7 +20,7 @@ const PLAN_META: Record<string, { bg: string; text: string; label: string; maxAg
   free:       { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free',        maxAgents: 1,   maxClients: 10,     maxProducts: 50,     price: 0  },
   free_pro:   { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free Pro',    maxAgents: 5,   maxClients: 500,    maxProducts: 5000,   price: 0  },
   basic:      { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico',      maxAgents: 1,   maxClients: 50,     maxProducts: 500,    price: 9  },
-  pro:        { bg: '#EEEDFE', text: '#3C3489', label: 'Pro',         maxAgents: 1,   maxClients: 500,    maxProducts: 5000,   price: 19 },
+  pro:        { bg: '#FDECEA', text: '#C4260F', label: 'Pro',         maxAgents: 1,   maxClients: 500,    maxProducts: 5000,   price: 19 },
   agency:     { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia',     maxAgents: 10,  maxClients: 500,    maxProducts: 5000,   price: 39 },
   agency_pro: { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro', maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 79 },
 };
@@ -195,10 +195,10 @@ export default function AdminEmpresaDetailScreen() {
             {plan.maxProducts < 999999 ? `${(plan.maxProducts - productCount).toLocaleString('es-ES')} disponibles` : 'Ilimitados'}
           </Text>
         </View>
-        <View style={[styles.kpi, { backgroundColor: '#534AB7', borderColor: '#534AB7' }]}>
-          <Text style={[styles.kpiLabel, { color: '#AFA9EC' }]}>Facturación mensual</Text>
+        <View style={[styles.kpi, { backgroundColor: '#E73121', borderColor: '#E73121' }]}>
+          <Text style={[styles.kpiLabel, { color: '#FDECEA' }]}>Facturación mensual</Text>
           <Text style={[styles.kpiValue, { color: '#fff' }]}>{formatEur(monthlyTotal)}</Text>
-          <Text style={[styles.kpiSub, { color: '#AFA9EC' }]}>
+          <Text style={[styles.kpiSub, { color: '#FDECEA' }]}>
             {activeAgentCount} agentes × {basePrice} €/mes
           </Text>
         </View>
@@ -290,14 +290,14 @@ export default function AdminEmpresaDetailScreen() {
             const isAdmin = agent.role === 'admin';
             return (
               <View key={agent.id} style={styles.agentRow}>
-                <View style={[styles.agentAv, { backgroundColor: isAdmin ? '#EEEDFE' : '#F1EFE8' }]}>
-                  <Text style={[styles.agentAvText, { color: isAdmin ? '#3C3489' : '#5F5E5A' }]}>{initials2}</Text>
+                <View style={[styles.agentAv, { backgroundColor: isAdmin ? '#FDECEA' : '#F1EFE8' }]}>
+                  <Text style={[styles.agentAvText, { color: isAdmin ? '#C4260F' : '#5F5E5A' }]}>{initials2}</Text>
                 </View>
                 <View style={styles.agentBody}>
                   <View style={styles.agentNameRow}>
                     <Text style={styles.agentName}>{agent.name}</Text>
-                    <View style={[styles.roleTag, { backgroundColor: isAdmin ? '#EEEDFE' : '#F1EFE8' }]}>
-                      <Text style={[styles.roleTagText, { color: isAdmin ? '#3C3489' : '#5F5E5A' }]}>
+                    <View style={[styles.roleTag, { backgroundColor: isAdmin ? '#FDECEA' : '#F1EFE8' }]}>
+                      <Text style={[styles.roleTagText, { color: isAdmin ? '#C4260F' : '#5F5E5A' }]}>
                         {isAdmin ? 'Admin' : 'Agente'}
                       </Text>
                     </View>
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap',
   },
   breadcrumbWrap: { marginRight: 4 },
-  breadcrumb: { fontSize: 13, color: '#534AB7' },
+  breadcrumb: { fontSize: 13, color: '#E73121' },
   pageTitle: { fontSize: 16, fontWeight: '500', color: '#1a1a1a', flex: 1 },
   pageActions: { flexDirection: 'row', gap: 8 },
   btnDanger: {
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   btnSuccessText: { color: '#1D9E75' },
   btnPrimary: {
     paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 9, backgroundColor: '#534AB7',
+    borderRadius: 9, backgroundColor: '#E73121',
   },
   btnPrimaryText: { fontSize: 12, fontWeight: '500', color: '#fff' },
   companyHeader: {
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
   cardCount: { fontSize: 12, color: '#999' },
-  cardAction: { fontSize: 12, color: '#534AB7' },
+  cardAction: { fontSize: 12, color: '#E73121' },
   fieldRow: {
     padding: 10, paddingHorizontal: 16,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: { fontSize: 12, color: '#bbb', flexShrink: 0 },
   fieldValue: { fontSize: 12, fontWeight: '500', color: '#1a1a1a', textAlign: 'right', flex: 1 },
-  fieldValueAccent: { color: '#534AB7' },
+  fieldValueAccent: { color: '#E73121' },
   editBody: { padding: 16, gap: 12 },
   editGroup: { gap: 6 },
   editLabel: { fontSize: 12, fontWeight: '500', color: '#555' },
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 7, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff', flexShrink: 0,
   },
-  actBtnText: { fontSize: 11, fontWeight: '500', color: '#534AB7' },
+  actBtnText: { fontSize: 11, fontWeight: '500', color: '#E73121' },
   tableHead: {
     flexDirection: 'row', backgroundColor: '#fafafa',
     borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',

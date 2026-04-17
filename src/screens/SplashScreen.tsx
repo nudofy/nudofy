@@ -2,151 +2,166 @@ import React from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
-  Linking } from 'react-native';
+  Linking,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
 
-// Logo SVG como componente React Native (usando View shapes)
-function NudofyLogo() {
-  return (
-    <View style={styles.logoMark}>
-      {/* Punto izquierdo */}
-      <View style={[styles.logoDot, { left: 8, top: 17 }]} />
-      {/* Punto superior derecho */}
-      <View style={[styles.logoDot, { right: 6, top: 5 }]} />
-      {/* Punto inferior derecho */}
-      <View style={[styles.logoDot, { right: 6, bottom: 5 }]} />
-    </View>
-  );
-}
+const BRAND = '#E73121';
 
 export default function SplashScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Hero */}
-      <View style={styles.hero}>
-        <NudofyLogo />
-        <Text style={styles.appName}>Nudofy</Text>
-        <Text style={styles.appSlogan}>Catalogs and sales</Text>
+    <View style={styles.root}>
+      <SafeAreaView style={styles.safe}>
+        {/* ── Hero ── */}
+        <View style={styles.hero}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImg}
+            resizeMode="contain"
+          />
+          <Text style={styles.wordmark}>nudofy</Text>
+          <Text style={styles.tagline}>Catálogos y ventas para agentes comerciales</Text>
 
-        {/* Dots de onboarding (preparados para futuro) */}
-        <View style={styles.dots}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
+          {/* Dots */}
+          <View style={styles.dots}>
+            <View style={[styles.dot, styles.dotActive]} />
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+          </View>
         </View>
-      </View>
 
-      {/* Botón */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.btnPrimary}
-          onPress={() => router.push('/login')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.btnPrimaryText}>Entrar</Text>
-        </TouchableOpacity>
-      </View>
+        {/* ── CTA ── */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => router.push('/login')}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.btnText}>Entrar</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={() => Linking.openURL('https://nudofy.com/quienes-somos')}>
-          <Text style={styles.footerLink}>Quiénes somos</Text>
-        </TouchableOpacity>
-        <View style={styles.footerSep} />
-        <TouchableOpacity onPress={() => Linking.openURL('mailto:info@nudofy.com')}>
-          <Text style={styles.footerLink}>Contacto</Text>
-        </TouchableOpacity>
-        <View style={styles.footerSep} />
-        <TouchableOpacity onPress={() => Linking.openURL('https://nudofy.com')}>
-          <Text style={styles.footerLink}>nudofy.com</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://nudofy.com/quienes-somos')}>
+            <Text style={styles.footerLink}>Quiénes somos</Text>
+          </TouchableOpacity>
+          <View style={styles.footerSep} />
+          <TouchableOpacity onPress={() => Linking.openURL('mailto:info@nudofy.com')}>
+            <Text style={styles.footerLink}>Contacto</Text>
+          </TouchableOpacity>
+          <View style={styles.footerSep} />
+          <TouchableOpacity onPress={() => Linking.openURL('https://nudofy.com')}>
+            <Text style={styles.footerLink}>nudofy.com</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: colors.white },
+    backgroundColor: BRAND,
+  },
+  safe: {
+    flex: 1,
+  },
+  logoImg: {
+    width: 120,
+    height: 120,
+  },
+
+  // ── Hero ──
   hero: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: 24 },
-  logoMark: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: colors.purple,
-    marginBottom: 20,
-    position: 'relative' },
-  logoDot: {
-    position: 'absolute',
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: colors.white },
-  appName: {
-    fontSize: 32,
-    fontWeight: '500',
-    color: colors.text,
+    paddingTop: 32,
+    paddingBottom: 16,
+    gap: 0,
+  },
+  wordmark: {
+    marginTop: 20,
+    fontSize: 34,
+    fontWeight: Platform.OS === 'ios' ? '600' : '700',
+    color: '#ffffff',
     letterSpacing: -0.5,
-    marginBottom: 8 },
-  appSlogan: {
-    fontSize: 15,
-    color: colors.textLight,
+  },
+  tagline: {
+    marginTop: 10,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.70)',
     textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 240 },
+    lineHeight: 20,
+    maxWidth: 220,
+  },
   dots: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: 32 },
+    marginTop: 36,
+  },
   dot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#e0e0e0' },
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
   dotActive: {
-    width: 20,
-    backgroundColor: colors.purple },
+    width: 22,
+    backgroundColor: '#ffffff',
+  },
+
+  // ── CTA ──
   actions: {
     paddingHorizontal: 28,
     paddingBottom: 12,
-    gap: 12 },
-  btnPrimary: {
+  },
+  btn: {
     paddingVertical: 16,
     borderRadius: 14,
-    backgroundColor: colors.purple,
-    alignItems: 'center' },
-  btnPrimaryText: {
-    color: colors.white,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  btnText: {
+    color: BRAND,
     fontSize: 16,
-    fontWeight: '500' },
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+
+  // ── Footer ──
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
+    gap: 16,
     paddingHorizontal: 28,
-    paddingVertical: 16,
-    paddingBottom: 28,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.borderLight },
+    paddingBottom: 24,
+    paddingTop: 8,
+  },
   footerLink: {
     fontSize: 12,
-    color: colors.textMuted },
+    color: 'rgba(255,255,255,0.55)',
+  },
   footerSep: {
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#d0d0d0' } });
+    backgroundColor: 'rgba(255,255,255,0.30)',
+  },
+});

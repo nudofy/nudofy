@@ -24,7 +24,7 @@ const STATUS_META: Record<string, { bg: string; text: string; label: string }> =
 
 const PLAN_META: Record<string, { bg: string; text: string; label: string }> = {
   basic:      { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico'     },
-  pro:        { bg: '#EEEDFE', text: '#3C3489', label: 'Pro'         },
+  pro:        { bg: '#FDECEA', text: '#C4260F', label: 'Pro'         },
   agency:     { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia'     },
   agency_pro: { bg: '#042C53', text: '#85B7EB', label: 'Ag. Pro'     },
 };
@@ -144,8 +144,8 @@ export default function AdminFacturacionScreen() {
                 <View key={inv.id} style={styles.tableRow}>
                   <View style={[styles.td, { width: 180 }]}>
                     <View style={styles.entityCell}>
-                      <View style={[styles.av, { backgroundColor: '#EEEDFE' }]}>
-                        <Text style={[styles.avText, { color: '#3C3489' }]}>{initials}</Text>
+                      <View style={[styles.av, { backgroundColor: '#FDECEA' }]}>
+                        <Text style={[styles.avText, { color: '#C4260F' }]}>{initials}</Text>
                       </View>
                       <View>
                         <Text style={styles.entityName}>{agentName}</Text>
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   flowNum: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#534AB7',
+    backgroundColor: '#E73121',
     alignItems: 'center', justifyContent: 'center', marginTop: 1,
   },
   flowNumText: { color: '#fff', fontSize: 11, fontWeight: '500' },
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
   },
-  pillActive: { backgroundColor: '#534AB7', borderColor: '#534AB7' },
+  pillActive: { backgroundColor: '#E73121', borderColor: '#E73121' },
   pillText: { fontSize: 12, color: '#888', fontWeight: '500' },
   pillTextActive: { color: '#fff' },
   resultsCount: { fontSize: 13, color: '#999' },
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 7, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
   },
-  actBtnText: { fontSize: 10, fontWeight: '500', color: '#534AB7' },
+  actBtnText: { fontSize: 10, fontWeight: '500', color: '#E73121' },
   actBtnSuccess: { borderColor: '#A8DFC9' },
   actBtnSuccessText: { color: '#1D9E75' },
   emptyText: { textAlign: 'center', color: '#aaa', fontSize: 13, padding: 20 },

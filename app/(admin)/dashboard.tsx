@@ -15,7 +15,7 @@ function formatDate(iso: string) {
 
 const PLAN_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico'      },
-  pro:         { bg: '#EEEDFE', text: '#3C3489', label: 'Pro'          },
+  pro:         { bg: '#FDECEA', text: '#C4260F', label: 'Pro'          },
   agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia'      },
   agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro'  },
 };
@@ -147,8 +147,8 @@ export default function AdminDashboardScreen() {
                 >
                   <View style={[styles.td, { width: 180 }]}>
                     <View style={styles.agentCell}>
-                      <View style={[styles.av, { backgroundColor: '#EEEDFE' }]}>
-                        <Text style={[styles.avText, { color: '#3C3489' }]}>
+                      <View style={[styles.av, { backgroundColor: '#FDECEA' }]}>
+                        <Text style={[styles.avText, { color: '#C4260F' }]}>
                           {agent.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
                         </Text>
                       </View>
@@ -218,9 +218,10 @@ const styles = StyleSheet.create({
     borderRadius: 12, padding: 16,
     borderWidth: 0.5, borderColor: '#e8e8e8',
   },
-  kpiCardAccent: { backgroundColor: '#534AB7', borderColor: '#534AB7' },
+  kpiCardAccent: { backgroundColor: '#E73121', borderColor: '#E73121' },
+
   kpiLabel: { fontSize: 11, color: '#999', marginBottom: 6 },
-  kpiLabelAccent: { color: '#AFA9EC' },
+  kpiLabelAccent: { color: '#FDECEA' },
   kpiValue: { fontSize: 24, fontWeight: '500', color: '#1a1a1a' },
   kpiValueAccent: { color: '#fff' },
   kpiDelta: { fontSize: 11, marginTop: 5 },
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   cardTitle: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  cardLink: { fontSize: 12, color: '#534AB7' },
+  cardLink: { fontSize: 12, color: '#E73121' },
   chartArea: {
     flexDirection: 'row', alignItems: 'flex-end',
     paddingHorizontal: 18, paddingTop: 16,
@@ -246,8 +247,8 @@ const styles = StyleSheet.create({
   },
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barTrack: { flex: 1, width: '100%', justifyContent: 'flex-end' },
-  bar: { width: '100%', backgroundColor: '#EEEDFE', borderRadius: 3 },
-  barActive: { backgroundColor: '#534AB7' },
+  bar: { width: '100%', backgroundColor: '#FDECEA', borderRadius: 3 },
+  barActive: { backgroundColor: '#E73121' },
   barLabel: { fontSize: 10, color: '#bbb' },
   chartFooter: {
     flexDirection: 'row', justifyContent: 'space-around',
@@ -266,8 +267,8 @@ const styles = StyleSheet.create({
   planName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
   planAgents: { fontSize: 10, color: '#999', marginTop: 2 },
   planBarWrap: { flex: 1, height: 5, backgroundColor: '#f0f0f0', borderRadius: 3 },
-  planBar: { height: 5, borderRadius: 3, backgroundColor: '#534AB7' },
-  planRevenue: { fontSize: 13, fontWeight: '500', color: '#534AB7', width: 60, textAlign: 'right' },
+  planBar: { height: 5, borderRadius: 3, backgroundColor: '#E73121' },
+  planRevenue: { fontSize: 13, fontWeight: '500', color: '#E73121', width: 60, textAlign: 'right' },
   tableHead: {
     flexDirection: 'row', backgroundColor: '#fafafa',
     borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',

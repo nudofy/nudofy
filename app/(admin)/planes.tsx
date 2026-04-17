@@ -76,7 +76,7 @@ export default function AdminPlanesScreen() {
   return (
     <AdminShell activeSection="planes" title="Planes">
       {loading ? (
-        <ActivityIndicator color="#534AB7" style={{ marginTop: 40 }} />
+        <ActivityIndicator color="#E73121" style={{ marginTop: 40 }} />
       ) : (
         <View style={styles.list}>
           {plans.map(plan => (
@@ -182,12 +182,12 @@ const styles = StyleSheet.create({
   },
   rowLeft: { flex: 1, gap: 4 },
   badge: {
-    backgroundColor: '#EEEDFE', borderRadius: 6,
+    backgroundColor: '#FDECEA', borderRadius: 6,
     paddingHorizontal: 8, paddingVertical: 3,
     alignSelf: 'flex-start',
   },
   badgeFree: { backgroundColor: '#E6F7EF' },
-  badgeText: { fontSize: 11, fontWeight: '600', color: '#3C3489' },
+  badgeText: { fontSize: 11, fontWeight: '600', color: '#C4260F' },
   badgeTextFree: { color: '#1D7A4E' },
   price: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
   rowMeta: { gap: 2 },
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 8, borderWidth: 1, borderColor: '#e0e0e0',
   },
-  editBtnText: { fontSize: 13, fontWeight: '500', color: '#534AB7' },
+  editBtnText: { fontSize: 13, fontWeight: '500', color: '#E73121' },
 
   // Modal
   modalOverlay: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   cancelBtnText: { fontSize: 14, color: '#666' },
   saveBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 10,
-    backgroundColor: '#534AB7', alignItems: 'center',
+    backgroundColor: '#E73121', alignItems: 'center',
   },
   saveBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 });

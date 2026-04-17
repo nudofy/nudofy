@@ -1,12 +1,13 @@
 // A-05 Vista 3 — Productos del catálogo (grid con carrito)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity, ScrollView,
-  StyleSheet, Image, ActivityIndicator } from 'react-native';
+  StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
 import { useProducts } from '@/hooks/useAgent';
+import { supabase } from '@/lib/supabase';
 import type { Product } from '@/hooks/useAgent';
 
 function formatEur(n: number) {
@@ -21,10 +22,32 @@ export default function CatalogoScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { products, loading } = useProducts(id);
+  const [catalogName, setCatalogName] = useState('');
   const [search, setSearch] = useState('');
   const [selectedFamilia, setSelectedFamilia] = useState<string | null>(null);
   const [selectedSubfamilia, setSelectedSubfamilia] = useState<string | null>(null);
   const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    supabase.from('catalogs').select('name').eq('id', id).single().then(({ data }) => {
+      if (data) setCatalogName(data.name);
+    });
+  }, [id]);
+
+  function handleDeleteCatalog() {
+    Alert.alert(
+      'Eliminar catálogo',
+      `¿Eliminar "${catalogName}"? Se eliminarán también todos sus productos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: async () => {
+          await supabase.from('catalogs').delete().eq('id', id);
+          router.back();
+        }},
+      ]
+    );
+  }
 
   // Derive unique families
   const familias = useMemo(() => {
@@ -161,6 +184,9 @@ export default function CatalogoScreen() {
         >
           <Text style={styles.importBtn2Text}>↑ CSV</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={handleDeleteCatalog}>
+          <Text style={styles.deleteBtn}>Eliminar</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.newBtn}
           onPress={() => router.push(`/(agent)/producto/nuevo?catalogId=${id}` as any)}
@@ -236,7 +262,7 @@ export default function CatalogoScreen() {
       )}
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.purple} />
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand} />
       ) : filtered.length === 0 ? (
         <Text style={styles.emptyText}>
           {search || selectedFamilia ? 'Sin resultados' : 'Sin productos. Pulsa + para añadir uno.'}
@@ -266,15 +292,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 0.5,
     borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, marginRight: 12 },
+  back: { fontSize: 14, color: colors.brand, marginRight: 12 },
+  deleteBtn: { fontSize: 12, color: '#C0392B', fontWeight: '500', marginRight: 4 },
   title: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
   importBtn2: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
-    borderWidth: 1, borderColor: colors.purple },
-  importBtn2Text: { fontSize: 11, fontWeight: '600', color: colors.purple },
+    borderWidth: 1, borderColor: colors.brand },
+  importBtn2Text: { fontSize: 11, fontWeight: '600', color: colors.brand },
   newBtn: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     alignItems: 'center', justifyContent: 'center',
     marginLeft: 8 },
   newBtnText: { color: colors.white, fontSize: 18, lineHeight: 20 },
@@ -314,7 +341,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white },
-  chipActive: { backgroundColor: colors.purple, borderColor: colors.purple },
+  chipActive: { backgroundColor: colors.brand, borderColor: colors.brand },
   chipText: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
   chipTextActive: { color: '#fff' },
   subChip: {
@@ -322,15 +349,15 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1,
     borderColor: '#ddd',
     backgroundColor: '#fff' },
-  subChipActive: { backgroundColor: colors.purpleLight ?? '#EEEDFE', borderColor: colors.purple },
+  subChipActive: { backgroundColor: colors.brandLight ?? '#EEEDFE', borderColor: colors.brand },
   subChipText: { fontSize: 11, color: colors.textMuted },
-  subChipTextActive: { color: colors.purple, fontWeight: '600' },
+  subChipTextActive: { color: colors.brand, fontWeight: '600' },
   resultsBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 6,
     backgroundColor: colors.bg },
   resultsText: { fontSize: 12, color: colors.textMuted },
-  clearText: { fontSize: 12, color: colors.purple, fontWeight: '500' },
+  clearText: { fontSize: 12, color: colors.brand, fontWeight: '500' },
   grid: { padding: 12 },
   row: { gap: 10, marginBottom: 10 },
   card: {
@@ -348,8 +375,8 @@ const styles = StyleSheet.create({
   cardInfo: { padding: 10, gap: 2 },
   cardName: { fontSize: 12, fontWeight: '500', color: colors.text, lineHeight: 16 },
   cardRef: { fontSize: 10, color: colors.textMuted },
-  cardFamilia: { fontSize: 10, color: colors.purple, marginTop: 1 },
-  cardPrice: { fontSize: 13, fontWeight: '500', color: colors.purple, marginTop: 3 },
+  cardFamilia: { fontSize: 10, color: colors.brand, marginTop: 1 },
+  cardPrice: { fontSize: 13, fontWeight: '500', color: colors.brand, marginTop: 3 },
   cardStock: { fontSize: 10, color: colors.textMuted },
   cartRow: {
     paddingHorizontal: 8,
@@ -374,7 +401,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 4 },
   addBtn: {
-    backgroundColor: colors.purple,
+    backgroundColor: colors.brand,
     borderRadius: 8,
     paddingVertical: 7,
     alignItems: 'center' },

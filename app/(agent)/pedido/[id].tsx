@@ -203,15 +203,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   loading: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  back: { fontSize: 13, color: colors.purple, marginRight: 10 },
-  title: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.text },
+    borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 13, color: '#ffffff', marginRight: 10 },
+  title: { flex: 1, fontSize: 15, fontWeight: '500', color: '#ffffff' },
   content: { padding: 12, gap: 8 },
   statusBadge: {
     borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 10 },
   dataLabel: { fontSize: 11, color: colors.textMuted, flex: 1 },
   dataValue: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'right', flex: 1 },
-  dataValueBold: { color: colors.purple, fontSize: 13 },
+  dataValueBold: { color: colors.brand, fontSize: 13 },
   notesCard: {
     backgroundColor: colors.white, borderRadius: 12,
     padding: 12, gap: 4 },
@@ -256,6 +256,6 @@ const styles = StyleSheet.create({
   actIcon: { fontSize: 20 },
   actLabel: { fontSize: 11, fontWeight: '500', color: colors.text, textAlign: 'center' },
   sendBtn: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.dark,
     borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   sendBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' } });

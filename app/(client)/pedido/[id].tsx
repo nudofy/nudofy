@@ -104,7 +104,7 @@ export default function ClientPedidoDetailScreen() {
         </View>
 
         {/* Proveedor */}
-        <DataBlock title="Proveedor" iconBg={colors.purpleLight}>
+        <DataBlock title="Proveedor" iconBg={colors.brandLight}>
           <DataRow label="Proveedor" value={(order as any).supplier?.name ?? '—'} />
           <DataRow label="Catálogo" value={(order as any).catalog?.name ?? '—'} />
           {(order as any).supplier?.conditions && (
@@ -199,23 +199,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   loadingText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef',
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)',
     gap: 10 },
   backBtn: {},
-  back: { fontSize: 13, color: colors.purple, marginRight: 10 },
-  title: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.text },
+  back: { fontSize: 13, color: '#ffffff', marginRight: 10 },
+  title: { flex: 1, fontSize: 15, fontWeight: '500', color: '#ffffff' },
   content: { padding: 12, gap: 8 },
   statusCard: {
     backgroundColor: colors.white, borderRadius: 12,
     padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusLeft: { gap: 4 },
   orderNumBadge: {
-    backgroundColor: colors.purpleLight,
+    backgroundColor: colors.brandLight,
     borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
-  orderNum: { fontSize: 13, fontWeight: '600', color: colors.purple },
+  orderNum: { fontSize: 13, fontWeight: '600', color: colors.brand },
   statusDate: { fontSize: 11, color: colors.textMuted },
   block: { backgroundColor: colors.white, borderRadius: 12, overflow: 'hidden' },
   blockHeader: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 10 },
   dataLabel: { fontSize: 12, color: colors.textMuted, flex: 1 },
   dataValue: { fontSize: 12, fontWeight: '500', color: colors.text, textAlign: 'right', flex: 1 },
-  dataValueBold: { color: colors.purple, fontSize: 14 },
+  dataValueBold: { color: colors.brand, fontSize: 14 },
   notesCard: {
     backgroundColor: colors.white, borderRadius: 12, padding: 12, gap: 4 },
   notesLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },

@@ -94,12 +94,12 @@ export default function AdminConfiguracionScreen() {
         </ConfigRow>
         <ConfigRow label="Email activación cuenta">
           <View style={styles.switchSmall}>
-            <Switch value trackColor={{ true: '#534AB7' }} thumbColor="#fff" />
+            <Switch value trackColor={{ true: '#E73121' }} thumbColor="#fff" />
           </View>
         </ConfigRow>
         <ConfigRow label="Email nueva factura">
           <View style={styles.switchSmall}>
-            <Switch value trackColor={{ true: '#534AB7' }} thumbColor="#fff" />
+            <Switch value trackColor={{ true: '#E73121' }} thumbColor="#fff" />
           </View>
         </ConfigRow>
       </ConfigCard>
@@ -127,7 +127,7 @@ export default function AdminConfiguracionScreen() {
           />
         </ConfigRow>
         <ConfigRow label="Modo test">
-          <Switch value={false} trackColor={{ true: '#534AB7' }} thumbColor="#fff" />
+          <Switch value={false} trackColor={{ true: '#E73121' }} thumbColor="#fff" />
         </ConfigRow>
       </ConfigCard>
 
@@ -201,7 +201,7 @@ function ConfigRow({ label, children }: { label: string; children: React.ReactNo
 const styles = StyleSheet.create({
   saveBtn: {
     paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 9, backgroundColor: '#534AB7',
+    borderRadius: 9, backgroundColor: '#E73121',
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { color: '#fff', fontSize: 12, fontWeight: '500' },
