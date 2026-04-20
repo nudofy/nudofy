@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity, ScrollView,
-  StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
+  StyleSheet, Image, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
@@ -23,17 +23,51 @@ export default function CatalogoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { products, loading } = useProducts(id);
   const [catalogName, setCatalogName] = useState('');
+  const [catalogSeason, setCatalogSeason] = useState('');
+  const [catalogStatus, setCatalogStatus] = useState<'active' | 'archived'>('active');
   const [search, setSearch] = useState('');
   const [selectedFamilia, setSelectedFamilia] = useState<string | null>(null);
   const [selectedSubfamilia, setSelectedSubfamilia] = useState<string | null>(null);
   const [, forceUpdate] = useState(0);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editSeason, setEditSeason] = useState('');
+  const [editStatus, setEditStatus] = useState<'active' | 'archived'>('active');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    supabase.from('catalogs').select('name').eq('id', id).single().then(({ data }) => {
-      if (data) setCatalogName(data.name);
+    supabase.from('catalogs').select('name, season, status').eq('id', id).single().then(({ data }) => {
+      if (data) {
+        setCatalogName(data.name);
+        setCatalogSeason(data.season ?? '');
+        setCatalogStatus(data.status ?? 'active');
+      }
     });
   }, [id]);
+
+  function openEdit() {
+    setEditName(catalogName);
+    setEditSeason(catalogSeason);
+    setEditStatus(catalogStatus);
+    setShowEdit(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!editName.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase.from('catalogs').update({
+      name: editName.trim(),
+      season: editSeason.trim() || null,
+      status: editStatus,
+    }).eq('id', id);
+    setSavingEdit(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setCatalogName(editName.trim());
+    setCatalogSeason(editSeason.trim());
+    setCatalogStatus(editStatus);
+    setShowEdit(false);
+  }
 
   function handleDeleteCatalog() {
     Alert.alert(
@@ -116,7 +150,7 @@ export default function CatalogoScreen() {
           activeOpacity={0.85}
         >
           {item.image_url ? (
-            <Image source={{ uri: item.image_url }} style={styles.productImage} />
+            <Image source={{ uri: item.image_url }} style={styles.productImage} resizeMode="contain" />
           ) : (
             <Text style={styles.productPlaceholder}>📦</Text>
           )}
@@ -183,6 +217,9 @@ export default function CatalogoScreen() {
           onPress={() => router.push(`/(agent)/catalogo/importar?catalogId=${id}` as any)}
         >
           <Text style={styles.importBtn2Text}>↑ CSV</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.editBtn} onPress={openEdit}>
+          <Text style={styles.editBtnText}>Editar</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleDeleteCatalog}>
           <Text style={styles.deleteBtn}>Eliminar</Text>
@@ -278,6 +315,66 @@ export default function CatalogoScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Modal editar catálogo */}
+      <Modal visible={showEdit} transparent animationType="slide">
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <Text style={styles.modalTitle}>Editar catálogo</Text>
+
+              <Text style={styles.modalLabel}>Nombre <Text style={{ color: '#E53E3E' }}>*</Text></Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Nombre del catálogo"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.modalLabel}>Temporada (opcional)</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editSeason}
+                onChangeText={setEditSeason}
+                placeholder="Ej: SS25"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.modalLabel}>Estado</Text>
+              <View style={styles.statusRow}>
+                {(['active', 'archived'] as const).map(s => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.statusOption, editStatus === s && styles.statusOptionActive]}
+                    onPress={() => setEditStatus(s)}
+                  >
+                    <Text style={[styles.statusOptionText, editStatus === s && styles.statusOptionTextActive]}>
+                      {s === 'active' ? 'Activo' : 'Archivado'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowEdit(false)}>
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalConfirmBtn, !editName.trim() && { opacity: 0.4 }]}
+                  onPress={handleSaveEdit}
+                  disabled={!editName.trim() || savingEdit}
+                >
+                  {savingEdit
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.modalConfirmText}>Guardar</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -285,16 +382,20 @@ export default function CatalogoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.brand, marginRight: 12 },
-  deleteBtn: { fontSize: 12, color: '#C0392B', fontWeight: '500', marginRight: 4 },
-  title: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
+    borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginRight: 12 },
+  deleteBtn: { fontSize: 12, color: '#ff8a80', fontWeight: '500', marginRight: 4 },
+  title: { flex: 1, fontSize: 16, fontWeight: '500', color: '#ffffff' },
+  editBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', marginRight: 8 },
+  editBtnText: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
   importBtn2: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
     borderWidth: 1, borderColor: colors.brand },
@@ -366,8 +467,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden' },
   cardImage: {
-    height: 110,
-    backgroundColor: '#f0f0ee',
+    height: 120,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center' },
   productImage: { width: '100%', height: '100%' },
@@ -406,4 +507,37 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     alignItems: 'center' },
   addBtnText: { fontSize: 12, fontWeight: '600', color: '#fff' },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });
+  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 },
+  // Modal editar
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 24, gap: 12 },
+  modalTitle: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  modalLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+  modalInput: {
+    backgroundColor: colors.bg,
+    borderWidth: 1, borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 14, color: colors.text },
+  statusRow: { flexDirection: 'row', gap: 8 },
+  statusOption: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center' },
+  statusOptionActive: { backgroundColor: colors.brand, borderColor: colors.brand },
+  statusOptionText: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+  statusOptionTextActive: { color: '#fff' },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  modalCancelBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  modalCancelText: { fontSize: 14, color: colors.textMuted },
+  modalConfirmBtn: {
+    flex: 2, paddingVertical: 12, borderRadius: 12,
+    backgroundColor: colors.brand, alignItems: 'center' },
+  modalConfirmText: { fontSize: 14, fontWeight: '600', color: '#fff' } });

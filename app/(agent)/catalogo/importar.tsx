@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, Alert, Share } from 'react-native';
+  ActivityIndicator, Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -58,12 +60,22 @@ export default function ImportarProductosScreen() {
 
   async function shareTemplate() {
     try {
-      await Share.share({
-        message: CSV_TEMPLATE,
-        title: 'plantilla_productos.csv',
+      const fileUri = FileSystem.cacheDirectory + 'plantilla_productos.csv';
+      await FileSystem.writeAsStringAsync(fileUri, CSV_TEMPLATE, {
+        encoding: FileSystem.EncodingType.UTF8,
       });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Guardar plantilla CSV',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        Alert.alert('No disponible', 'La función de compartir no está disponible en este dispositivo.');
+      }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo compartir la plantilla');
+      Alert.alert('Error', e?.message ?? 'No se pudo descargar la plantilla');
     }
   }
 
@@ -306,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white, paddingHorizontal: 18, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.purple, width: 60 },
+  back: { fontSize: 14, color: colors.brand, width: 60 },
   title: { fontSize: 16, fontWeight: '500', color: colors.text },
   content: { padding: 16, gap: 14 },
   card: {
@@ -318,9 +330,9 @@ const styles = StyleSheet.create({
   cardDesc: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
   bold: { fontWeight: '600', color: colors.text },
   shareBtn: {
-    backgroundColor: colors.purpleLight ?? '#EEEDFE',
+    backgroundColor: colors.brandLight ?? '#EEEDFE',
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  shareBtnText: { fontSize: 12, color: colors.purple, fontWeight: '600' },
+  shareBtnText: { fontSize: 12, color: colors.brand, fontWeight: '600' },
   colTable: { gap: 0, borderRadius: 10, overflow: 'hidden', borderWidth: 0.5, borderColor: '#efefef' },
   colRow: {
     paddingHorizontal: 12, paddingVertical: 10,
@@ -328,25 +340,25 @@ const styles = StyleSheet.create({
     gap: 2 },
   colNameWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   colName: { fontSize: 12, fontWeight: '600', color: colors.textMuted, fontFamily: 'monospace' },
-  colNameRequired: { color: colors.purple },
+  colNameRequired: { color: colors.brand },
   reqBadge: {
-    backgroundColor: colors.purpleLight ?? '#EEEDFE',
+    backgroundColor: colors.brandLight ?? '#EEEDFE',
     paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  reqBadgeText: { fontSize: 9, color: colors.purple, fontWeight: '600', textTransform: 'uppercase' },
+  reqBadgeText: { fontSize: 9, color: colors.brand, fontWeight: '600', textTransform: 'uppercase' },
   colDesc: { fontSize: 11, color: colors.textMuted, lineHeight: 15 },
   pickBtn: {
     backgroundColor: colors.white, borderRadius: 14,
-    borderWidth: 1.5, borderColor: colors.purple, borderStyle: 'dashed',
+    borderWidth: 1.5, borderColor: colors.brand, borderStyle: 'dashed',
     paddingVertical: 18, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   pickBtnIcon: { fontSize: 20 },
-  pickBtnText: { fontSize: 14, color: colors.purple, fontWeight: '500' },
+  pickBtnText: { fontSize: 14, color: colors.brand, fontWeight: '500' },
   tableRow: { flexDirection: 'row' },
   tableRowAlt: { backgroundColor: '#fafafa' },
   th: {
     fontSize: 10, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 6,
     minWidth: 90, borderBottomWidth: 1, borderBottomColor: '#efefef' },
-  thValid: { color: colors.purple },
+  thValid: { color: colors.brand },
   thUnknown: { color: '#bbb' },
   td: {
     fontSize: 12, color: colors.text,
@@ -354,7 +366,7 @@ const styles = StyleSheet.create({
     minWidth: 90, maxWidth: 150,
     borderBottomWidth: 0.5, borderBottomColor: '#f5f5f5' },
   importBtn: {
-    backgroundColor: colors.purple, borderRadius: 10,
+    backgroundColor: colors.brand, borderRadius: 10,
     paddingVertical: 13, alignItems: 'center', marginTop: 6 },
   importBtnDisabled: { opacity: 0.4 },
   importBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
@@ -371,6 +383,6 @@ const styles = StyleSheet.create({
   errName: { fontSize: 12, fontWeight: '500', color: colors.text },
   errMsg: { fontSize: 11, color: '#C0392B' },
   doneBtn: {
-    backgroundColor: colors.purple, borderRadius: 10,
+    backgroundColor: colors.brand, borderRadius: 10,
     paddingVertical: 13, alignItems: 'center', marginTop: 4 },
   doneBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' } });

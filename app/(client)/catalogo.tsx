@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, FlatList } from 'react-native';
+  StyleSheet, TextInput, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '@/theme/colors';
@@ -231,7 +231,15 @@ function ProductGrid({
           return (
             <View style={styles.productCard}>
               <View style={styles.productImg}>
-                <Text style={styles.productEmoji}>📦</Text>
+                {product.image_url ? (
+                  <Image
+                    source={{ uri: product.image_url }}
+                    style={styles.productImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text style={styles.productEmoji}>📦</Text>
+                )}
               </View>
               <View style={styles.productBody}>
                 <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
@@ -343,8 +351,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 10 },
   productImg: {
-    height: 100, backgroundColor: colors.bg,
+    height: 120, backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center' },
+  productImage: {
+    width: '100%', height: '100%' },
   productEmoji: { fontSize: 36 },
   productBody: { padding: 10, gap: 2 },
   productName: { fontSize: 13, fontWeight: '500', color: colors.text },

@@ -63,6 +63,9 @@ export default function ProveedorScreen() {
           <Text style={styles.back}>← Catálogos</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{supplier?.name ?? '...'}</Text>
+        <TouchableOpacity style={styles.editBtn} onPress={() => router.push(`/(agent)/proveedor/editar?id=${id}` as any)}>
+          <Text style={styles.editBtnText}>Editar</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowNewCatalog(true)}>
           <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
@@ -193,15 +196,21 @@ function CatalogCard({ catalog, onPress, onDelete }: { catalog: Catalog; onPress
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topbar: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     paddingHorizontal: 18,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.brand, marginRight: 12 },
-  title: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
+    borderBottomColor: 'rgba(255,255,255,0.1)' },
+  back: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginRight: 12 },
+  title: { flex: 1, fontSize: 16, fontWeight: '500', color: '#ffffff' },
+  editBtn: {
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 12, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginRight: 8 },
+  editBtnText: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
   addBtn: {
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: colors.brand,
