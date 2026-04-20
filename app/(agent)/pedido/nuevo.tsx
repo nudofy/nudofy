@@ -4,7 +4,9 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, TextInput, Alert, ActivityIndicator, Modal,
-  KeyboardAvoidingView, Platform } from 'react-native';
+  KeyboardAvoidingView, Platform, Image, FlatList, Dimensions } from 'react-native';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/theme/colors';
@@ -46,6 +48,7 @@ export default function NuevoPedidoScreen() {
   const [notes, setNotes] = useState('');
   const [discountCode, setDiscountCode] = useState('');
   const [saving, setSaving] = useState(false);
+  const [imageViewer, setImageViewer] = useState<string | null>(null);
 
   const { clients } = useClients();
   const { suppliers } = useSuppliers();
@@ -345,32 +348,72 @@ export default function NuevoPedidoScreen() {
       {step === 'productos' && (
         <>
           <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar por nombre o ref..." />
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.listContent}>
-            {filteredProducts.map(p => {
+          <FlatList
+            data={filteredProducts}
+            keyExtractor={p => p.id}
+            numColumns={2}
+            contentContainerStyle={styles.productGrid}
+            columnWrapperStyle={styles.productGridRow}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item: p }) => {
               const qty = getQty(p.id);
+              const inCart = qty > 0;
               return (
-                <View key={p.id} style={styles.productRow}>
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{p.name}</Text>
-                    <Text style={styles.productRef}>{p.reference} · {formatEur(p.price)}</Text>
-                  </View>
-                  <View style={styles.qtyControls}>
-                    {qty > 0 && (
-                      <>
-                        <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(p.id)}>
-                          <Text style={styles.qtyBtnText}>−</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.qtyVal}>{qty}</Text>
-                      </>
+                <View style={[styles.productCard, inCart && styles.productCardActive]}>
+                  {/* Imagen */}
+                  <TouchableOpacity
+                    style={styles.productCardImg}
+                    onPress={() => p.image_url && setImageViewer(p.image_url)}
+                    activeOpacity={p.image_url ? 0.85 : 1}
+                  >
+                    {p.image_url ? (
+                      <Image source={{ uri: p.image_url }} style={styles.productCardImgEl} resizeMode="contain" />
+                    ) : (
+                      <Text style={styles.productCardEmoji}>📦</Text>
                     )}
-                    <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => addToCart(p)}>
-                      <Text style={[styles.qtyBtnText, { color: colors.white }]}>+</Text>
-                    </TouchableOpacity>
+                    {inCart && (
+                      <View style={styles.productCartBadge}>
+                        <Text style={styles.productCartBadgeText}>{qty}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Info */}
+                  <View style={styles.productCardBody}>
+                    <Text style={styles.productCardName} numberOfLines={2}>{p.name}</Text>
+                    {p.reference ? <Text style={styles.productCardRef}>Ref. {p.reference}</Text> : null}
+                    {(p.familia || p.subfamilia) ? (
+                      <Text style={styles.productCardFamilia} numberOfLines={1}>
+                        {[p.familia, p.subfamilia].filter(Boolean).join(' › ')}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.productCardPrice}>{formatEur(p.price)}</Text>
+                    {p.stock != null ? <Text style={styles.productCardStock}>Stock: {p.stock}</Text> : null}
+                  </View>
+
+                  {/* Controles qty */}
+                  <View style={styles.productCardQty}>
+                    {inCart ? (
+                      <View style={styles.qtyRow}>
+                        <TouchableOpacity style={styles.qtyBtnSm} onPress={() => removeFromCart(p.id)}>
+                          <Text style={styles.qtyBtnSmText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qtyValSm}>{qty}</Text>
+                        <TouchableOpacity style={[styles.qtyBtnSm, styles.qtyBtnSmAdd]} onPress={() => addToCart(p)}>
+                          <Text style={[styles.qtyBtnSmText, { color: '#fff' }]}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={styles.addBtnCard} onPress={() => addToCart(p)}>
+                        <Text style={styles.addBtnCardText}>+ Añadir</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               );
-            })}
-          </ScrollView>
+            }}
+          />
           {cart.length > 0 && (
             <View style={styles.cartBar}>
               <Text style={styles.cartBarText}>{cart.length} producto{cart.length !== 1 ? 's' : ''} · {formatEur(cartTotal)}</Text>
@@ -468,6 +511,20 @@ export default function NuevoPedidoScreen() {
           </View>
         </>
       )}
+
+      {/* Visor de imagen */}
+      <Modal visible={!!imageViewer} transparent animationType="fade" onRequestClose={() => setImageViewer(null)}>
+        <TouchableOpacity style={styles.imgViewerOverlay} activeOpacity={1} onPress={() => setImageViewer(null)}>
+          <View style={styles.imgViewerBox}>
+            {imageViewer && (
+              <Image source={{ uri: imageViewer }} style={styles.imgViewerImg} resizeMode="contain" />
+            )}
+            <TouchableOpacity style={styles.imgViewerClose} onPress={() => setImageViewer(null)}>
+              <Text style={styles.imgViewerCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Modal selector de dirección */}
       <Modal visible={showAddressPicker} transparent animationType="slide" onRequestClose={() => setShowAddressPicker(false)}>
@@ -573,16 +630,51 @@ const styles = StyleSheet.create({
   changeBtn: { padding: 12, paddingBottom: 0 },
   changeBtnText: { fontSize: 13, color: colors.brand },
 
-  // Productos
-  productRow: { backgroundColor: colors.white, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  productInfo: { flex: 1 },
-  productName: { fontSize: 13, fontWeight: '500', color: colors.text },
-  productRef: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  qtyControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  qtyBtn: { width: 32, height: 32, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  qtyBtnAdd: { backgroundColor: colors.brand, borderColor: colors.brand },
-  qtyBtnText: { fontSize: 18, color: colors.brand, lineHeight: 20 },
-  qtyVal: { fontSize: 16, fontWeight: '500', color: colors.text, minWidth: 20, textAlign: 'center' },
+  // Productos grid
+  productGrid: { padding: 10, paddingBottom: 80 },
+  productGridRow: { gap: 10, marginBottom: 10 },
+  productCard: {
+    flex: 1, backgroundColor: colors.white, borderRadius: 14,
+    overflow: 'hidden', borderWidth: 1.5, borderColor: 'transparent' },
+  productCardActive: { borderColor: colors.brand },
+  productCardImg: {
+    height: 120, backgroundColor: '#ffffff',
+    alignItems: 'center', justifyContent: 'center' },
+  productCardImgEl: { width: '100%', height: '100%' },
+  productCardEmoji: { fontSize: 36 },
+  productCartBadge: {
+    position: 'absolute', top: 6, right: 6,
+    backgroundColor: colors.brand, borderRadius: 10,
+    minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4 },
+  productCartBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  productCardBody: { padding: 8, gap: 2 },
+  productCardName: { fontSize: 12, fontWeight: '500', color: colors.text, lineHeight: 16 },
+  productCardRef: { fontSize: 10, color: colors.textMuted },
+  productCardFamilia: { fontSize: 10, color: colors.brand },
+  productCardPrice: { fontSize: 13, fontWeight: '600', color: colors.brand, marginTop: 2 },
+  productCardStock: { fontSize: 10, color: colors.textMuted },
+  productCardQty: { paddingHorizontal: 8, paddingBottom: 8 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 8, overflow: 'hidden' },
+  qtyBtnSm: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  qtyBtnSmAdd: { backgroundColor: colors.brand },
+  qtyBtnSmText: { fontSize: 16, color: colors.text, lineHeight: 18 },
+  qtyValSm: { flex: 1, textAlign: 'center', fontSize: 13, fontWeight: '500', color: colors.text },
+  addBtnCard: {
+    backgroundColor: colors.brand, borderRadius: 8,
+    paddingVertical: 7, alignItems: 'center' },
+  addBtnCardText: { fontSize: 12, fontWeight: '600', color: '#fff' },
+  // Visor imagen
+  imgViewerOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center', justifyContent: 'center' },
+  imgViewerBox: { width: SCREEN_WIDTH - 32, aspectRatio: 1, backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' },
+  imgViewerImg: { width: '100%', height: '100%' },
+  imgViewerClose: {
+    position: 'absolute', top: 12, right: 12,
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  imgViewerCloseText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   cartBar: {
     backgroundColor: colors.white, borderTopWidth: 0.5, borderTopColor: '#efefef',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
