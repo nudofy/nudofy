@@ -1,19 +1,16 @@
 // ADM-06 · Configuración de la plataforma
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Switch, Alert, ScrollView,
+  View, StyleSheet, TextInput, Switch, Alert,
 } from 'react-native';
 import AdminShell from '@/components/AdminShell';
-
-interface ConfigField {
-  label: string;
-  value: string;
-  placeholder?: string;
-  secret?: boolean;
-}
+import { colors, space, radius } from '@/theme';
+import { Text, Button, Icon, Badge } from '@/components/ui';
+import type { IconName } from '@/components/ui';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function AdminConfiguracionScreen() {
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
@@ -25,17 +22,20 @@ export default function AdminConfiguracionScreen() {
   // Email
   const [emailFrom, setEmailFrom] = useState('facturas@nudofy.app');
   const [resendKey, setResendKey] = useState('re_••••••••••••••••');
+  const [emailActivation, setEmailActivation] = useState(true);
+  const [emailInvoice, setEmailInvoice] = useState(true);
 
   // Stripe
   const [stripePk, setStripePk] = useState('pk_live_••••••••••••••••');
   const [stripeSk, setStripeSk] = useState('sk_live_••••••••••••••••');
   const [stripeWebhook, setStripeWebhook] = useState('whsec_••••••••••••••••');
+  const [stripeTestMode, setStripeTestMode] = useState(false);
 
   function handleSave() {
     setSaving(true);
     setTimeout(() => {
       setSaving(false);
-      Alert.alert('Guardado', 'Configuración actualizada correctamente');
+      toast.success('Configuración actualizada correctamente');
     }, 800);
   }
 
@@ -44,102 +44,135 @@ export default function AdminConfiguracionScreen() {
       activeSection="configuracion"
       title="Configuración"
       rightElement={
-        <TouchableOpacity
-          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+        <Button
+          label={saving ? 'Guardando...' : 'Guardar cambios'}
           onPress={handleSave}
           disabled={saving}
-        >
-          <Text style={styles.saveBtnText}>{saving ? 'Guardando...' : 'Guardar cambios'}</Text>
-        </TouchableOpacity>
+          size="sm"
+        />
       }
     >
       {/* Información de la plataforma */}
-      <ConfigCard
-        title="Información de la plataforma"
-        iconBg="#EEEDFE"
-      >
+      <ConfigCard title="Información de la plataforma" icon="Settings">
         <ConfigRow label="Nombre de la app">
-          <TextInput style={styles.fieldInput} value={appName} onChangeText={setAppName} />
+          <TextInput
+            style={styles.fieldInput}
+            value={appName}
+            onChangeText={setAppName}
+            placeholderTextColor={colors.ink4}
+          />
         </ConfigRow>
         <ConfigRow label="URL corporativa">
-          <TextInput style={styles.fieldInput} value={appUrl} onChangeText={setAppUrl} />
+          <TextInput
+            style={styles.fieldInput}
+            value={appUrl}
+            onChangeText={setAppUrl}
+            placeholderTextColor={colors.ink4}
+          />
         </ConfigRow>
         <ConfigRow label="Email de soporte">
           <TextInput
-            style={styles.fieldInput} value={supportEmail}
-            onChangeText={setSupportEmail} keyboardType="email-address"
+            style={styles.fieldInput}
+            value={supportEmail}
+            onChangeText={setSupportEmail}
+            keyboardType="email-address"
+            placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="Versión actual">
-          <View style={styles.versionBadge}>
-            <Text style={styles.versionText}>v1.2.4</Text>
-          </View>
+        <ConfigRow label="Versión actual" last>
+          <Badge label="v1.2.4" variant="neutral" />
         </ConfigRow>
       </ConfigCard>
 
       {/* Email y notificaciones */}
-      <ConfigCard title="Email y notificaciones" iconBg="#E6F1FB">
+      <ConfigCard title="Email y notificaciones" icon="Mail">
         <ConfigRow label="Email remitente facturas">
           <TextInput
-            style={styles.fieldInput} value={emailFrom}
-            onChangeText={setEmailFrom} keyboardType="email-address"
+            style={styles.fieldInput}
+            value={emailFrom}
+            onChangeText={setEmailFrom}
+            keyboardType="email-address"
+            placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
         <ConfigRow label="Resend API Key">
           <TextInput
             style={[styles.fieldInput, styles.fieldInputMono]}
-            value={resendKey} onChangeText={setResendKey}
+            value={resendKey}
+            onChangeText={setResendKey}
             secureTextEntry
+            placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
         <ConfigRow label="Email activación cuenta">
-          <View style={styles.switchSmall}>
-            <Switch value trackColor={{ true: '#E73121' }} thumbColor="#fff" />
-          </View>
+          <Switch
+            value={emailActivation}
+            onValueChange={setEmailActivation}
+            trackColor={{ true: colors.ink, false: colors.line }}
+            thumbColor={colors.white}
+          />
         </ConfigRow>
-        <ConfigRow label="Email nueva factura">
-          <View style={styles.switchSmall}>
-            <Switch value trackColor={{ true: '#E73121' }} thumbColor="#fff" />
-          </View>
+        <ConfigRow label="Email nueva factura" last>
+          <Switch
+            value={emailInvoice}
+            onValueChange={setEmailInvoice}
+            trackColor={{ true: colors.ink, false: colors.line }}
+            thumbColor={colors.white}
+          />
         </ConfigRow>
       </ConfigCard>
 
       {/* Stripe */}
-      <ConfigCard title="Stripe — Pagos" iconBg="#EAF3DE">
+      <ConfigCard title="Stripe — Pagos" icon="CreditCard">
         <ConfigRow label="Publishable Key">
           <TextInput
             style={[styles.fieldInput, styles.fieldInputMono]}
-            value={stripePk} onChangeText={setStripePk}
+            value={stripePk}
+            onChangeText={setStripePk}
+            placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
         <ConfigRow label="Secret Key">
           <TextInput
             style={[styles.fieldInput, styles.fieldInputMono]}
-            value={stripeSk} onChangeText={setStripeSk}
+            value={stripeSk}
+            onChangeText={setStripeSk}
             secureTextEntry
+            placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
         <ConfigRow label="Webhook Secret">
           <TextInput
             style={[styles.fieldInput, styles.fieldInputMono]}
-            value={stripeWebhook} onChangeText={setStripeWebhook}
+            value={stripeWebhook}
+            onChangeText={setStripeWebhook}
             secureTextEntry
+            placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="Modo test">
-          <Switch value={false} trackColor={{ true: '#E73121' }} thumbColor="#fff" />
+        <ConfigRow label="Modo test" last>
+          <Switch
+            value={stripeTestMode}
+            onValueChange={setStripeTestMode}
+            trackColor={{ true: colors.ink, false: colors.line }}
+            thumbColor={colors.white}
+          />
         </ConfigRow>
       </ConfigCard>
 
       {/* Zona de peligro */}
       <View style={styles.dangerCard}>
         <View style={styles.dangerHeader}>
-          <Text style={styles.dangerTitle}>Zona de peligro</Text>
+          <Text variant="caption" color="ink3" style={styles.dangerTitle}>
+            ZONA DE PELIGRO
+          </Text>
         </View>
         <View style={styles.dangerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.dangerLabel}>Modo mantenimiento</Text>
-            <Text style={styles.dangerSub}>La app mostrará un mensaje de mantenimiento a todos los usuarios</Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="smallMedium">Modo mantenimiento</Text>
+            <Text variant="caption" color="ink3">
+              La app mostrará un mensaje de mantenimiento a todos los usuarios
+            </Text>
           </View>
           <Switch
             value={maintenanceMode}
@@ -157,18 +190,18 @@ export default function AdminConfiguracionScreen() {
                 setMaintenanceMode(false);
               }
             }}
-            trackColor={{ true: '#A32D2D' }}
-            thumbColor="#fff"
+            trackColor={{ true: colors.danger, false: colors.line }}
+            thumbColor={colors.white}
           />
         </View>
-        <View style={styles.dangerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.dangerLabel}>Limpiar caché global</Text>
-            <Text style={styles.dangerSub}>Purga la caché de todos los usuarios</Text>
+        <View style={[styles.dangerRow, styles.dangerRowLast]}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="smallMedium">Limpiar caché global</Text>
+            <Text variant="caption" color="ink3">
+              Purga la caché de todos los usuarios
+            </Text>
           </View>
-          <TouchableOpacity style={styles.dangerBtn}>
-            <Text style={styles.dangerBtnText}>Limpiar</Text>
-          </TouchableOpacity>
+          <Button label="Limpiar" variant="danger" size="sm" onPress={() => {}} />
         </View>
       </View>
     </AdminShell>
@@ -176,86 +209,84 @@ export default function AdminConfiguracionScreen() {
 }
 
 function ConfigCard({
-  title, iconBg, children,
-}: { title: string; iconBg: string; children: React.ReactNode }) {
+  title, icon, children,
+}: { title: string; icon: IconName; children: React.ReactNode }) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={[styles.cardIcon, { backgroundColor: iconBg }]} />
-        <Text style={styles.cardTitle}>{title}</Text>
+        <View style={styles.cardIcon}>
+          <Icon name={icon} size={16} color={colors.ink2} />
+        </View>
+        <Text variant="bodyMedium">{title}</Text>
       </View>
       {children}
     </View>
   );
 }
 
-function ConfigRow({ label, children }: { label: string; children: React.ReactNode }) {
+function ConfigRow({ label, last, children }: {
+  label: string; last?: boolean; children: React.ReactNode;
+}) {
   return (
-    <View style={styles.fieldRow}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+    <View style={[styles.fieldRow, !last && styles.fieldRowBorder]}>
+      <Text variant="small" color="ink2" style={styles.fieldLabel}>{label}</Text>
       <View style={styles.fieldRight}>{children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  saveBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 9, backgroundColor: '#E73121',
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#fff', fontSize: 12, fontWeight: '500' },
   card: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 0.5, borderColor: '#e8e8e8', overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    overflow: 'hidden',
   },
   cardHeader: {
-    padding: 13, paddingHorizontal: 18,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
   },
-  cardIcon: { width: 22, height: 22, borderRadius: 6 },
-  cardTitle: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
+  cardIcon: {
+    width: 28, height: 28, borderRadius: radius.sm,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   fieldRow: {
-    paddingHorizontal: 18, paddingVertical: 11,
+    paddingHorizontal: space[3], paddingVertical: space[2] + 4,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 16,
+    gap: space[3],
   },
-  fieldLabel: { fontSize: 13, color: '#555', flex: 1 },
-  fieldRight: { flex: 1.5, alignItems: 'flex-end' },
+  fieldRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  fieldLabel: { flex: 1 },
+  fieldRight: { flex: 1.4, alignItems: 'flex-end' },
   fieldInput: {
     width: '100%',
-    paddingHorizontal: 10, paddingVertical: 7,
-    borderRadius: 8, borderWidth: 1, borderColor: '#e8e8e8',
-    fontSize: 13, color: '#1a1a1a', backgroundColor: '#fff',
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    fontSize: 14, color: colors.ink,
+    backgroundColor: colors.white,
   },
-  fieldInputMono: { fontSize: 11, color: '#666' },
-  versionBadge: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 6, backgroundColor: '#f0f0f0',
-  },
-  versionText: { fontSize: 12, fontWeight: '500', color: '#555' },
-  switchSmall: {},
+  fieldInputMono: { fontSize: 12, color: colors.ink2 },
+
   dangerCard: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 1, borderColor: '#F09595', overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    overflow: 'hidden',
   },
   dangerHeader: {
-    padding: 13, paddingHorizontal: 18,
-    borderBottomWidth: 0.5, borderBottomColor: '#FCE8E8',
-    backgroundColor: '#FFF5F5',
+    padding: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
   },
-  dangerTitle: { fontSize: 13, fontWeight: '500', color: '#A32D2D' },
+  dangerTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
   dangerRow: {
-    paddingHorizontal: 18, paddingVertical: 14,
+    paddingHorizontal: space[3], paddingVertical: space[3],
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: '#FFF0F0', gap: 14,
+    gap: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
   },
-  dangerLabel: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  dangerSub: { fontSize: 11, color: '#999', marginTop: 2 },
-  dangerBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 8, borderWidth: 1, borderColor: '#F09595',
-  },
-  dangerBtnText: { fontSize: 12, fontWeight: '500', color: '#A32D2D' },
+  dangerRowLast: { borderBottomWidth: 0 },
 });

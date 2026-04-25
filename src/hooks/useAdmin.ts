@@ -10,7 +10,7 @@ export interface AdminAgent {
   name: string;
   email: string;
   phone?: string;
-  plan: 'basic' | 'pro' | 'agency' | 'agency_pro';
+  plan: 'free' | 'free_pro' | 'basic' | 'pro' | 'agency' | 'agency_pro';
   active: boolean;
   created_at: string;
   company_id?: string;

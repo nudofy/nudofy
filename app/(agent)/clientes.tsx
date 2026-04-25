@@ -1,19 +1,13 @@
 // A-02 · Mis clientes
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import { useClients } from '@/hooks/useAgent';
 import type { Client } from '@/hooks/useAgent';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
 
 export default function ClientesScreen() {
   const router = useRouter();
@@ -21,13 +15,11 @@ export default function ClientesScreen() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  // Lista de tipos únicos de clientes
   const clientTypes = useMemo(() => {
     const types = clients.map(c => c.client_type).filter(Boolean) as string[];
     return [...new Set(types)].sort();
   }, [clients]);
 
-  // Filtrado
   const filtered = useMemo(() => {
     return clients.filter(c => {
       const matchSearch = !search ||
@@ -39,53 +31,43 @@ export default function ClientesScreen() {
   }, [clients, search, typeFilter]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Topbar */}
-      <View style={styles.topbar}>
-        <Text style={styles.title}>Mis clientes</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(agent)/cliente/nuevo')}>
-          <Text style={styles.addBtnText}>+</Text>
-        </TouchableOpacity>
-      </View>
+    <Screen>
+      <TopBar
+        title="Mis clientes"
+        actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: 'Nuevo cliente' }]}
+      />
 
       {/* Buscador */}
-      <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar cliente o localidad..."
-          placeholderTextColor={colors.textMuted}
-          value={search}
-          onChangeText={setSearch}
-        />
+      <View style={styles.searchBarWrap}>
+        <View style={styles.inputWithIcon}>
+          <Icon name="Search" size={16} color={colors.ink4} />
+          <TextInput
+            style={styles.inputEl}
+            placeholder="Buscar cliente o localidad..."
+            placeholderTextColor={colors.ink4}
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
       </View>
 
       {/* Filtros */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersBar} contentContainerStyle={styles.filtersContent}>
-        <TouchableOpacity
-          style={[styles.pill, !typeFilter && styles.pillActive]}
-          onPress={() => setTypeFilter('')}
-        >
-          <Text style={[styles.pillText, !typeFilter && styles.pillTextActive]}>Todos</Text>
-        </TouchableOpacity>
-        {clientTypes.map(t => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.pill, typeFilter === t && styles.pillActive]}
-            onPress={() => setTypeFilter(typeFilter === t ? '' : t)}
-          >
-            <Text style={[styles.pillText, typeFilter === t && styles.pillTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {clientTypes.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersBar} contentContainerStyle={styles.filtersContent}>
+          <FilterPill label="Todos" active={!typeFilter} onPress={() => setTypeFilter('')} />
+          {clientTypes.map(t => (
+            <FilterPill key={t} label={t} active={typeFilter === t} onPress={() => setTypeFilter(typeFilter === t ? '' : t)} />
+          ))}
+        </ScrollView>
+      )}
 
       {/* Lista */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {loading && (
-          <Text style={styles.emptyText}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
         )}
         {!loading && filtered.length === 0 && (
-          <Text style={styles.emptyText}>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
             {search || typeFilter ? 'Sin resultados' : 'Aún no tienes clientes'}
           </Text>
         )}
@@ -95,100 +77,81 @@ export default function ClientesScreen() {
       </ScrollView>
 
       <BottomTabBar activeTab="clientes" />
-    </SafeAreaView>
+    </Screen>
+  );
+}
+
+function FilterPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      style={[styles.pill, active && styles.pillActive]}
+      onPress={onPress}
+    >
+      <Text variant="smallMedium" color={active ? 'white' : 'ink2'}>{label}</Text>
+    </Pressable>
   );
 }
 
 function ClientCard({ client, onPress }: { client: Client; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+    >
       <Avatar name={client.name} size={40} fontSize={13} />
       <View style={styles.cardBody}>
-        <Text style={styles.cardName}>{client.name}</Text>
-        <Text style={styles.cardMeta}>{client.address ?? '—'}</Text>
+        <Text variant="bodyMedium">{client.name}</Text>
+        <Text variant="small" color="ink3" numberOfLines={1}>{client.address ?? '—'}</Text>
         {client.client_type && (
-          <View style={styles.typeTag}>
-            <Text style={styles.typeTagText}>{client.client_type}</Text>
+          <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
+            <Badge label={client.client_type} variant="neutral" />
           </View>
         )}
       </View>
-      <View style={styles.cardRight}>
-        <Text style={styles.cardAmount}>—</Text>
-        <Text style={styles.cardDate}>—</Text>
-      </View>
-    </TouchableOpacity>
+      <Icon name="ChevronRight" size={20} color={colors.ink4} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.1)' },
-  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
-  addBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.brand,
-    alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { color: colors.white, fontSize: 20, lineHeight: 22 },
-  searchWrap: {
+  searchBarWrap: {
     backgroundColor: colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  searchIcon: { fontSize: 14, marginRight: 8 },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: colors.border },
+    paddingHorizontal: space[4], paddingVertical: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
+  inputWithIcon: {
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
+    paddingHorizontal: space[3], height: 40,
+    backgroundColor: colors.white,
+  },
+  inputEl: { flex: 1, fontSize: 14, color: colors.ink, paddingVertical: 0 },
+
   filtersBar: {
     backgroundColor: colors.white,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-    maxHeight: 48 },
-  filtersContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 7, flexDirection: 'row' },
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+    maxHeight: 48,
+  },
+  filtersContent: {
+    paddingHorizontal: space[4], paddingVertical: space[2],
+    gap: space[2], flexDirection: 'row',
+  },
   pill: {
-    paddingHorizontal: 13, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.white },
-  pillActive: { backgroundColor: colors.brand, borderColor: colors.brand },
-  pillText: { fontSize: 12, fontWeight: '500', color: '#666' },
-  pillTextActive: { color: colors.white },
-  listContent: { padding: 14, gap: 8 },
+    paddingHorizontal: space[3], paddingVertical: 6,
+    borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  pillActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+
+  listContent: { padding: space[3], gap: space[2] },
   card: {
     backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12 },
-  cardBody: { flex: 1, minWidth: 0 },
-  cardName: { fontSize: 14, fontWeight: '500', color: colors.text },
-  cardMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  typeTag: {
-    marginTop: 4,
-    backgroundColor: colors.brandLight,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    alignSelf: 'flex-start' },
-  typeTagText: { fontSize: 10, color: colors.brandDark, fontWeight: '500' },
-  cardRight: { alignItems: 'flex-end' },
-  cardAmount: { fontSize: 13, fontWeight: '500', color: colors.text },
-  cardDate: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    borderWidth: 1, borderColor: colors.line,
+  },
+  cardBody: { flex: 1, minWidth: 0, gap: 1 },
+  emptyText: { paddingVertical: space[8] },
+});

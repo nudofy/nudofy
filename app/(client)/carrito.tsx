@@ -1,16 +1,18 @@
 // C-03 · Carrito del portal cliente (2 vistas: mis carritos → detalle)
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, Alert,
-  KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, ScrollView, Pressable,
+  StyleSheet, TextInput, Image,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Button, EmptyState } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import { useCart } from '@/contexts/CartContext';
 import { useClientData } from '@/hooks/useClient';
 import { confirmClientOrder } from '@/hooks/useClient';
+import { useToast } from '@/contexts/ToastContext';
 import type { Cart } from '@/contexts/CartContext';
 
 function formatEur(n: number) {
@@ -42,17 +44,12 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
   const router = useRouter();
   const totalCartsAmount = carts.reduce(
     (sum, c) => sum + c.items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
-    0
+    0,
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.back}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Mi carrito</Text>
-      </View>
+    <Screen>
+      <TopBar title="Mi carrito" onBack={() => router.back()} />
 
       {carts.length > 0 && (
         <View style={styles.kpiBar}>
@@ -63,58 +60,57 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
 
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
         {carts.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🛒</Text>
-            <Text style={styles.emptyTitle}>Carrito vacío</Text>
-            <Text style={styles.emptyBody}>Explora el catálogo y añade productos</Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
-              onPress={() => router.push('/(client)/catalogo')}
-            >
-              <Text style={styles.emptyBtnText}>Ver catálogo</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="ShoppingCart"
+            title="Carrito vacío"
+            description="Explora el catálogo y añade productos"
+            actionLabel="Ver catálogo"
+            onAction={() => router.push('/(client)/catalogo')}
+          />
         )}
 
         {carts.map(cart => {
           const cartTotal = cart.items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
           const cartUnits = cart.items.reduce((s, i) => s + i.quantity, 0);
           return (
-            <TouchableOpacity
+            <Pressable
               key={cart.supplier_id}
-              style={styles.cartCard}
+              style={({ pressed }) => [styles.cartCard, pressed && { opacity: 0.7 }]}
               onPress={() => onSelectCart(cart.supplier_id)}
-              activeOpacity={0.85}
             >
               <View style={styles.cartCardHead}>
                 <View style={styles.cartLogo}>
-                  <Text style={styles.cartLogoText}>{cart.supplier_name.charAt(0)}</Text>
+                  <Text variant="bodyMedium" color="ink2">{cart.supplier_name.charAt(0).toUpperCase()}</Text>
                 </View>
-                <View style={styles.cartCardBody}>
-                  <Text style={styles.cartSupplier}>{cart.supplier_name}</Text>
-                  <Text style={styles.cartCatalog}>{cart.catalog_name}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyMedium">{cart.supplier_name}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{cart.catalog_name}</Text>
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <Icon name="ChevronRight" size={18} color={colors.ink4} />
               </View>
               <View style={styles.cartCardFoot}>
-                <Text style={styles.cartMeta}>{cartUnits} artículos · {cart.items.length} referencias</Text>
-                <Text style={styles.cartTotal}>{formatEur(cartTotal)}</Text>
+                <Text variant="caption" color="ink3">
+                  {cartUnits} artículos · {cart.items.length} referencias
+                </Text>
+                <Text variant="bodyMedium">{formatEur(cartTotal)}</Text>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </ScrollView>
 
       <ClientBottomTabBar activeTab="catalogo" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 // ——— Detalle de un carrito ———
 function CartDetail({
-  cart, onBack, onConfirmed }: {
+  cart, onBack, onConfirmed,
+}: {
   cart: Cart; onBack: () => void; onConfirmed: (orderId: string) => void;
 }) {
+  const toast = useToast();
   const { updateQty, removeItem, setCartNotes, clearCart } = useCart();
   const { client, agent } = useClientData();
   const [confirming, setConfirming] = useState(false);
@@ -133,219 +129,220 @@ function CartDetail({
       items: cart.items.map(i => ({
         product_id: i.product_id,
         unit_price: i.unit_price,
-        quantity: i.quantity })),
-      notes: cart.notes });
+        quantity: i.quantity,
+      })),
+      notes: cart.notes,
+    });
     setConfirming(false);
-    if (error) { Alert.alert('Error', error); return; }
+    if (error) { toast.error(error); return; }
     clearCart(cart.supplier_id);
     onConfirmed(data.id);
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.back}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.topbarCenter}>
-          <Text style={styles.title}>{cart.supplier_name}</Text>
-          <Text style={styles.titleSub}>{cart.catalog_name}</Text>
-        </View>
-      </View>
+    <Screen>
+      <TopBar
+        title={cart.supplier_name}
+        subtitle={cart.catalog_name}
+        onBack={onBack}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.detailContent} showsVerticalScrollIndicator={false}>
-        {/* Líneas */}
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>Artículos ({cartUnits})</Text>
-          {cart.items.map(item => (
-            <View key={item.product_id} style={styles.lineRow}>
-              <View style={styles.lineBody}>
-                <Text style={styles.lineName}>{item.name}</Text>
-                {item.reference && <Text style={styles.lineRef}>Ref: {item.reference}</Text>}
-                <Text style={styles.linePrice}>{formatEur(item.unit_price)} / ud.</Text>
-              </View>
-              <View style={styles.lineRight}>
-                <View style={styles.qtyRow}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => updateQty(cart.supplier_id, item.product_id, item.quantity - 1)}
-                  >
-                    <Text style={styles.qtyBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qtyValue}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => updateQty(cart.supplier_id, item.product_id, item.quantity + 1)}
-                  >
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </TouchableOpacity>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.detailContent} showsVerticalScrollIndicator={false}>
+          {/* Líneas */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>
+              Artículos ({cartUnits})
+            </Text>
+            <View style={styles.sectionBody}>
+              {cart.items.map((item, i) => (
+                <View
+                  key={item.product_id}
+                  style={[styles.lineRow, i < cart.items.length - 1 && styles.lineRowBorder]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyMedium" numberOfLines={2}>{item.name}</Text>
+                    {item.reference && (
+                      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                        Ref: {item.reference}
+                      </Text>
+                    )}
+                    <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                      {formatEur(item.unit_price)} / ud.
+                    </Text>
+                  </View>
+                  <View style={styles.lineRight}>
+                    <View style={styles.qtyRow}>
+                      <Pressable
+                        style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
+                        onPress={() => updateQty(cart.supplier_id, item.product_id, item.quantity - 1)}
+                      >
+                        <Icon name="Minus" size={16} color={colors.ink} />
+                      </Pressable>
+                      <Text variant="smallMedium" align="center" style={{ paddingHorizontal: space[2] }}>
+                        {item.quantity}
+                      </Text>
+                      <Pressable
+                        style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
+                        onPress={() => updateQty(cart.supplier_id, item.product_id, item.quantity + 1)}
+                      >
+                        <Icon name="Plus" size={16} color={colors.ink} />
+                      </Pressable>
+                    </View>
+                    <Text variant="bodyMedium">{formatEur(item.unit_price * item.quantity)}</Text>
+                    <Pressable
+                      hitSlop={8}
+                      onPress={() => removeItem(cart.supplier_id, item.product_id)}
+                    >
+                      <Icon name="X" size={16} color={colors.ink4} />
+                    </Pressable>
+                  </View>
                 </View>
-                <Text style={styles.lineTotal}>{formatEur(item.unit_price * item.quantity)}</Text>
-                <TouchableOpacity onPress={() => removeItem(cart.supplier_id, item.product_id)}>
-                  <Text style={styles.removeBtn}>✕</Text>
-                </TouchableOpacity>
-              </View>
+              ))}
             </View>
-          ))}
-        </View>
-
-        {/* Notas */}
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>Observaciones</Text>
-          <TextInput
-            style={styles.notesInput}
-            multiline
-            placeholder="Añade notas para este pedido..."
-            placeholderTextColor={colors.textMuted}
-            value={cart.notes}
-            onChangeText={t => setCartNotes(cart.supplier_id, t)}
-          />
-        </View>
-
-        {/* Total */}
-        <View style={styles.totalBlock}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total pedido</Text>
-            <Text style={styles.totalValue}>{formatEur(cartTotal)}</Text>
           </View>
-          <Text style={styles.totalUnits}>{cartUnits} artículos · {cart.items.length} referencias</Text>
-        </View>
 
-        {/* Info agente */}
-        {agent && (
-          <View style={styles.agentInfo}>
-            <Text style={styles.agentInfoText}>
-              Tu agente <Text style={styles.agentInfoName}>{agent.name}</Text> recibirá el pedido automáticamente
+          {/* Notas */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Observaciones</Text>
+            <View style={styles.sectionBody}>
+              <TextInput
+                style={styles.notesInput}
+                multiline
+                placeholder="Añade notas para este pedido..."
+                placeholderTextColor={colors.ink4}
+                value={cart.notes}
+                onChangeText={t => setCartNotes(cart.supplier_id, t)}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
+
+          {/* Total */}
+          <View style={styles.totalBlock}>
+            <View style={styles.totalRow}>
+              <Text variant="bodyMedium">Total pedido</Text>
+              <Text variant="display">{formatEur(cartTotal)}</Text>
+            </View>
+            <Text variant="caption" color="ink3">
+              {cartUnits} artículos · {cart.items.length} referencias
             </Text>
           </View>
-        )}
 
-        {/* Botón confirmar */}
-        <TouchableOpacity
-          style={[styles.confirmBtn, confirming && styles.confirmBtnDisabled]}
-          onPress={handleConfirm}
-          disabled={confirming}
-        >
-          <Text style={styles.confirmBtnText}>
-            {confirming ? 'Enviando...' : 'Confirmar pedido'}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+          {/* Info agente */}
+          {agent && (
+            <View style={styles.agentInfo}>
+              <Icon name="Info" size={16} color={colors.ink2} />
+              <Text variant="small" color="ink2" style={{ flex: 1 }}>
+                Tu agente <Text variant="smallMedium">{agent.name}</Text> recibirá el pedido automáticamente.
+              </Text>
+            </View>
+          )}
+
+          {/* Botón confirmar */}
+          <Button
+            label={confirming ? 'Enviando...' : 'Confirmar pedido'}
+            onPress={handleConfirm}
+            loading={confirming}
+            disabled={confirming || cart.items.length === 0}
+            fullWidth
+          />
+        </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 function KpiItem({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.kpiItem}>
-      <Text style={styles.kpiValue}>{value}</Text>
-      <Text style={styles.kpiLabel}>{label}</Text>
+      <Text variant="heading">{value}</Text>
+      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18, paddingVertical: 13,
-    flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)',
-    gap: 10 },
-  backBtn: { padding: 2 },
-  back: { fontSize: 20, color: '#ffffff' },
-  topbarCenter: { flex: 1 },
-  title: { fontSize: 17, fontWeight: '500', color: '#ffffff' },
-  titleSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
   kpiBar: {
     flexDirection: 'row',
     backgroundColor: colors.white,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-    paddingVertical: 12 },
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+    paddingVertical: space[3],
+  },
   kpiItem: { flex: 1, alignItems: 'center' },
-  kpiValue: { fontSize: 18, fontWeight: '600', color: colors.text },
-  kpiLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  listContent: { padding: 12, gap: 8 },
-  emptyCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16, padding: 28,
-    alignItems: 'center', gap: 8,
-    marginTop: 16 },
-  emptyIcon: { fontSize: 36 },
-  emptyTitle: { fontSize: 16, fontWeight: '500', color: colors.text },
-  emptyBody: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
-  emptyBtn: {
-    marginTop: 8, backgroundColor: colors.brand,
-    borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
-  emptyBtnText: { color: colors.white, fontSize: 14, fontWeight: '500' },
+
+  listContent: { padding: space[3], gap: space[2] },
+
   cartCard: {
-    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
   cartCardHead: {
-    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+  },
   cartLogo: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: colors.brandLight,
-    alignItems: 'center', justifyContent: 'center' },
-  cartLogoText: { fontSize: 18, fontWeight: '600', color: colors.brand },
-  cartCardBody: { flex: 1 },
-  cartSupplier: { fontSize: 15, fontWeight: '500', color: colors.text },
-  cartCatalog: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  chevron: { fontSize: 18, color: '#ccc' },
+    width: 44, height: 44, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+  },
   cartCardFoot: {
-    paddingHorizontal: 14, paddingVertical: 10,
-    flexDirection: 'row', justifyContent: 'space-between',
-    borderTopWidth: 0.5, borderTopColor: colors.borderLight },
-  cartMeta: { fontSize: 11, color: colors.textMuted },
-  cartTotal: { fontSize: 14, fontWeight: '600', color: colors.brand },
-  detailContent: { padding: 12, gap: 10 },
-  block: {
-    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden',
-    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
-  blockTitle: {
-    fontSize: 11, fontWeight: '500', color: colors.textMuted,
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: colors.line2,
+  },
+
+  detailContent: { padding: space[3], gap: space[3] },
+
+  section: { gap: space[2] },
+  sectionTitle: {
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 10 },
+    marginLeft: space[1],
+  },
+  sectionBody: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+
   lineRow: {
     flexDirection: 'row', alignItems: 'flex-start',
-    paddingVertical: 10,
-    borderTopWidth: 0.5, borderTopColor: colors.borderLight,
-    gap: 10 },
-  lineBody: { flex: 1 },
-  lineName: { fontSize: 13, fontWeight: '500', color: colors.text },
-  lineRef: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  linePrice: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
-  lineRight: { alignItems: 'flex-end', gap: 6 },
-  lineTotal: { fontSize: 13, fontWeight: '600', color: colors.text },
-  removeBtn: { fontSize: 13, color: colors.red, padding: 4 },
+    padding: space[3],
+    gap: space[3],
+  },
+  lineRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  lineRight: { alignItems: 'flex-end', gap: space[2] },
+
   qtyRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.brandLight, borderRadius: 8, overflow: 'hidden' },
+    backgroundColor: colors.surface2,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+  },
   qtyBtn: { width: 32, height: 28, alignItems: 'center', justifyContent: 'center' },
-  qtyBtnText: { fontSize: 16, color: colors.brand, fontWeight: '500' },
-  qtyValue: { paddingHorizontal: 10, fontSize: 13, fontWeight: '500', color: colors.brand },
+
   notesInput: {
-    borderWidth: 1, borderColor: colors.border,
-    borderRadius: 10, padding: 10,
-    fontSize: 13, color: colors.text,
-    minHeight: 80, textAlignVertical: 'top',
-    marginBottom: 12 },
+    padding: space[3],
+    fontSize: 14, color: colors.ink,
+    minHeight: 90,
+  },
+
   totalBlock: {
-    backgroundColor: colors.white, borderRadius: 14,
-    padding: 16, gap: 4 },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[4],
+    gap: space[1],
+    borderWidth: 1, borderColor: colors.line,
+  },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalLabel: { fontSize: 15, fontWeight: '500', color: colors.text },
-  totalValue: { fontSize: 20, fontWeight: '700', color: colors.brand },
-  totalUnits: { fontSize: 11, color: colors.textMuted },
+
   agentInfo: {
-    backgroundColor: colors.greenLight,
-    borderRadius: 12, padding: 12 },
-  agentInfoText: { fontSize: 13, color: colors.green, textAlign: 'center' },
-  agentInfoName: { fontWeight: '600' },
-  confirmBtn: {
-    backgroundColor: colors.green,
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  confirmBtnDisabled: { opacity: 0.6 },
-  confirmBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' } });
+    backgroundColor: colors.surface2,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+  },
+});

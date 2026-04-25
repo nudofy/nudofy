@@ -1,30 +1,14 @@
 // A-05 · Catálogos — Vista 1: Grid de proveedores
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity,
-  StyleSheet, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, TextInput, ScrollView, Pressable, StyleSheet, Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
 import { useSuppliers } from '@/hooks/useAgent';
 import type { Supplier } from '@/hooks/useAgent';
-
-// Color por inicial del proveedor
-const LOGO_COLORS = [
-  { bg: '#E6F1FB', text: '#0C447C' },
-  { bg: '#EAF3DE', text: '#27500A' },
-  { bg: '#FAEEDA', text: '#633806' },
-  { bg: '#E1F5EE', text: '#085041' },
-  { bg: '#FAECE7', text: '#712B13' },
-  { bg: '#EEEDFE', text: '#3C3489' },
-];
-
-function getLogoColor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
-  return LOGO_COLORS[hash % LOGO_COLORS.length];
-}
 
 export default function CatalogosScreen() {
   const router = useRouter();
@@ -40,40 +24,31 @@ export default function CatalogosScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Topbar */}
-      <View style={styles.topbar}>
-        <Text style={styles.title}>Proveedores</Text>
-        <View style={styles.topbarActions}>
-          <TouchableOpacity
-            style={styles.newSupplierBtn}
-            onPress={() => router.push('/(agent)/proveedor/nuevo' as any)}
-          >
-            <Text style={styles.newSupplierBtnText}>+ Proveedor</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <Screen>
+      <TopBar
+        title="Proveedores"
+        actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/proveedor/nuevo' as any), accessibilityLabel: 'Nuevo proveedor' }]}
+      />
 
       {/* Buscador */}
-      <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar en todos los catálogos..."
-          placeholderTextColor={colors.textMuted}
-          value={search}
-          onChangeText={setSearch}
-        />
-        <View style={styles.camBtn}>
-          <Text style={{ fontSize: 12, color: colors.brand }}>📷</Text>
+      <View style={styles.searchBarWrap}>
+        <View style={styles.inputWithIcon}>
+          <Icon name="Search" size={16} color={colors.ink4} />
+          <TextInput
+            style={styles.inputEl}
+            placeholder="Buscar en todos los catálogos..."
+            placeholderTextColor={colors.ink4}
+            value={search}
+            onChangeText={setSearch}
+          />
         </View>
       </View>
 
       {/* Grid de proveedores */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.gridContent}>
-        {loading && <Text style={styles.emptyText}>Cargando...</Text>}
+        {loading && <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>Cargando...</Text>}
         {!loading && activeSuppliers.length === 0 && (
-          <Text style={styles.emptyText}>
+          <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>
             {search ? 'Sin resultados' : 'Aún no tienes proveedores activos'}
           </Text>
         )}
@@ -89,86 +64,58 @@ export default function CatalogosScreen() {
       </ScrollView>
 
       <BottomTabBar activeTab="catalogos" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 function SupplierCard({ supplier, onPress }: { supplier: Supplier; onPress: () => void }) {
-  const { bg, text } = getLogoColor(supplier.name);
   const initial = supplier.name.charAt(0).toUpperCase();
+  const count = supplier.catalog_count ?? 0;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <Pressable style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]} onPress={onPress}>
       {supplier.logo_url ? (
-        <Image source={{ uri: supplier.logo_url }} style={styles.logoImage} />
+        <Image source={{ uri: supplier.logo_url }} style={styles.logoImage} resizeMode="contain" />
       ) : (
-        <View style={[styles.logo, { backgroundColor: bg }]}>
-          <Text style={[styles.logoText, { color: text }]}>{initial}</Text>
+        <View style={styles.logo}>
+          <Text variant="heading" color="ink2">{initial}</Text>
         </View>
       )}
-      <Text style={styles.cardName}>{supplier.name}</Text>
-      <Text style={styles.cardCats}>{supplier.catalog_count ?? 0} catálogo{(supplier.catalog_count ?? 0) !== 1 ? 's' : ''}</Text>
-      <Text style={styles.cardChevron}>Ver catálogos →</Text>
-    </TouchableOpacity>
+      <Text variant="bodyMedium" align="center" numberOfLines={2}>{supplier.name}</Text>
+      <Text variant="caption" color="ink3">{count} catálogo{count !== 1 ? 's' : ''}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.1)' },
-  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
-  topbarActions: { flexDirection: 'row', gap: 8 },
-  newSupplierBtn: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: colors.brand },
-  newSupplierBtnText: { fontSize: 12, fontWeight: '500', color: '#fff' },
-  searchWrap: {
+  searchBarWrap: {
     backgroundColor: colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-    gap: 8 },
-  searchIcon: { fontSize: 14 },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: colors.border },
-  camBtn: {
-    width: 28, height: 28, borderRadius: 7,
-    backgroundColor: colors.brandLight,
-    alignItems: 'center', justifyContent: 'center' },
-  gridContent: { padding: 14 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    paddingHorizontal: space[4], paddingVertical: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
+  inputWithIcon: {
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
+    paddingHorizontal: space[3], height: 40,
+    backgroundColor: colors.white,
+  },
+  inputEl: { flex: 1, fontSize: 14, color: colors.ink, paddingVertical: 0 },
+
+  gridContent: { padding: space[3] },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   card: {
-    width: '47.5%',
+    width: '48%',
     backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: radius.md,
+    padding: space[4],
     alignItems: 'center',
-    gap: 10 },
+    gap: space[2],
+    borderWidth: 1, borderColor: colors.line,
+  },
   logo: {
-    width: 52, height: 52, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center' },
-  logoImage: { width: 52, height: 52, borderRadius: 14 },
-  logoText: { fontSize: 18, fontWeight: '500' },
-  cardName: { fontSize: 13, fontWeight: '500', color: colors.text, textAlign: 'center' },
-  cardCats: { fontSize: 11, color: colors.textMuted },
-  cardChevron: { fontSize: 11, color: colors.brand, fontWeight: '500' },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });
+    width: 56, height: 56, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  logoImage: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.surface2 },
+});

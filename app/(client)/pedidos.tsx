@@ -1,20 +1,15 @@
 // C-05 · Historial de pedidos del cliente
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, ScrollView, Pressable,
+  StyleSheet, TextInput,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import StatusBadge from '@/components/StatusBadge';
 import { useClientData, useClientOrders } from '@/hooks/useClient';
-import type { Order } from '@/hooks/useAgent';
-
-const STATUS_LABELS: Record<string, string> = {
-  confirmed: 'Recibido',
-  sent_to_supplier: 'Enviado',
-  cancelled: 'Cancelado' };
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -69,25 +64,22 @@ export default function ClientPedidosScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Topbar */}
-      <View style={styles.topbar}>
-        <Text style={styles.title}>Mis pedidos</Text>
-      </View>
+    <Screen>
+      <TopBar title="Mis pedidos" />
 
       {/* Buscador */}
       <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="Search" size={16} color={colors.ink3} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nº pedido o proveedor..."
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.ink4}
           value={search}
           onChangeText={setSearch}
         />
       </View>
 
-      {/* Filtros de estado */}
+      {/* Filtros */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -96,8 +88,8 @@ export default function ClientPedidosScreen() {
       >
         <FilterPill
           label="Todos"
-          active={statusFilter === null}
-          onPress={() => setStatusFilter(null)}
+          active={statusFilter === null && supplierFilter === null}
+          onPress={() => { setStatusFilter(null); setSupplierFilter(null); }}
         />
         {statusOptions.map(s => (
           <FilterPill
@@ -113,7 +105,6 @@ export default function ClientPedidosScreen() {
             label={sup.name}
             active={supplierFilter === sup.id}
             onPress={() => setSupplierFilter(supplierFilter === sup.id ? null : sup.id)}
-            variant="supplier"
           />
         ))}
       </ScrollView>
@@ -129,127 +120,145 @@ export default function ClientPedidosScreen() {
 
       {/* Lista */}
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-        {loading && <Text style={styles.emptyText}>Cargando...</Text>}
+        {loading && (
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+        )}
         {!loading && filtered.length === 0 && (
-          <Text style={styles.emptyText}>Sin pedidos en esta sección</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+            Sin pedidos en esta sección
+          </Text>
         )}
         {filtered.map(order => (
-          <TouchableOpacity
+          <Pressable
             key={order.id}
-            style={styles.orderCard}
+            style={({ pressed }) => [styles.orderCard, pressed && { opacity: 0.7 }]}
             onPress={() => router.push(`/(client)/pedido/${order.id}` as any)}
-            activeOpacity={0.85}
           >
             <View style={styles.cardHead}>
               <View style={styles.supplierLogo}>
-                <Text style={styles.supplierLogoText}>
-                  {((order as any).supplier?.name ?? '?').charAt(0)}
+                <Text variant="bodyMedium" color="ink2">
+                  {((order as any).supplier?.name ?? '?').charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.cardNum}>{order.order_number ?? '—'}</Text>
-                <Text style={styles.cardSupplier}>{(order as any).supplier?.name ?? '—'}</Text>
-                <Text style={styles.cardCatalog}>{(order as any).catalog?.name ?? '—'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text variant="caption" color="ink3">{order.order_number ?? '—'}</Text>
+                <Text variant="bodyMedium" style={{ marginTop: 2 }} numberOfLines={1}>
+                  {(order as any).supplier?.name ?? '—'}
+                </Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }} numberOfLines={1}>
+                  {(order as any).catalog?.name ?? '—'}
+                </Text>
               </View>
               <View style={styles.cardRight}>
-                <Text style={styles.cardAmount}>{formatEur(order.total)}</Text>
-                <Text style={styles.cardDate}>{formatDate(order.created_at)}</Text>
+                <Text variant="bodyMedium">{formatEur(order.total)}</Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                  {formatDate(order.created_at)}
+                </Text>
               </View>
             </View>
             <View style={styles.cardFoot}>
               <StatusBadge status={order.status} />
             </View>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </ScrollView>
 
       <ClientBottomTabBar activeTab="pedidos" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-function FilterPill({
-  label, active, onPress, variant = 'status' }: {
-  label: string; active: boolean; onPress: () => void; variant?: 'status' | 'supplier';
-}) {
+function FilterPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ pressed }) => [
         styles.pill,
         active && styles.pillActive,
-        variant === 'supplier' && styles.pillSupplier,
-        variant === 'supplier' && active && styles.pillSupplierActive,
+        pressed && { opacity: 0.7 },
       ]}
       onPress={onPress}
     >
-      <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
-    </TouchableOpacity>
+      <Text
+        variant="smallMedium"
+        style={{ color: active ? colors.white : colors.ink2 }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 function KpiCard({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.kpiCard}>
-      <Text style={styles.kpiValue}>{value}</Text>
-      <Text style={styles.kpiLabel}>{label}</Text>
+      <Text variant="bodyMedium">{value}</Text>
+      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
   searchWrap: {
     backgroundColor: colors.white,
-    paddingHorizontal: 14, paddingVertical: 9,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  searchIcon: { fontSize: 14 },
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
   searchInput: {
-    flex: 1, fontSize: 13, color: colors.text,
-    backgroundColor: colors.bg, borderRadius: 10,
-    paddingHorizontal: 11, paddingVertical: 8,
-    borderWidth: 1, borderColor: colors.border },
-  filtersScroll: { maxHeight: 48, borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
+    flex: 1, fontSize: 14, color: colors.ink,
+    paddingVertical: 4,
+  },
+
+  filtersScroll: {
+    maxHeight: 52,
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+    backgroundColor: colors.white,
+  },
   filtersContent: {
-    paddingHorizontal: 12, paddingVertical: 9, gap: 7, flexDirection: 'row' },
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    gap: space[1], flexDirection: 'row',
+  },
   pill: {
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.white },
-  pillActive: { backgroundColor: colors.brand, borderColor: colors.brand },
-  pillSupplier: { borderColor: colors.blue, backgroundColor: colors.white },
-  pillSupplierActive: { backgroundColor: colors.blue, borderColor: colors.blue },
-  pillText: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
-  pillTextActive: { color: colors.white },
+    paddingHorizontal: space[3], paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+  },
+  pillActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+
   kpiRow: {
-    flexDirection: 'row', padding: 10, gap: 8, paddingBottom: 4 },
+    flexDirection: 'row', padding: space[3], gap: space[2], paddingBottom: 0,
+  },
   kpiCard: {
     flex: 1, backgroundColor: colors.white,
-    borderRadius: 10, padding: 10, alignItems: 'center' },
-  kpiValue: { fontSize: 16, fontWeight: '600', color: colors.text },
-  kpiLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  listContent: { padding: 10, gap: 7 },
+    borderRadius: radius.md, padding: space[3],
+    alignItems: 'center',
+    borderWidth: 1, borderColor: colors.line,
+  },
+
+  listContent: { padding: space[3], gap: space[2] },
+
   orderCard: {
-    backgroundColor: colors.white, borderRadius: 13, overflow: 'hidden' },
-  cardHead: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+  cardHead: {
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+  },
   supplierLogo: {
-    width: 40, height: 40, borderRadius: 11,
-    backgroundColor: colors.brandLight,
-    alignItems: 'center', justifyContent: 'center' },
-  supplierLogoText: { fontSize: 16, fontWeight: '600', color: colors.brand },
-  cardBody: { flex: 1 },
-  cardNum: { fontSize: 10, color: colors.textMuted },
-  cardSupplier: { fontSize: 13, fontWeight: '500', color: colors.text, marginTop: 1 },
-  cardCatalog: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+    width: 40, height: 40, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+  },
   cardRight: { alignItems: 'flex-end' },
-  cardAmount: { fontSize: 14, fontWeight: '600', color: colors.text },
-  cardDate: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
   cardFoot: {
-    paddingHorizontal: 13, paddingVertical: 8,
-    borderTopWidth: 0.5, borderTopColor: '#f5f5f5' },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    borderTopWidth: 1, borderTopColor: colors.line2,
+  },
+
+  emptyText: { paddingVertical: space[8] },
+});

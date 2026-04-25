@@ -1,13 +1,13 @@
 // C-02 · Catálogo del portal cliente (3 vistas: proveedores → catálogos → productos)
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, FlatList, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, ScrollView, Pressable,
+  StyleSheet, TextInput, FlatList, Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
-import Avatar from '@/components/Avatar';
 import { useClientData, useClientPortalSuppliers, useClientCatalogs, useClientProducts } from '@/hooks/useClient';
 import { useCart } from '@/contexts/CartContext';
 import type { PortalSupplier, PortalCatalog, PortalProduct } from '@/hooks/useClient';
@@ -20,7 +20,7 @@ function formatEur(n: number) {
 
 export default function ClientCatalogoScreen() {
   const router = useRouter();
-  const { client, agent } = useClientData();
+  const { client } = useClientData();
   const { suppliers, loading: loadingSuppliers } = useClientPortalSuppliers(client?.id);
   const { carts, totalItems } = useCart();
 
@@ -31,7 +31,7 @@ export default function ClientCatalogoScreen() {
 
   const { catalogs } = useClientCatalogs(
     selectedSupplier?.id,
-    selectedSupplier?.catalog_id
+    selectedSupplier?.catalog_id,
   );
   const { products } = useClientProducts(selectedCatalog?.id, search);
 
@@ -56,57 +56,49 @@ export default function ClientCatalogoScreen() {
     ? (carts.find(c => c.supplier_id === selectedSupplier.id)?.items.reduce((s, i) => s + i.quantity, 0) ?? 0)
     : totalItems;
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Topbar */}
-      <View style={styles.topbar}>
-        {view !== 'suppliers' ? (
-          <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-            <Text style={styles.back}>←</Text>
-          </TouchableOpacity>
-        ) : null}
-        <Text style={styles.title}>
-          {view === 'suppliers' ? 'Catálogo' : view === 'catalogs' ? selectedSupplier?.name ?? 'Catálogos' : selectedCatalog?.name ?? 'Productos'}
-        </Text>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity
-          style={styles.cartBtn}
-          onPress={() => router.push('/(client)/carrito')}
-        >
-          <Text style={styles.cartIcon}>🛒</Text>
-          {cartCount > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{cartCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+  const title = view === 'suppliers'
+    ? 'Catálogo'
+    : view === 'catalogs'
+      ? (selectedSupplier?.name ?? 'Catálogos')
+      : (selectedCatalog?.name ?? 'Productos');
 
-      {/* Buscador (en catálogos y productos) */}
+  return (
+    <Screen>
+      <TopBar
+        title={title}
+        onBack={view !== 'suppliers' ? goBack : undefined}
+        actions={[{
+          icon: 'ShoppingCart',
+          onPress: () => router.push('/(client)/carrito'),
+          accessibilityLabel: 'Carrito',
+          badge: cartCount > 0,
+        }]}
+      />
+
+      {/* Buscador */}
       {view !== 'suppliers' && (
         <View style={styles.searchWrap}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="Search" size={16} color={colors.ink3} />
           <TextInput
             style={styles.searchInput}
             placeholder={view === 'catalogs' ? 'Buscar catálogo...' : 'Buscar producto, ref, EAN...'}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
           />
-          {view === 'products' && (
-            <TouchableOpacity style={styles.camBtn}>
-              <Text style={styles.camIcon}>📷</Text>
-            </TouchableOpacity>
-          )}
         </View>
       )}
 
       {/* Vista: proveedores */}
       {view === 'suppliers' && (
         <ScrollView contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false}>
-          {loadingSuppliers && <Text style={styles.emptyText}>Cargando...</Text>}
+          {loadingSuppliers && (
+            <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+          )}
           {!loadingSuppliers && suppliers.length === 0 && (
-            <Text style={styles.emptyText}>Tu agente aún no ha habilitado proveedores para tu portal</Text>
+            <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+              Tu agente aún no ha habilitado proveedores para tu portal
+            </Text>
           )}
           <View style={styles.supplierGrid}>
             {suppliers.map(s => (
@@ -119,24 +111,31 @@ export default function ClientCatalogoScreen() {
       {/* Vista: catálogos */}
       {view === 'catalogs' && (
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {catalogs.length === 0 && <Text style={styles.emptyText}>Sin catálogos disponibles</Text>}
+          {catalogs.length === 0 && (
+            <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+              Sin catálogos disponibles
+            </Text>
+          )}
           {catalogs.map(cat => (
-            <TouchableOpacity
+            <Pressable
               key={cat.id}
-              style={styles.catalogCard}
+              style={({ pressed }) => [styles.catalogCard, pressed && { opacity: 0.7 }]}
               onPress={() => selectCatalog(cat)}
-              activeOpacity={0.85}
             >
               <View style={styles.catalogIcon}>
-                <Text style={styles.catalogIconText}>◫</Text>
+                <Icon name="BookOpen" size={18} color={colors.ink2} />
               </View>
-              <View style={styles.catalogBody}>
-                <Text style={styles.catalogName}>{cat.name}</Text>
-                {cat.season && <Text style={styles.catalogSeason}>{cat.season}</Text>}
-                <Text style={styles.catalogCount}>{cat.product_count ?? 0} productos</Text>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyMedium">{cat.name}</Text>
+                {cat.season && (
+                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{cat.season}</Text>
+                )}
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                  {cat.product_count ?? 0} productos
+                </Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
+              <Icon name="ChevronRight" size={18} color={colors.ink4} />
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -149,46 +148,41 @@ export default function ClientCatalogoScreen() {
           supplierName={selectedSupplier.name}
           catalogId={selectedCatalog.id}
           catalogName={selectedCatalog.name}
-          agentId={client?.agent_id ?? ''}
-          clientId={client?.id ?? ''}
           onGoCart={() => router.push('/(client)/carrito')}
         />
       )}
 
       <ClientBottomTabBar activeTab="catalogo" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 // ——— Supplier card ———
 function SupplierCard({ supplier, onPress }: { supplier: PortalSupplier; onPress: () => void }) {
-  const colorPairs = [
-    { bg: '#EEEDFE', fg: '#534AB7' },
-    { bg: '#EAF3DE', fg: '#3B6D11' },
-    { bg: '#FAEEDA', fg: '#BA7517' },
-    { bg: '#E6F1FB', fg: '#3B7CC4' },
-    { bg: '#F1EFE8', fg: '#888780' },
-  ];
-  const idx = supplier.name.charCodeAt(0) % colorPairs.length;
-  const { bg, fg } = colorPairs[idx];
-
   return (
-    <TouchableOpacity style={styles.supplierCard} onPress={onPress} activeOpacity={0.85}>
-      <View style={[styles.supplierLogo, { backgroundColor: bg }]}>
-        <Text style={[styles.supplierLogoText, { color: fg }]}>{supplier.name.charAt(0)}</Text>
-      </View>
-      <Text style={styles.supplierName} numberOfLines={2}>{supplier.name}</Text>
-    </TouchableOpacity>
+    <Pressable
+      style={({ pressed }) => [styles.supplierCard, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+    >
+      {supplier.logo_url ? (
+        <Image source={{ uri: supplier.logo_url }} style={styles.supplierLogoImage} resizeMode="contain" />
+      ) : (
+        <View style={styles.supplierLogo}>
+          <Text variant="heading" color="ink2">{supplier.name.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
+      <Text variant="smallMedium" align="center" numberOfLines={2}>{supplier.name}</Text>
+    </Pressable>
   );
 }
 
 // ——— Product grid con carrito ———
 function ProductGrid({
-  products, supplierId, supplierName, catalogId, catalogName, agentId, clientId, onGoCart }: {
+  products, supplierId, supplierName, catalogId, catalogName, onGoCart,
+}: {
   products: PortalProduct[];
   supplierId: string; supplierName: string;
   catalogId: string; catalogName: string;
-  agentId: string; clientId: string;
   onGoCart: () => void;
 }) {
   const { addToCart, updateQty, getItemQty, carts } = useCart();
@@ -203,7 +197,8 @@ function ProductGrid({
       name: product.name,
       reference: product.reference,
       unit_price: product.price,
-      quantity: qty + 1 });
+      quantity: qty + 1,
+    });
   }
 
   function handleIncrement(product: PortalProduct) {
@@ -223,8 +218,10 @@ function ProductGrid({
         keyExtractor={i => i.id}
         numColumns={2}
         contentContainerStyle={styles.productGrid}
-        columnWrapperStyle={{ gap: 10 }}
-        ListEmptyComponent={<Text style={styles.emptyText}>Sin productos</Text>}
+        columnWrapperStyle={{ gap: space[2] }}
+        ListEmptyComponent={
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Sin productos</Text>
+        }
         renderItem={({ item: product }) => {
           const qty = getItemQty(supplierId, product.id);
           const inCart = qty > 0;
@@ -238,34 +235,41 @@ function ProductGrid({
                     resizeMode="contain"
                   />
                 ) : (
-                  <Text style={styles.productEmoji}>📦</Text>
+                  <Icon name="Package" size={24} color={colors.ink4} />
                 )}
               </View>
               <View style={styles.productBody}>
-                <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                <Text variant="smallMedium" numberOfLines={2}>{product.name}</Text>
                 {product.reference && (
-                  <Text style={styles.productRef}>Ref: {product.reference}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                    Ref: {product.reference}
+                  </Text>
                 )}
-                <Text style={styles.productPrice}>{formatEur(product.price)}</Text>
+                <Text variant="bodyMedium" style={{ marginTop: 4 }}>{formatEur(product.price)}</Text>
               </View>
               {!inCart ? (
-                <TouchableOpacity style={styles.addBtn} onPress={() => handleAdd(product)}>
-                  <Text style={styles.addBtnText}>+ Añadir</Text>
-                </TouchableOpacity>
+                <Pressable
+                  style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.85 }]}
+                  onPress={() => handleAdd(product)}
+                >
+                  <Icon name="Plus" size={16} color={colors.white} />
+                  <Text variant="smallMedium" style={{ color: colors.white }}>Añadir</Text>
+                </Pressable>
               ) : (
                 <View style={styles.qtyRow}>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => handleDecrement(product)}>
-                    <Text style={styles.qtyBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qtyValue}>{qty}</Text>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => handleIncrement(product)}>
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {inCart && (
-                <View style={styles.inCartBadge}>
-                  <Text style={styles.inCartText}>✓ En carrito</Text>
+                  <Pressable
+                    style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
+                    onPress={() => handleDecrement(product)}
+                  >
+                    <Icon name="Minus" size={16} color={colors.ink} />
+                  </Pressable>
+                  <Text variant="bodyMedium" align="center" style={{ flex: 1 }}>{qty}</Text>
+                  <Pressable
+                    style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
+                    onPress={() => handleIncrement(product)}
+                  >
+                    <Icon name="Plus" size={16} color={colors.ink} />
+                  </Pressable>
                 </View>
               )}
             </View>
@@ -273,119 +277,115 @@ function ProductGrid({
         }}
       />
       {cartCount > 0 && (
-        <TouchableOpacity style={styles.cartBar} onPress={onGoCart}>
-          <View>
-            <Text style={styles.cartBarTitle}>{cartCount} artículos</Text>
-            <Text style={styles.cartBarSub}>Ver carrito</Text>
+        <Pressable
+          style={({ pressed }) => [styles.cartBar, pressed && { opacity: 0.9 }]}
+          onPress={onGoCart}
+        >
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyMedium" style={{ color: colors.white }}>{cartCount} artículos</Text>
+            <Text variant="caption" style={{ color: colors.white, opacity: 0.8, marginTop: 2 }}>
+              Ver carrito
+            </Text>
           </View>
-          <Text style={styles.cartBarTotal}>{formatEur(cartTotal)}</Text>
-        </TouchableOpacity>
+          <Text variant="title" style={{ color: colors.white }}>{formatEur(cartTotal)}</Text>
+        </Pressable>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18, paddingVertical: 13,
-    flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)',
-    gap: 10 },
-  backBtn: { padding: 2 },
-  back: { fontSize: 20, color: '#ffffff' },
-  title: { fontSize: 17, fontWeight: '500', color: '#ffffff' },
-  cartBtn: { position: 'relative', padding: 4 },
-  cartIcon: { fontSize: 22 },
-  cartBadge: {
-    position: 'absolute', top: 0, right: 0,
-    backgroundColor: colors.brand,
-    borderRadius: 8, minWidth: 16, height: 16,
-    alignItems: 'center', justifyContent: 'center' },
-  cartBadgeText: { color: colors.white, fontSize: 9, fontWeight: '700' },
   searchWrap: {
     backgroundColor: colors.white,
-    paddingHorizontal: 14, paddingVertical: 9,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  searchIcon: { fontSize: 14 },
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
   searchInput: {
-    flex: 1, fontSize: 13, color: colors.text,
-    backgroundColor: colors.bg, borderRadius: 10,
-    paddingHorizontal: 11, paddingVertical: 8,
-    borderWidth: 1, borderColor: colors.border },
-  camBtn: { padding: 4 },
-  camIcon: { fontSize: 20 },
-  gridContent: { padding: 12 },
-  listContent: { padding: 12, gap: 8 },
-  supplierGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    flex: 1, fontSize: 14, color: colors.ink,
+    paddingVertical: 4,
+  },
+
+  gridContent: { padding: space[3] },
+  listContent: { padding: space[3], gap: space[2] },
+
+  supplierGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   supplierCard: {
-    width: '47%',
+    width: '48%',
     backgroundColor: colors.white,
-    borderRadius: 14, padding: 16,
-    alignItems: 'center', gap: 10 },
+    borderRadius: radius.md,
+    padding: space[4],
+    alignItems: 'center', gap: space[2],
+    borderWidth: 1, borderColor: colors.line,
+  },
   supplierLogo: {
-    width: 56, height: 56, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center' },
-  supplierLogoText: { fontSize: 22, fontWeight: '600' },
-  supplierName: { fontSize: 13, fontWeight: '500', color: colors.text, textAlign: 'center' },
+    width: 56, height: 56, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  supplierLogoImage: {
+    width: 56, height: 56, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+  },
+
   catalogCard: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    borderWidth: 1, borderColor: colors.line,
+  },
   catalogIcon: {
-    width: 42, height: 42, borderRadius: 11,
-    backgroundColor: colors.brandLight,
-    alignItems: 'center', justifyContent: 'center' },
-  catalogIconText: { fontSize: 20, color: colors.brand },
-  catalogBody: { flex: 1 },
-  catalogName: { fontSize: 14, fontWeight: '500', color: colors.text },
-  catalogSeason: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
-  catalogCount: { fontSize: 11, color: colors.brand, marginTop: 3 },
-  chevron: { fontSize: 18, color: '#ccc' },
-  productGrid: { padding: 10, paddingBottom: 100 },
+    width: 40, height: 40, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  productGrid: { padding: space[2], paddingBottom: 100, gap: space[2] },
   productCard: {
     flex: 1,
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    marginBottom: 10 },
+    borderWidth: 1, borderColor: colors.line,
+  },
   productImg: {
-    height: 120, backgroundColor: '#ffffff',
-    alignItems: 'center', justifyContent: 'center' },
+    height: 140,
+    backgroundColor: colors.surface2,
+    alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+  },
   productImage: {
-    width: '100%', height: '100%' },
-  productEmoji: { fontSize: 36 },
-  productBody: { padding: 10, gap: 2 },
-  productName: { fontSize: 13, fontWeight: '500', color: colors.text },
-  productRef: { fontSize: 10, color: colors.textMuted },
-  productPrice: { fontSize: 14, fontWeight: '600', color: colors.brand, marginTop: 4 },
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+  },
+  productBody: { padding: space[2], gap: 2 },
+
   addBtn: {
-    margin: 8, marginTop: 4,
+    margin: space[2], marginTop: 4,
     backgroundColor: colors.brand,
-    borderRadius: 8, paddingVertical: 8, alignItems: 'center' },
-  addBtnText: { color: colors.white, fontSize: 12, fontWeight: '500' },
+    borderRadius: radius.sm,
+    paddingVertical: 8,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+  },
   qtyRow: {
     flexDirection: 'row', alignItems: 'center',
-    margin: 8, marginTop: 4,
-    backgroundColor: colors.brandLight,
-    borderRadius: 8, overflow: 'hidden' },
+    margin: space[2], marginTop: 4,
+    backgroundColor: colors.surface2,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+  },
   qtyBtn: {
     width: 36, height: 32,
-    alignItems: 'center', justifyContent: 'center' },
-  qtyBtnText: { fontSize: 18, color: colors.brand, fontWeight: '500' },
-  qtyValue: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '500', color: colors.brand },
-  inCartBadge: {
-    marginHorizontal: 8, marginBottom: 8,
-    backgroundColor: colors.greenLight,
-    borderRadius: 6, paddingVertical: 3, alignItems: 'center' },
-  inCartText: { fontSize: 10, color: colors.green, fontWeight: '500' },
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   cartBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: colors.brand,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 14 },
-  cartBarTitle: { color: colors.white, fontSize: 14, fontWeight: '600' },
-  cartBarSub: { color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 1 },
-  cartBarTotal: { color: colors.white, fontSize: 16, fontWeight: '700' },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space[4], paddingVertical: space[3],
+    gap: space[3],
+  },
+
+  emptyText: { paddingVertical: space[8] },
+});

@@ -1,9 +1,47 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { NetworkProvider } from '@/contexts/NetworkContext';
+import NetworkBanner from '@/components/NetworkBanner';
 import { supabase } from '@/lib/supabase';
+
+// ─── CSS global (solo web) — mata el amarillo del autofill del navegador ───
+// Se inyecta a nivel de módulo, antes del primer render, para ganarle a Chrome.
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const id = '__nudofy_global_css';
+  if (!document.getElementById(id)) {
+    const style = document.createElement('style');
+    style.id = id;
+    style.innerHTML = `
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active,
+      textarea:-webkit-autofill,
+      select:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+        box-shadow: 0 0 0 1000px #ffffff inset !important;
+        -webkit-text-fill-color: #0A0A0A !important;
+        caret-color: #0A0A0A !important;
+        transition: background-color 9999s ease-in-out 0s !important;
+        background-clip: content-box !important;
+      }
+      input, textarea, select {
+        outline: none !important;
+        background-color: transparent;
+      }
+      /* Scrollbars sutiles en web */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #C0C0C0; }
+    `;
+    document.head.appendChild(style);
+  }
+}
 
 function RootLayoutNav() {
   const { session, profile, loading } = useAuth();
@@ -52,22 +90,29 @@ function RootLayoutNav() {
   }, [session, profile, loading, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="(agent)" />
-      <Stack.Screen name="(client)" />
-      <Stack.Screen name="(admin)" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(agent)" />
+        <Stack.Screen name="(client)" />
+        <Stack.Screen name="(admin)" />
+      </Stack>
+      <NetworkBanner />
+    </>
   );
 }
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
+      <NetworkProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <RootLayoutNav />
+          </ToastProvider>
+        </AuthProvider>
+      </NetworkProvider>
     </SafeAreaProvider>
   );
 }

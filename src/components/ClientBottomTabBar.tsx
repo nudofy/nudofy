@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space } from '@/theme';
+import { Text, Icon } from '@/components/ui';
+import type { IconName } from '@/components/ui/Icon';
 
 export type ClientTab = 'inicio' | 'catalogo' | 'pedidos' | 'perfil';
 
@@ -10,11 +12,11 @@ interface Props {
   activeTab: ClientTab;
 }
 
-const TABS: { key: ClientTab; label: string; route: string; icon: string }[] = [
-  { key: 'inicio',    label: 'Inicio',    route: '/(client)/home',     icon: '⊙' },
-  { key: 'catalogo',  label: 'Catálogo',  route: '/(client)/catalogo', icon: '◫' },
-  { key: 'pedidos',   label: 'Pedidos',   route: '/(client)/pedidos',  icon: '≡' },
-  { key: 'perfil',    label: 'Mi perfil', route: '/(client)/perfil',   icon: '○' },
+const TABS: { key: ClientTab; label: string; route: string; icon: IconName }[] = [
+  { key: 'inicio',   label: 'Inicio',    route: '/(client)/home',     icon: 'House' },
+  { key: 'catalogo', label: 'Catálogo',  route: '/(client)/catalogo', icon: 'LayoutGrid' },
+  { key: 'pedidos',  label: 'Pedidos',   route: '/(client)/pedidos',  icon: 'ClipboardList' },
+  { key: 'perfil',   label: 'Mi perfil', route: '/(client)/perfil',   icon: 'User' },
 ];
 
 export default function ClientBottomTabBar({ activeTab }: Props) {
@@ -22,22 +24,28 @@ export default function ClientBottomTabBar({ activeTab }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, space[1]) }]}>
       {TABS.map(tab => {
         const isActive = tab.key === activeTab;
         return (
-          <TouchableOpacity
+          <Pressable
             key={tab.key}
-            style={styles.tab}
+            style={({ pressed }) => [styles.tab, pressed && { opacity: 0.6 }]}
             onPress={() => router.replace(tab.route as any)}
-            activeOpacity={0.7}
           >
-            <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
-              <Text style={[styles.icon, isActive && styles.iconActive]}>{tab.icon}</Text>
-            </View>
-            <Text style={[styles.label, isActive && styles.labelActive]}>{tab.label}</Text>
-            {isActive && <View style={styles.dot} />}
-          </TouchableOpacity>
+            <Icon
+              name={tab.icon}
+              size={20}
+              color={isActive ? colors.ink : colors.ink4}
+            />
+            <Text
+              variant="caption"
+              color={isActive ? 'ink' : 'ink4'}
+              style={{ fontWeight: isActive ? '600' : '400' }}
+            >
+              {tab.label}
+            </Text>
+          </Pressable>
         );
       })}
     </View>
@@ -48,47 +56,13 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: colors.white,
-    borderTopWidth: 2,
-    borderTopColor: colors.brand,
-    paddingBottom: 0,
-    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: space[2],
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 6,
     gap: 3,
-  },
-  iconWrap: {
-    width: 36,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-  },
-  iconWrapActive: {
-    backgroundColor: colors.brandLight,
-  },
-  icon: {
-    fontSize: 18,
-    color: colors.textMuted,
-  },
-  iconActive: {
-    color: colors.brand,
-  },
-  label: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '400',
-  },
-  labelActive: {
-    color: colors.brand,
-    fontWeight: '500',
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.brand,
   },
 });

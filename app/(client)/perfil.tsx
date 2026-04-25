@@ -1,17 +1,22 @@
 // C-07 · Perfil del cliente
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Switch, Alert, TextInput, Modal, ActivityIndicator } from 'react-native';
+  View, ScrollView, Pressable,
+  StyleSheet, Switch, TextInput, Modal,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import Avatar from '@/components/Avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientData } from '@/hooks/useClient';
+import { useToast } from '@/contexts/ToastContext';
+import type { IconName } from '@/components/ui/Icon';
 
 export default function ClientPerfilScreen() {
+  const toast = useToast();
   const { signOut } = useAuth();
   const { client, agent, loading } = useClientData();
   const [notifPedidos, setNotifPedidos] = useState(true);
@@ -22,13 +27,13 @@ export default function ClientPerfilScreen() {
   const [savingPwd, setSavingPwd] = useState(false);
 
   async function handleChangePassword() {
-    if (newPwd.length < 6) { Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres'); return; }
-    if (newPwd !== confirmPwd) { Alert.alert('Error', 'Las contraseñas no coinciden'); return; }
+    if (newPwd.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (newPwd !== confirmPwd) { toast.error('Las contraseñas no coinciden'); return; }
     setSavingPwd(true);
     const { error } = await supabase.auth.updateUser({ password: newPwd });
     setSavingPwd(false);
-    if (error) { Alert.alert('Error', error.message); return; }
-    Alert.alert('Listo', 'Contraseña actualizada correctamente');
+    if (error) { toast.error(error.message); return; }
+    toast.success('Contraseña actualizada correctamente');
     setPwdModal(false);
     setNewPwd('');
     setConfirmPwd('');
@@ -36,32 +41,35 @@ export default function ClientPerfilScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Cargando...</Text>
-      </SafeAreaView>
+      <Screen>
+        <TopBar title="Mi perfil" />
+        <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>
+          Cargando...
+        </Text>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <Text style={styles.title}>Mi perfil</Text>
-      </View>
+    <Screen>
+      <TopBar title="Mi perfil" />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Tarjeta de perfil */}
         <View style={styles.profileCard}>
           <Avatar name={client?.name ?? 'C'} size={56} fontSize={20} />
-          <View style={styles.profileBody}>
-            <Text style={styles.profileName}>{client?.name ?? '—'}</Text>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text variant="title">{client?.name ?? '—'}</Text>
             {client?.client_type && (
-              <Text style={styles.profileType}>{client.client_type}</Text>
+              <View style={{ alignSelf: 'flex-start' }}>
+                <Badge label={client.client_type} variant="neutral" />
+              </View>
             )}
-            <Text style={styles.profileEmail}>{client?.email ?? '—'}</Text>
+            <Text variant="caption" color="ink3">{client?.email ?? '—'}</Text>
           </View>
         </View>
 
-        {/* Datos del establecimiento */}
+        {/* Datos establecimiento */}
         <Section title="Mi establecimiento">
           <DataRow label="Nombre" value={client?.name ?? '—'} />
           {client?.fiscal_name && <DataRow label="Razón social" value={client.fiscal_name} />}
@@ -69,7 +77,7 @@ export default function ClientPerfilScreen() {
           {client?.address && <DataRow label="Dirección" value={client.address} />}
           {client?.phone && <DataRow label="Teléfono" value={client.phone} />}
           {client?.email && <DataRow label="Email" value={client.email} />}
-          {client?.payment_method && <DataRow label="Forma de pago" value={client.payment_method} />}
+          {client?.payment_method && <DataRow label="Forma de pago" value={client.payment_method} last />}
         </Section>
 
         {/* Mi agente */}
@@ -77,33 +85,37 @@ export default function ClientPerfilScreen() {
           <Section title="Mi agente">
             <DataRow label="Nombre" value={agent.name} />
             <DataRow label="Email" value={agent.email} />
-            {agent.phone && <DataRow label="Teléfono" value={agent.phone} />}
+            {agent.phone && <DataRow label="Teléfono" value={agent.phone} last />}
           </Section>
         )}
 
         {/* Notificaciones */}
         <Section title="Notificaciones">
-          <View style={styles.switchRow}>
-            <View style={styles.switchBody}>
-              <Text style={styles.switchLabel}>Estado de pedidos</Text>
-              <Text style={styles.switchSub}>Actualizaciones sobre tus pedidos</Text>
+          <View style={[styles.switchRow, styles.rowBorder]}>
+            <View style={{ flex: 1 }}>
+              <Text variant="body">Estado de pedidos</Text>
+              <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                Actualizaciones sobre tus pedidos
+              </Text>
             </View>
             <Switch
               value={notifPedidos}
               onValueChange={setNotifPedidos}
-              trackColor={{ true: colors.brand }}
+              trackColor={{ true: colors.ink, false: colors.line }}
               thumbColor={colors.white}
             />
           </View>
           <View style={styles.switchRow}>
-            <View style={styles.switchBody}>
-              <Text style={styles.switchLabel}>Nuevos catálogos</Text>
-              <Text style={styles.switchSub}>Novedades de tus proveedores</Text>
+            <View style={{ flex: 1 }}>
+              <Text variant="body">Nuevos catálogos</Text>
+              <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                Novedades de tus proveedores
+              </Text>
             </View>
             <Switch
               value={notifPromos}
               onValueChange={setNotifPromos}
-              trackColor={{ true: colors.brand }}
+              trackColor={{ true: colors.ink, false: colors.line }}
               thumbColor={colors.white}
             />
           </View>
@@ -111,18 +123,29 @@ export default function ClientPerfilScreen() {
 
         {/* Seguridad */}
         <Section title="Seguridad">
-          <MenuItem icon="🔑" label="Cambiar contraseña" onPress={() => setPwdModal(true)} />
+          <MenuItem icon="KeyRound" label="Cambiar contraseña" onPress={() => setPwdModal(true)} last />
         </Section>
 
-        {/* Modal cambiar contraseña */}
-        <Modal visible={pwdModal} transparent animationType="slide">
+        {/* Cerrar sesión */}
+        <Pressable
+          style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+          onPress={signOut}
+        >
+          <Icon name="LogOut" size={18} color={colors.danger} />
+          <Text variant="bodyMedium" color="danger">Cerrar sesión</Text>
+        </Pressable>
+      </ScrollView>
+
+      {/* Modal cambiar contraseña */}
+      <Modal visible={pwdModal} transparent animationType="slide" onRequestClose={() => setPwdModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Cambiar contraseña</Text>
+            <View style={styles.modalSheet}>
+              <Text variant="heading" style={{ marginBottom: space[3] }}>Cambiar contraseña</Text>
               <TextInput
                 style={styles.modalInput}
                 placeholder="Nueva contraseña"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={colors.ink4}
                 secureTextEntry
                 value={newPwd}
                 onChangeText={setNewPwd}
@@ -130,129 +153,138 @@ export default function ClientPerfilScreen() {
               <TextInput
                 style={styles.modalInput}
                 placeholder="Confirmar contraseña"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={colors.ink4}
                 secureTextEntry
                 value={confirmPwd}
                 onChangeText={setConfirmPwd}
               />
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.modalCancel} onPress={() => { setPwdModal(false); setNewPwd(''); setConfirmPwd(''); }}>
-                  <Text style={styles.modalCancelText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalSave} onPress={handleChangePassword} disabled={savingPwd}>
-                  {savingPwd ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalSaveText}>Guardar</Text>}
-                </TouchableOpacity>
+                <Button
+                  label="Cancelar"
+                  variant="secondary"
+                  onPress={() => { setPwdModal(false); setNewPwd(''); setConfirmPwd(''); }}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  label="Guardar"
+                  onPress={handleChangePassword}
+                  loading={savingPwd}
+                  disabled={!newPwd || !confirmPwd}
+                  style={{ flex: 1 }}
+                />
               </View>
             </View>
           </View>
-        </Modal>
-
-        {/* Cerrar sesión */}
-        <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
-          <Text style={styles.signOutText}>Cerrar sesión</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <ClientBottomTabBar activeTab="perfil" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionBlock}>{children}</View>
+      <Text variant="caption" color="ink3" style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionBody}>{children}</View>
     </View>
   );
 }
 
-function DataRow({ label, value }: { label: string; value: string }) {
+function DataRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
-    <View style={styles.dataRow}>
-      <Text style={styles.dataLabel}>{label}</Text>
-      <Text style={styles.dataValue} numberOfLines={2}>{value}</Text>
+    <View style={[styles.dataRow, !last && styles.rowBorder]}>
+      <Text variant="small" color="ink3" style={{ flex: 1 }}>{label}</Text>
+      <Text variant="smallMedium" style={{ flex: 1.5, textAlign: 'right' }} numberOfLines={2}>
+        {value}
+      </Text>
     </View>
   );
 }
 
-function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress?: () => void }) {
+function MenuItem({ icon, label, onPress, last }: {
+  icon: IconName; label: string; onPress?: () => void; last?: boolean;
+}) {
   return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <Text style={styles.menuIcon}>{icon}</Text>
-      <Text style={styles.menuLabel}>{label}</Text>
-      <Text style={styles.chevron}>›</Text>
-    </TouchableOpacity>
+    <Pressable
+      style={({ pressed }) => [styles.menuItem, !last && styles.rowBorder, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+    >
+      <Icon name={icon} size={18} color={colors.ink2} />
+      <Text variant="body" style={{ flex: 1 }}>{label}</Text>
+      <Icon name="ChevronRight" size={18} color={colors.ink4} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  loadingText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
-  content: { padding: 14, gap: 14 },
+  content: { padding: space[3], gap: space[4] },
+
   profileCard: {
-    backgroundColor: colors.white, borderRadius: 16,
-    padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16 },
-  profileBody: { flex: 1, gap: 2 },
-  profileName: { fontSize: 18, fontWeight: '600', color: colors.text },
-  profileType: {
-    fontSize: 12, color: colors.brand,
-    backgroundColor: colors.brandLight, alignSelf: 'flex-start',
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-    marginTop: 2 },
-  profileEmail: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  section: { gap: 6 },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[4],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    borderWidth: 1, borderColor: colors.line,
+  },
+
+  section: { gap: space[2] },
   sectionTitle: {
-    fontSize: 11, fontWeight: '500', color: colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5 },
-  sectionBlock: {
-    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginLeft: space[1],
+  },
+  sectionBody: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+
   dataRow: {
-    paddingHorizontal: 14, paddingVertical: 11,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, gap: 10 },
-  dataLabel: { fontSize: 13, color: colors.textMuted, flex: 1 },
-  dataValue: { fontSize: 13, color: colors.text, fontWeight: '500', flex: 1.5, textAlign: 'right' },
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    flexDirection: 'row', alignItems: 'flex-start',
+    gap: space[3],
+  },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+
   switchRow: {
-    paddingHorizontal: 14, paddingVertical: 11,
+    paddingHorizontal: space[3], paddingVertical: space[3],
     flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, gap: 12 },
-  switchBody: { flex: 1 },
-  switchLabel: { fontSize: 14, color: colors.text, fontWeight: '500' },
-  switchSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+    gap: space[3],
+  },
+
   menuItem: {
-    paddingHorizontal: 14, paddingVertical: 13,
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
-  menuIcon: { fontSize: 18 },
-  menuLabel: { flex: 1, fontSize: 14, color: colors.text },
-  chevron: { fontSize: 18, color: '#ccc' },
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+  },
+
   signOutBtn: {
-    backgroundColor: colors.white, borderRadius: 14,
-    padding: 14, alignItems: 'center' },
-  signOutText: { fontSize: 15, color: colors.red, fontWeight: '500' },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: space[2],
+    borderWidth: 1, borderColor: colors.line,
+  },
+
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end' },
-  modalCard: {
-    backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 24, gap: 12 },
-  modalTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 4 },
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
+    padding: space[5], gap: space[2],
+  },
   modalInput: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 11,
-    fontSize: 15, color: colors.text },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  modalCancel: {
-    flex: 1, paddingVertical: 12, borderRadius: 10,
-    borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  modalCancelText: { fontSize: 15, color: colors.textMuted },
-  modalSave: {
-    flex: 1, paddingVertical: 12, borderRadius: 10,
-    backgroundColor: colors.brand, alignItems: 'center' },
-  modalSaveText: { fontSize: 15, fontWeight: '600', color: colors.white } });
+    backgroundColor: colors.white,
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    fontSize: 14, color: colors.ink,
+  },
+  modalActions: {
+    flexDirection: 'row', gap: space[2], marginTop: space[3],
+  },
+});

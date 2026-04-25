@@ -1,18 +1,20 @@
 // Alta de nuevo cliente
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, Alert, ActivityIndicator,
+  View, ScrollView, StyleSheet, TextInput,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Button } from '@/components/ui';
 import { useClients } from '@/hooks/useAgent';
+import { useToast } from '@/contexts/ToastContext';
+import { ClientSchema, validate } from '@/lib/validation';
 
 export default function NuevoClienteScreen() {
   const router = useRouter();
   const { createClient } = useClients();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -32,77 +34,83 @@ export default function NuevoClienteScreen() {
   }
 
   async function handleCreate() {
-    if (!form.name.trim()) { Alert.alert('Falta el nombre', 'El nombre del establecimiento es obligatorio'); return; }
+    const v = validate(ClientSchema, form);
+    if (!v.ok) { toast.error(v.firstError); return; }
     setLoading(true);
-    const { error } = await createClient(form as any);
+    const { error } = await createClient(v.data as any);
     setLoading(false);
-    if (error) { Alert.alert('Error', error); return; }
+    if (error) { toast.error(error); return; }
+    toast.success('Cliente creado');
     router.back();
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>← Cancelar</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Nuevo cliente</Text>
-        <TouchableOpacity onPress={handleCreate} disabled={loading}>
-          {loading ? <ActivityIndicator color={colors.brand} /> : <Text style={styles.save}>Guardar</Text>}
-        </TouchableOpacity>
-      </View>
+    <Screen>
+      <TopBar
+        title="Nuevo cliente"
+        onBack={() => router.back()}
+        actions={[{ icon: 'Check', onPress: handleCreate, accessibilityLabel: 'Guardar' }]}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Section title="Datos del establecimiento">
             <FormField label="Nombre *" value={form.name} onChangeText={set('name')} placeholder="Nombre del establecimiento" />
             <FormField label="Tipo de establecimiento" value={form.client_type} onChangeText={set('client_type')} placeholder="Tipo de negocio" />
-            <FormField label="Dirección" value={form.address} onChangeText={set('address')} placeholder="Dirección" />
+            <FormField label="Dirección" value={form.address} onChangeText={set('address')} placeholder="Dirección" last />
           </Section>
 
           <Section title="Datos fiscales">
             <FormField label="Nombre fiscal" value={form.fiscal_name} onChangeText={set('fiscal_name')} placeholder="Nombre fiscal o razón social" />
-            <FormField label="NIF / CIF" value={form.nif} onChangeText={set('nif')} placeholder="NIF o CIF" />
+            <FormField label="NIF / CIF" value={form.nif} onChangeText={set('nif')} placeholder="NIF o CIF" last />
           </Section>
 
           <Section title="Contacto">
             <FormField label="Persona de contacto" value={form.contact_name} onChangeText={set('contact_name')} placeholder="Nombre del contacto" />
             <FormField label="Teléfono" value={form.phone} onChangeText={set('phone')} placeholder="+34 91 234 56 78" keyboardType="phone-pad" />
-            <FormField label="Email" value={form.email} onChangeText={set('email')} placeholder="contacto@establecimiento.com" keyboardType="email-address" />
+            <FormField label="Email" value={form.email} onChangeText={set('email')} placeholder="contacto@establecimiento.com" keyboardType="email-address" last />
           </Section>
 
           <Section title="Condiciones comerciales">
             <FormField label="Forma de pago" value={form.payment_method} onChangeText={set('payment_method')} placeholder="30 días factura" />
-            <FormField label="IBAN" value={form.iban} onChangeText={set('iban')} placeholder="ES76 2100 0418 ..." />
+            <FormField label="IBAN" value={form.iban} onChangeText={set('iban')} placeholder="ES76 2100 0418 ..." last />
           </Section>
+
+          <Button
+            label="Guardar cliente"
+            onPress={handleCreate}
+            loading={loading}
+            fullWidth
+            style={{ marginTop: space[2] }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text variant="caption" color="ink3" style={styles.sectionTitle}>{title}</Text>
       <View style={styles.sectionBody}>{children}</View>
     </View>
   );
 }
 
-function FormField({ label, value, onChangeText, placeholder, keyboardType }: {
+function FormField({ label, value, onChangeText, placeholder, keyboardType, last }: {
   label: string; value: string; onChangeText: (v: string) => void;
-  placeholder?: string; keyboardType?: any;
+  placeholder?: string; keyboardType?: any; last?: boolean;
 }) {
   return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.field, !last && styles.fieldBorder]}>
+      <Text variant="caption" color="ink3" style={{ marginBottom: 4 }}>{label}</Text>
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.ink4}
         keyboardType={keyboardType}
         autoCapitalize="none"
       />
@@ -111,33 +119,21 @@ function FormField({ label, value, onChangeText, placeholder, keyboardType }: {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  back: { fontSize: 14, color: '#ffffff' },
-  title: { fontSize: 16, fontWeight: '500', color: '#ffffff' },
-  save: { fontSize: 14, color: '#ffffff', fontWeight: '500' },
-  content: { padding: 16, gap: 16 },
-  section: { gap: 8 },
+  content: { padding: space[4], gap: space[4] },
+  section: { gap: space[2] },
   sectionTitle: {
-    fontSize: 12, fontWeight: '500', color: colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: 4,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginLeft: space[1],
   },
-  sectionBody: { backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
+  sectionBody: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
   field: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.borderLight,
+    paddingHorizontal: space[3], paddingVertical: space[2],
   },
-  label: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
-  input: { fontSize: 15, color: colors.text },
+  fieldBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  input: { fontSize: 15, color: colors.ink, padding: 0 },
 });

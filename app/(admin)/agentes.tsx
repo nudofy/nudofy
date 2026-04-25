@@ -1,31 +1,34 @@
 // ADM-02 · Agentes y empresas
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, Alert, Modal, Pressable,
+  View, StyleSheet, Pressable,
+  TextInput, ScrollView, Alert, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgents, useAdminCompanies } from '@/hooks/useAdmin';
 import type { AdminAgent, AdminCompany } from '@/hooks/useAdmin';
+import { colors, space, radius } from '@/theme';
+import { Text, Icon, Button, Badge } from '@/components/ui';
+import Avatar from '@/components/Avatar';
+import { useToast } from '@/contexts/ToastContext';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const PLAN_META: Record<string, { bg: string; text: string; label: string }> = {
-  basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico'    },
-  pro:         { bg: '#FDECEA', text: '#C4260F', label: 'Pro'        },
-  agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia'    },
-  agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Ag. Pro'    },
+const PLAN_LABELS: Record<string, string> = {
+  basic:       'Básico',
+  pro:         'Pro',
+  agency:      'Agencia',
+  agency_pro:  'Ag. Pro',
 };
 
-// ——————————————————————————————
-// Modal alta agente individual
-// ——————————————————————————————
+// ——— Modal: alta agente individual ———
 function ModalAltaAgente({
   visible, onClose, onCreate,
 }: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<void> }) {
+  const toast = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,7 +43,7 @@ function ModalAltaAgente({
 
   async function handleSave() {
     if (!name.trim() || !email.trim()) {
-      Alert.alert('Campos requeridos', 'Nombre y email son obligatorios.');
+      toast.error('Nombre y email son obligatorios.');
       return;
     }
     setSaving(true);
@@ -53,63 +56,56 @@ function ModalAltaAgente({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modal} onPress={() => {}}>
+        <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Dar de alta — Agente individual</Text>
-            <TouchableOpacity onPress={onClose} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
+            <Text variant="title">Alta · Agente individual</Text>
+            <Pressable onPress={onClose} hitSlop={8} style={styles.modalClose}>
+              <Icon name="X" size={20} color={colors.ink2} />
+            </Pressable>
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            <Text style={styles.formSection}>Datos personales</Text>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Nombre</Text>
-              <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Ana García" placeholderTextColor="#ccc" />
-            </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Email <Text style={styles.formLabelSub}>(acceso a la app)</Text></Text>
-              <TextInput style={styles.formInput} value={email} onChangeText={setEmail} placeholder="ana@empresa.com" placeholderTextColor="#ccc" keyboardType="email-address" autoCapitalize="none" />
-            </View>
+            <Text variant="caption" color="ink3" style={styles.formSection}>DATOS PERSONALES</Text>
+            <FormGroup label="Nombre">
+              <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Ana García" placeholderTextColor={colors.ink4} />
+            </FormGroup>
+            <FormGroup label="Email" sub="(acceso a la app)">
+              <TextInput style={styles.formInput} value={email} onChangeText={setEmail} placeholder="ana@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
+            </FormGroup>
             <View style={styles.formGrid}>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={styles.formLabel}>Teléfono <Text style={styles.formLabelSub}>(opcional)</Text></Text>
-                <TextInput style={styles.formInput} value={phone} onChangeText={setPhone} placeholder="+34 600 000 000" placeholderTextColor="#ccc" keyboardType="phone-pad" />
+              <View style={{ flex: 1 }}>
+                <FormGroup label="Teléfono" sub="(opcional)">
+                  <TextInput style={styles.formInput} value={phone} onChangeText={setPhone} placeholder="+34 600 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
+                </FormGroup>
               </View>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={styles.formLabel}>NIF <Text style={styles.formLabelSub}>(opcional)</Text></Text>
-                <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="12345678A" placeholderTextColor="#ccc" autoCapitalize="characters" />
+              <View style={{ flex: 1 }}>
+                <FormGroup label="NIF" sub="(opcional)">
+                  <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="12345678A" placeholderTextColor={colors.ink4} autoCapitalize="characters" />
+                </FormGroup>
               </View>
             </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Empresa / Razón social <Text style={styles.formLabelSub}>(opcional)</Text></Text>
-              <TextInput style={styles.formInput} value={businessName} onChangeText={setBusinessName} placeholder="Distribuciones García" placeholderTextColor="#ccc" />
-            </View>
+            <FormGroup label="Empresa / Razón social" sub="(opcional)">
+              <TextInput style={styles.formInput} value={businessName} onChangeText={setBusinessName} placeholder="Distribuciones García" placeholderTextColor={colors.ink4} />
+            </FormGroup>
 
-            <Text style={styles.formSection}>Plan</Text>
+            <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
             <View style={styles.planSelector}>
               {(['basic', 'pro'] as const).map(p => (
-                <TouchableOpacity
+                <Pressable
                   key={p}
                   style={[styles.planOpt, plan === p && styles.planOptSelected]}
                   onPress={() => setPlan(p)}
                 >
-                  <Text style={[styles.planOptName, plan === p && styles.planOptNameSelected]}>
-                    {p === 'basic' ? 'Básico' : 'Pro'}
-                  </Text>
-                  <Text style={styles.planOptPrice}>
+                  <Text variant="smallMedium">{p === 'basic' ? 'Básico' : 'Pro'}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>
                     {p === 'basic' ? '15 €/mes · 100 prod · 20 cli' : '25 €/mes · 2.000 prod · 200 cli'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.btnCancel} onPress={() => { reset(); onClose(); }}>
-              <Text style={styles.btnCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.btnSave, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-              <Text style={styles.btnSaveText}>{saving ? 'Guardando...' : 'Dar de alta'}</Text>
-            </TouchableOpacity>
+            <Button label="Cancelar" variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
+            <Button label="Dar de alta" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
           </View>
         </Pressable>
       </Pressable>
@@ -117,12 +113,11 @@ function ModalAltaAgente({
   );
 }
 
-// ——————————————————————————————
-// Modal alta empresa
-// ——————————————————————————————
+// ——— Modal: alta empresa ———
 function ModalAltaEmpresa({
   visible, onClose, onCreate,
 }: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<void> }) {
+  const toast = useToast();
   const [name, setName] = useState('');
   const [nif, setNif] = useState('');
   const [address, setAddress] = useState('');
@@ -137,7 +132,7 @@ function ModalAltaEmpresa({
 
   async function handleSave() {
     if (!name.trim() || !adminName.trim() || !adminEmail.trim()) {
-      Alert.alert('Campos requeridos', 'Razón social, nombre y email del administrador son obligatorios.');
+      toast.error('Razón social, nombre y email del administrador son obligatorios.');
       return;
     }
     setSaving(true);
@@ -150,66 +145,55 @@ function ModalAltaEmpresa({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modal} onPress={() => {}}>
+        <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Dar de alta — Empresa</Text>
-            <TouchableOpacity onPress={onClose} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
+            <Text variant="title">Alta · Empresa</Text>
+            <Pressable onPress={onClose} hitSlop={8} style={styles.modalClose}>
+              <Icon name="X" size={20} color={colors.ink2} />
+            </Pressable>
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            <Text style={styles.formSection}>Datos de la empresa</Text>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Razón social</Text>
-              <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Comercial Rodríguez S.L." placeholderTextColor="#ccc" />
-            </View>
-            <View style={styles.formGrid}>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={styles.formLabel}>NIF / CIF <Text style={styles.formLabelSub}>(opcional)</Text></Text>
-                <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="B-12345678" placeholderTextColor="#ccc" autoCapitalize="characters" />
-              </View>
-            </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Dirección fiscal <Text style={styles.formLabelSub}>(opcional)</Text></Text>
-              <TextInput style={styles.formInput} value={address} onChangeText={setAddress} placeholder="C/ Mayor 1, Madrid" placeholderTextColor="#ccc" />
-            </View>
+            <Text variant="caption" color="ink3" style={styles.formSection}>DATOS DE LA EMPRESA</Text>
+            <FormGroup label="Razón social">
+              <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Comercial Rodríguez S.L." placeholderTextColor={colors.ink4} />
+            </FormGroup>
+            <FormGroup label="NIF / CIF" sub="(opcional)">
+              <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="B-12345678" placeholderTextColor={colors.ink4} autoCapitalize="characters" />
+            </FormGroup>
+            <FormGroup label="Dirección fiscal" sub="(opcional)">
+              <TextInput style={styles.formInput} value={address} onChangeText={setAddress} placeholder="C/ Mayor 1, Madrid" placeholderTextColor={colors.ink4} />
+            </FormGroup>
 
-            <Text style={styles.formSection}>Administrador de la empresa</Text>
-            <Text style={styles.formHint}>El administrador gestiona los agentes y tiene acceso completo al panel.</Text>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Nombre</Text>
-              <TextInput style={styles.formInput} value={adminName} onChangeText={setAdminName} placeholder="María López" placeholderTextColor="#ccc" />
-            </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Email del administrador <Text style={styles.formLabelSub}>(acceso a la app)</Text></Text>
-              <TextInput style={styles.formInput} value={adminEmail} onChangeText={setAdminEmail} placeholder="admin@empresa.com" placeholderTextColor="#ccc" keyboardType="email-address" autoCapitalize="none" />
-            </View>
+            <Text variant="caption" color="ink3" style={styles.formSection}>ADMINISTRADOR</Text>
+            <Text variant="caption" color="ink3" style={{ marginBottom: space[2] }}>
+              El administrador gestiona los agentes y tiene acceso completo al panel.
+            </Text>
+            <FormGroup label="Nombre">
+              <TextInput style={styles.formInput} value={adminName} onChangeText={setAdminName} placeholder="María López" placeholderTextColor={colors.ink4} />
+            </FormGroup>
+            <FormGroup label="Email del administrador" sub="(acceso a la app)">
+              <TextInput style={styles.formInput} value={adminEmail} onChangeText={setAdminEmail} placeholder="admin@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
+            </FormGroup>
 
-            <Text style={styles.formSection}>Plan</Text>
+            <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
             <View style={styles.planSelector}>
               {(['agency', 'agency_pro'] as const).map(p => (
-                <TouchableOpacity
+                <Pressable
                   key={p}
                   style={[styles.planOpt, plan === p && styles.planOptSelected]}
                   onPress={() => setPlan(p)}
                 >
-                  <Text style={[styles.planOptName, plan === p && styles.planOptNameSelected]}>
-                    {p === 'agency' ? 'Agencia' : 'Agencia Pro'}
-                  </Text>
-                  <Text style={styles.planOptPrice}>
+                  <Text variant="smallMedium">{p === 'agency' ? 'Agencia' : 'Agencia Pro'}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>
                     {p === 'agency' ? '45 € + 15 €/agente · hasta 10 ag.' : '150 € + 20 €/agente · ilimitado'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.btnCancel} onPress={() => { reset(); onClose(); }}>
-              <Text style={styles.btnCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.btnSave, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-              <Text style={styles.btnSaveText}>{saving ? 'Guardando...' : 'Dar de alta empresa'}</Text>
-            </TouchableOpacity>
+            <Button label="Cancelar" variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
+            <Button label="Dar de alta" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
           </View>
         </Pressable>
       </Pressable>
@@ -217,13 +201,23 @@ function ModalAltaEmpresa({
   );
 }
 
-// ——————————————————————————————
-// Pantalla principal
-// ——————————————————————————————
+function FormGroup({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <View style={{ marginBottom: space[3] }}>
+      <Text variant="smallMedium" style={{ marginBottom: 6 }}>
+        {label}{sub && <Text variant="caption" color="ink4">  {sub}</Text>}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+// ——— Pantalla principal ———
 type Tab = 'all' | 'agents' | 'companies';
 
 export default function AdminAgentesScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { agents, loading: agentsLoading, toggleAgentActive, createAgent } = useAdminAgents();
   const { companies, loading: companiesLoading, toggleCompanyActive, createCompany } = useAdminCompanies();
 
@@ -290,14 +284,14 @@ export default function AdminAgentesScreen() {
 
   async function handleCreateAgent(data: any) {
     const { error } = await createAgent(data);
-    if (error) Alert.alert('Error', error);
-    else Alert.alert('Agente creado', 'Se ha enviado la invitación por email.');
+    if (error) toast.error(error);
+    else toast.success('Agente creado · Invitación enviada por email');
   }
 
   async function handleCreateCompany(data: any) {
     const { error } = await createCompany(data);
-    if (error) Alert.alert('Error', error);
-    else Alert.alert('Empresa creada', 'Se ha enviado la invitación al administrador.');
+    if (error) toast.error(error);
+    else toast.success('Empresa creada · Invitación enviada al administrador');
   }
 
   const showAgents = tab === 'all' || tab === 'agents';
@@ -309,12 +303,8 @@ export default function AdminAgentesScreen() {
       title="Agentes y empresas"
       rightElement={
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.btnSecondary} onPress={() => setShowAltaEmpresa(true)}>
-            <Text style={styles.btnSecondaryText}>+ Alta empresa</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnPrimary} onPress={() => setShowAltaAgente(true)}>
-            <Text style={styles.btnPrimaryText}>+ Alta agente</Text>
-          </TouchableOpacity>
+          <Button label="+ Empresa" variant="secondary" size="sm" onPress={() => setShowAltaEmpresa(true)} />
+          <Button label="+ Agente" size="sm" onPress={() => setShowAltaAgente(true)} />
         </View>
       }
     >
@@ -325,39 +315,47 @@ export default function AdminAgentesScreen() {
           { key: 'agents', label: `Agentes (${agents.length})` },
           { key: 'companies', label: `Empresas (${companies.length})` },
         ] as { key: Tab; label: string }[]).map(t => (
-          <TouchableOpacity
+          <Pressable
             key={t.key}
             style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
             onPress={() => setTab(t.key)}
           >
-            <Text style={[styles.tabBtnText, tab === t.key && styles.tabBtnTextActive]}>{t.label}</Text>
-          </TouchableOpacity>
+            <Text
+              variant="smallMedium"
+              style={{ color: tab === t.key ? colors.white : colors.ink2 }}
+            >
+              {t.label}
+            </Text>
+          </Pressable>
         ))}
       </View>
 
       {/* Filtros */}
       <View style={styles.filtersBar}>
         <View style={styles.searchWrap}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="Search" size={16} color={colors.ink3} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nombre o email..."
-            placeholderTextColor="#bbb"
+            placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
           />
         </View>
         <View style={styles.pillRow}>
           {['all', 'basic', 'pro', 'agency', 'agency_pro'].map(p => (
-            <TouchableOpacity
+            <Pressable
               key={p}
               style={[styles.pill, planFilter === p && styles.pillActive]}
               onPress={() => setPlanFilter(p)}
             >
-              <Text style={[styles.pillText, planFilter === p && styles.pillTextActive]}>
-                {p === 'all' ? 'Todos los planes' : PLAN_META[p]?.label ?? p}
+              <Text
+                variant="smallMedium"
+                style={{ color: planFilter === p ? colors.white : colors.ink2 }}
+              >
+                {p === 'all' ? 'Todos los planes' : PLAN_LABELS[p] ?? p}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
         <View style={styles.pillRow}>
@@ -366,16 +364,21 @@ export default function AdminAgentesScreen() {
             { key: 'active', label: 'Activos' },
             { key: 'inactive', label: 'Inactivos' },
           ].map(s => (
-            <TouchableOpacity
+            <Pressable
               key={s.key}
               style={[styles.pill, statusFilter === s.key && styles.pillActive]}
               onPress={() => setStatusFilter(s.key)}
             >
-              <Text style={[styles.pillText, statusFilter === s.key && styles.pillTextActive]}>{s.label}</Text>
-            </TouchableOpacity>
+              <Text
+                variant="smallMedium"
+                style={{ color: statusFilter === s.key ? colors.white : colors.ink2 }}
+              >
+                {s.label}
+              </Text>
+            </Pressable>
           ))}
         </View>
-        <Text style={styles.resultsCount}>{totalCount} registros</Text>
+        <Text variant="caption" color="ink3">{totalCount} registros</Text>
       </View>
 
       {/* Tabla agentes */}
@@ -383,68 +386,72 @@ export default function AdminAgentesScreen() {
         <View style={styles.card}>
           {tab === 'all' && (
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Agentes individuales</Text>
-              <Text style={styles.cardCount}>{filteredAgents.length}</Text>
+              <Text variant="bodyMedium">Agentes individuales</Text>
+              <Text variant="caption" color="ink3">{filteredAgents.length}</Text>
             </View>
           )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View>
               <View style={styles.tableHead}>
                 {['Agente', 'Plan', 'Alta', 'Estado', 'Acciones'].map((h, i) => (
-                  <Text key={h} style={[styles.th, { width: [210, 110, 110, 100, 170][i] }]}>{h}</Text>
+                  <Text
+                    key={h}
+                    variant="caption"
+                    color="ink3"
+                    style={[styles.th, { width: [220, 120, 120, 110, 200][i] }]}
+                  >
+                    {h.toUpperCase()}
+                  </Text>
                 ))}
               </View>
-              {agentsLoading && <Text style={styles.emptyText}>Cargando...</Text>}
-              {filteredAgents.map(agent => {
-                const plan = PLAN_META[agent.plan] ?? PLAN_META.basic;
-                const initials = agent.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
-                return (
-                  <View key={agent.id} style={styles.tableRow}>
-                    <TouchableOpacity
-                      style={[styles.td, { width: 210 }]}
-                      onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
-                    >
-                      <View style={styles.entityCell}>
-                        <View style={[styles.av, { backgroundColor: '#FDECEA' }]}>
-                          <Text style={[styles.avText, { color: '#C4260F' }]}>{initials}</Text>
-                        </View>
-                        <View>
-                          <Text style={styles.entityName}>{agent.name}</Text>
-                          <Text style={styles.entitySub}>{agent.email}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                    <View style={[styles.td, { width: 110 }]}>
-                      <View style={[styles.tag, { backgroundColor: plan.bg }]}>
-                        <Text style={[styles.tagText, { color: plan.text }]}>{plan.label}</Text>
+              {agentsLoading && (
+                <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+              )}
+              {filteredAgents.map((agent, i) => (
+                <View
+                  key={agent.id}
+                  style={[styles.tableRow, i === filteredAgents.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <Pressable
+                    style={({ pressed }) => [styles.td, { width: 220 }, pressed && { opacity: 0.7 }]}
+                    onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
+                  >
+                    <View style={styles.entityCell}>
+                      <Avatar name={agent.name} size={32} fontSize={12} />
+                      <View style={{ flex: 1 }}>
+                        <Text variant="smallMedium" numberOfLines={1}>{agent.name}</Text>
+                        <Text variant="caption" color="ink3" numberOfLines={1}>{agent.email}</Text>
                       </View>
                     </View>
-                    <View style={[styles.td, { width: 110 }]}>
-                      <Text style={styles.tdText}>{formatDate(agent.created_at)}</Text>
-                    </View>
-                    <View style={[styles.td, { width: 100 }]}>
-                      <View style={[styles.tag, { backgroundColor: agent.active ? '#EAF3DE' : '#F1EFE8' }]}>
-                        <Text style={[styles.tagText, { color: agent.active ? '#3B6D11' : '#888' }]}>
-                          {agent.active ? 'Activo' : 'Inactivo'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={[styles.td, { width: 170, flexDirection: 'row', gap: 6 }]}>
-                      <TouchableOpacity style={styles.actBtn} onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}>
-                        <Text style={styles.actBtnText}>Ver ficha</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actBtn, !agent.active && styles.actBtnSuccess]}
-                        onPress={() => handleToggleAgent(agent)}
-                      >
-                        <Text style={[styles.actBtnText, !agent.active && styles.actBtnSuccessText]}>
-                          {agent.active ? 'Desactivar' : 'Activar'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                  </Pressable>
+                  <View style={[styles.td, { width: 120 }]}>
+                    <Badge label={PLAN_LABELS[agent.plan] ?? 'Básico'} variant="neutral" />
                   </View>
-                );
-              })}
+                  <View style={[styles.td, { width: 120 }]}>
+                    <Text variant="small" color="ink2">{formatDate(agent.created_at)}</Text>
+                  </View>
+                  <View style={[styles.td, { width: 110 }]}>
+                    <Badge
+                      label={agent.active ? 'Activo' : 'Inactivo'}
+                      variant={agent.active ? 'success' : 'neutral'}
+                    />
+                  </View>
+                  <View style={[styles.td, { width: 200, flexDirection: 'row', gap: space[1] }]}>
+                    <Button
+                      label="Ver"
+                      variant="secondary"
+                      size="sm"
+                      onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
+                    />
+                    <Button
+                      label={agent.active ? 'Desactivar' : 'Activar'}
+                      variant="secondary"
+                      size="sm"
+                      onPress={() => handleToggleAgent(agent)}
+                    />
+                  </View>
+                </View>
+              ))}
             </View>
           </ScrollView>
         </View>
@@ -455,64 +462,75 @@ export default function AdminAgentesScreen() {
         <View style={styles.card}>
           {tab === 'all' && (
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Empresas</Text>
-              <Text style={styles.cardCount}>{filteredCompanies.length}</Text>
+              <Text variant="bodyMedium">Empresas</Text>
+              <Text variant="caption" color="ink3">{filteredCompanies.length}</Text>
             </View>
           )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View>
               <View style={styles.tableHead}>
                 {['Empresa', 'Plan', 'Alta', 'Estado', 'Acciones'].map((h, i) => (
-                  <Text key={h} style={[styles.th, { width: [210, 110, 110, 100, 170][i] }]}>{h}</Text>
+                  <Text
+                    key={h}
+                    variant="caption"
+                    color="ink3"
+                    style={[styles.th, { width: [220, 120, 120, 110, 200][i] }]}
+                  >
+                    {h.toUpperCase()}
+                  </Text>
                 ))}
               </View>
-              {companiesLoading && <Text style={styles.emptyText}>Cargando...</Text>}
-              {filteredCompanies.map(company => {
-                const plan = PLAN_META[company.plan] ?? PLAN_META.agency;
+              {companiesLoading && (
+                <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+              )}
+              {filteredCompanies.map((company, i) => {
                 const initials = company.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
                 return (
-                  <View key={company.id} style={styles.tableRow}>
-                    <TouchableOpacity
-                      style={[styles.td, { width: 210 }]}
+                  <View
+                    key={company.id}
+                    style={[styles.tableRow, i === filteredCompanies.length - 1 && { borderBottomWidth: 0 }]}
+                  >
+                    <Pressable
+                      style={({ pressed }) => [styles.td, { width: 220 }, pressed && { opacity: 0.7 }]}
                       onPress={() => router.push(`/(admin)/empresa/${company.id}` as any)}
                     >
                       <View style={styles.entityCell}>
-                        <View style={[styles.avSq, { backgroundColor: '#E6F1FB' }]}>
-                          <Text style={[styles.avText, { color: '#0C447C' }]}>{initials}</Text>
+                        <View style={styles.avSq}>
+                          <Text variant="smallMedium" color="ink2">{initials}</Text>
                         </View>
-                        <View>
-                          <Text style={styles.entityName}>{company.name}</Text>
-                          <Text style={styles.entitySub}>Empresa · {company.nif ?? 'Sin NIF'}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text variant="smallMedium" numberOfLines={1}>{company.name}</Text>
+                          <Text variant="caption" color="ink3" numberOfLines={1}>
+                            Empresa · {company.nif ?? 'Sin NIF'}
+                          </Text>
                         </View>
                       </View>
-                    </TouchableOpacity>
-                    <View style={[styles.td, { width: 110 }]}>
-                      <View style={[styles.tag, { backgroundColor: plan.bg }]}>
-                        <Text style={[styles.tagText, { color: plan.text }]}>{plan.label}</Text>
-                      </View>
+                    </Pressable>
+                    <View style={[styles.td, { width: 120 }]}>
+                      <Badge label={PLAN_LABELS[company.plan] ?? 'Agencia'} variant="neutral" />
+                    </View>
+                    <View style={[styles.td, { width: 120 }]}>
+                      <Text variant="small" color="ink2">{formatDate(company.created_at)}</Text>
                     </View>
                     <View style={[styles.td, { width: 110 }]}>
-                      <Text style={styles.tdText}>{formatDate(company.created_at)}</Text>
+                      <Badge
+                        label={company.active ? 'Activo' : 'Inactivo'}
+                        variant={company.active ? 'success' : 'neutral'}
+                      />
                     </View>
-                    <View style={[styles.td, { width: 100 }]}>
-                      <View style={[styles.tag, { backgroundColor: company.active ? '#EAF3DE' : '#F1EFE8' }]}>
-                        <Text style={[styles.tagText, { color: company.active ? '#3B6D11' : '#888' }]}>
-                          {company.active ? 'Activo' : 'Inactivo'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={[styles.td, { width: 170, flexDirection: 'row', gap: 6 }]}>
-                      <TouchableOpacity style={styles.actBtn} onPress={() => router.push(`/(admin)/empresa/${company.id}` as any)}>
-                        <Text style={styles.actBtnText}>Ver ficha</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actBtn, !company.active && styles.actBtnSuccess]}
+                    <View style={[styles.td, { width: 200, flexDirection: 'row', gap: space[1] }]}>
+                      <Button
+                        label="Ver"
+                        variant="secondary"
+                        size="sm"
+                        onPress={() => router.push(`/(admin)/empresa/${company.id}` as any)}
+                      />
+                      <Button
+                        label={company.active ? 'Suspender' : 'Activar'}
+                        variant="secondary"
+                        size="sm"
                         onPress={() => handleToggleCompany(company)}
-                      >
-                        <Text style={[styles.actBtnText, !company.active && styles.actBtnSuccessText]}>
-                          {company.active ? 'Suspender' : 'Activar'}
-                        </Text>
-                      </TouchableOpacity>
+                      />
                     </View>
                   </View>
                 );
@@ -523,7 +541,9 @@ export default function AdminAgentesScreen() {
       )}
 
       {totalCount === 0 && !agentsLoading && !companiesLoading && (
-        <Text style={styles.emptyText}>Sin resultados</Text>
+        <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+          Sin resultados
+        </Text>
       )}
 
       <ModalAltaAgente
@@ -541,149 +561,118 @@ export default function AdminAgentesScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerActions: { flexDirection: 'row', gap: 6 },
-  btnPrimary: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 8, backgroundColor: '#E73121',
-  },
-  btnPrimaryText: { fontSize: 12, fontWeight: '500', color: '#fff' },
-  btnSecondary: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 8, borderWidth: 1, borderColor: '#444', backgroundColor: 'transparent',
-  },
-  btnSecondaryText: { fontSize: 12, fontWeight: '500', color: '#FDECEA' },
+  headerActions: { flexDirection: 'row', gap: space[1] },
+
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff', borderRadius: 10,
-    borderWidth: 0.5, borderColor: '#e8e8e8',
+    backgroundColor: colors.white, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
     overflow: 'hidden', alignSelf: 'flex-start',
   },
-  tabBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-  tabBtnActive: { backgroundColor: '#E73121' },
-  tabBtnText: { fontSize: 13, fontWeight: '500', color: '#999' },
-  tabBtnTextActive: { color: '#fff' },
-  filtersBar: { gap: 8 },
+  tabBtn: { paddingHorizontal: space[4], paddingVertical: space[2] + 2 },
+  tabBtnActive: { backgroundColor: colors.ink },
+
+  filtersBar: { gap: space[2] },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 10,
-    borderWidth: 1, borderColor: '#e8e8e8',
-    paddingHorizontal: 12, paddingVertical: 8, gap: 8,
+    backgroundColor: colors.white, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    paddingHorizontal: space[3], paddingVertical: space[2], gap: space[2],
   },
-  searchIcon: { fontSize: 14 },
-  searchInput: { flex: 1, fontSize: 13, color: '#1a1a1a' },
+  searchInput: { flex: 1, fontSize: 14, color: colors.ink, paddingVertical: 2 },
+
   pillRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   pill: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
+    paddingHorizontal: space[3], paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
   },
-  pillActive: { backgroundColor: '#E73121', borderColor: '#E73121' },
-  pillText: { fontSize: 12, color: '#888', fontWeight: '500' },
-  pillTextActive: { color: '#fff' },
-  resultsCount: { fontSize: 13, color: '#999' },
+  pillActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+
   card: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 0.5, borderColor: '#e8e8e8', overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    overflow: 'hidden',
   },
   cardHeader: {
-    padding: 12, paddingHorizontal: 16,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    padding: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  cardTitle: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  cardCount: { fontSize: 12, color: '#999' },
+
   tableHead: {
-    flexDirection: 'row', backgroundColor: '#fafafa',
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    backgroundColor: colors.surface2,
+    borderBottomWidth: 1, borderBottomColor: colors.line,
   },
   th: {
-    fontSize: 11, fontWeight: '500', color: '#999',
-    padding: 10, paddingHorizontal: 16,
+    paddingVertical: space[2] + 2, paddingHorizontal: space[3],
+    textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8' },
-  td: { padding: 11, paddingHorizontal: 16, justifyContent: 'center' },
-  tdText: { fontSize: 13, color: '#1a1a1a' },
-  entityCell: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  av: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+    alignItems: 'center',
   },
+  td: { paddingVertical: space[2] + 4, paddingHorizontal: space[3], justifyContent: 'center' },
+  entityCell: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   avSq: {
-    width: 32, height: 32, borderRadius: 8,
+    width: 32, height: 32, borderRadius: radius.sm,
+    backgroundColor: colors.surface2,
     alignItems: 'center', justifyContent: 'center',
   },
-  avText: { fontSize: 11, fontWeight: '500' },
-  entityName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  entitySub: { fontSize: 11, color: '#bbb', marginTop: 1 },
-  tag: { paddingHorizontal: 9, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
-  tagText: { fontSize: 10, fontWeight: '500' },
-  actBtn: {
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 7, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
-  },
-  actBtnText: { fontSize: 11, fontWeight: '500', color: '#E73121' },
-  actBtnSuccess: { borderColor: '#A8DFC9' },
-  actBtnSuccessText: { color: '#1D9E75' },
-  emptyText: { textAlign: 'center', color: '#aaa', fontSize: 13, padding: 20 },
+
+  emptyText: { paddingVertical: space[6] },
+
   // Modal
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center', justifyContent: 'center',
+    padding: space[3],
   },
   modal: {
-    backgroundColor: '#fff', borderRadius: 16,
-    width: '90%', maxWidth: 480, maxHeight: '90%',
+    backgroundColor: colors.white, borderRadius: radius.lg,
+    width: '100%', maxWidth: 500, maxHeight: '90%',
+    borderWidth: 1, borderColor: colors.line,
   },
   modalHeader: {
-    padding: 18, paddingHorizontal: 22,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    padding: space[4],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  modalTitle: { fontSize: 15, fontWeight: '500', color: '#1a1a1a', flex: 1 },
   modalClose: {
-    width: 28, height: 28, borderRadius: 7,
-    backgroundColor: '#f5f5f3', alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
   },
-  modalCloseText: { color: '#666', fontSize: 14 },
-  modalBody: { padding: 22, paddingTop: 18 },
+  modalBody: { padding: space[4] },
   modalFooter: {
-    padding: 14, paddingHorizontal: 22,
-    borderTopWidth: 0.5, borderTopColor: '#f0f0f0',
-    flexDirection: 'row', justifyContent: 'flex-end', gap: 8,
+    padding: space[3],
+    borderTopWidth: 1, borderTopColor: colors.line,
+    flexDirection: 'row', gap: space[2],
   },
+
   formSection: {
-    fontSize: 11, fontWeight: '500', color: '#999',
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 12, marginTop: 8,
-    paddingBottom: 6, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    marginBottom: space[2], marginTop: space[1],
   },
-  formHint: { fontSize: 12, color: '#999', marginBottom: 12, lineHeight: 17 },
-  formGroup: { marginBottom: 14 },
-  formGrid: { flexDirection: 'row', gap: 10 },
-  formLabel: { fontSize: 12, fontWeight: '500', color: '#555', marginBottom: 6 },
-  formLabelSub: { color: '#bbb', fontWeight: '400' },
+  formGrid: { flexDirection: 'row', gap: space[2] },
   formInput: {
-    borderWidth: 1, borderColor: '#e8e8e8',
-    borderRadius: 9, padding: 9, paddingHorizontal: 12,
-    fontSize: 13, color: '#1a1a1a', backgroundColor: '#fff',
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: space[3], paddingVertical: space[2] + 2,
+    fontSize: 14, color: colors.ink,
+    backgroundColor: colors.white,
   },
-  planSelector: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 },
+
+  planSelector: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap', marginBottom: space[2] },
   planOpt: {
-    flex: 1, minWidth: 130,
-    borderWidth: 1.5, borderColor: '#e8e8e8',
-    borderRadius: 10, padding: 12,
+    flex: 1, minWidth: 140,
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: space[3],
+    backgroundColor: colors.white,
   },
-  planOptSelected: { borderColor: '#E73121', backgroundColor: '#FDECEA' },
-  planOptName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  planOptNameSelected: { color: '#C4260F' },
-  planOptPrice: { fontSize: 11, color: '#999', marginTop: 3 },
-  btnCancel: {
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 9, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
-  },
-  btnCancelText: { fontSize: 13, fontWeight: '500', color: '#555' },
-  btnSave: {
-    paddingHorizontal: 18, paddingVertical: 8,
-    borderRadius: 9, backgroundColor: '#E73121',
-  },
-  btnSaveText: { fontSize: 13, fontWeight: '500', color: '#fff' },
+  planOptSelected: { borderColor: colors.ink, borderWidth: 2 },
 });

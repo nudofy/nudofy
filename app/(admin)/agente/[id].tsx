@@ -1,25 +1,24 @@
 // ADM-03 · Ficha de agente
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Alert,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { View, StyleSheet, Pressable, Alert } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgentDetail, useAdminAgents } from '@/hooks/useAdmin';
-import type { AdminAgent } from '@/hooks/useAdmin';
+import { colors, space, radius } from '@/theme';
+import { Text, Icon, Button, Badge } from '@/components/ui';
+import Avatar from '@/components/Avatar';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-const PLAN_META: Record<string, { bg: string; text: string; label: string; price: string; free?: boolean }> = {
-  free:        { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free',         price: 'Gratis',   free: true },
-  free_pro:    { bg: '#E6F7EF', text: '#1D7A4E', label: 'Free Pro',     price: 'Gratis',   free: true },
-  basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico',       price: '9 €/mes'  },
-  pro:         { bg: '#FDECEA', text: '#C4260F', label: 'Pro',           price: '19 €/mes' },
-  agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia',       price: '39 €/mes' },
-  agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro',   price: '79 €/mes' },
+const PLAN_META: Record<string, { label: string; price: string; free?: boolean }> = {
+  free:        { label: 'Free',         price: 'Gratis',   free: true },
+  free_pro:    { label: 'Free Pro',     price: 'Gratis',   free: true },
+  basic:       { label: 'Básico',       price: '9 €/mes'  },
+  pro:         { label: 'Pro',           price: '19 €/mes' },
+  agency:      { label: 'Agencia',       price: '39 €/mes' },
+  agency_pro:  { label: 'Agencia Pro',   price: '79 €/mes' },
 };
 
 const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency', 'agency_pro'] as const;
@@ -31,7 +30,6 @@ const DURATIONS = [
 ];
 
 export default function AdminAgenteDetailScreen() {
-  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { agent, clientCount, orderCount, supplierCount, loading } = useAdminAgentDetail(id);
   const { updateAgentPlan, toggleAgentActive } = useAdminAgents();
@@ -42,13 +40,14 @@ export default function AdminAgenteDetailScreen() {
   if (loading || !agent) {
     return (
       <AdminShell activeSection="agentes" title="Cargando...">
-        <Text style={styles.emptyText}>Cargando agente...</Text>
+        <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+          Cargando agente...
+        </Text>
       </AdminShell>
     );
   }
 
   const plan = PLAN_META[agent.plan] ?? PLAN_META.basic;
-  const initials = agent.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
   function handleSelectPlan(newPlan: typeof PLANS[number]) {
     setSelectedPlan(newPlan);
@@ -86,24 +85,18 @@ export default function AdminAgenteDetailScreen() {
 
   return (
     <AdminShell activeSection="agentes" title={agent.name}>
-      {/* Cabecera del agente */}
+      {/* Cabecera */}
       <View style={styles.agentHeader}>
-        <View style={styles.agentAv}>
-          <Text style={styles.agentAvText}>{initials}</Text>
-        </View>
-        <View style={styles.agentInfo}>
-          <Text style={styles.agentName}>{agent.name}</Text>
-          <Text style={styles.agentContact}>{agent.email}{agent.phone ? ` · ${agent.phone}` : ''}</Text>
+        <Avatar name={agent.name} size={56} fontSize={20} />
+        <View style={{ flex: 1, minWidth: 180, gap: 4 }}>
+          <Text variant="heading">{agent.name}</Text>
+          <Text variant="caption" color="ink3">
+            {agent.email}{agent.phone ? ` · ${agent.phone}` : ''}
+          </Text>
           <View style={styles.agentMeta}>
-            <View style={[styles.tag, { backgroundColor: plan.bg }]}>
-              <Text style={[styles.tagText, { color: plan.text }]}>{plan.label}</Text>
-            </View>
-            <View style={[styles.tag, { backgroundColor: agent.active ? '#EAF3DE' : '#F1EFE8' }]}>
-              <Text style={[styles.tagText, { color: agent.active ? '#3B6D11' : '#888' }]}>
-                {agent.active ? 'Activo' : 'Inactivo'}
-              </Text>
-            </View>
-            <Text style={styles.metaTxt}>Alta: {formatDate(agent.created_at)}</Text>
+            <Badge label={plan.label} variant="neutral" />
+            <Badge label={agent.active ? 'Activo' : 'Inactivo'} variant={agent.active ? 'success' : 'neutral'} />
+            <Text variant="caption" color="ink4">Alta: {formatDate(agent.created_at)}</Text>
           </View>
         </View>
       </View>
@@ -120,25 +113,31 @@ export default function AdminAgenteDetailScreen() {
       <View style={styles.rowCards}>
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Datos del agente</Text>
+            <Text variant="bodyMedium">Datos del agente</Text>
           </View>
           <FieldRow label="Nombre" value={agent.name} />
           <FieldRow label="Email" value={agent.email} />
           <FieldRow label="Teléfono" value={agent.phone ?? '—'} />
           <FieldRow label="ID" value={agent.id} mono />
-          <FieldRow label="Usuario ID" value={agent.user_id} mono />
+          <FieldRow label="Usuario ID" value={agent.user_id} mono last />
         </View>
 
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Plan actual</Text>
-            <TouchableOpacity onPress={() => setChangingPlan(!changingPlan)}>
-              <Text style={styles.cardEdit}>Cambiar plan</Text>
-            </TouchableOpacity>
+            <Text variant="bodyMedium">Plan actual</Text>
+            <Pressable
+              onPress={() => setChangingPlan(!changingPlan)}
+              hitSlop={8}
+              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+            >
+              <Text variant="smallMedium" color="ink2">
+                {changingPlan ? 'Cancelar' : 'Cambiar plan'}
+              </Text>
+            </Pressable>
           </View>
-          <FieldRow label="Plan" value={plan.label} highlight />
+          <FieldRow label="Plan" value={plan.label} />
           <FieldRow label="Precio" value={plan.price} />
-          <FieldRow label="Estado pago" value="Al día" />
+          <FieldRow label="Estado pago" value="Al día" last />
 
           {changingPlan && (
             <View style={styles.planSelector}>
@@ -147,71 +146,78 @@ export default function AdminAgenteDetailScreen() {
                 const isActive = p === agent.plan;
                 const isSelected = p === selectedPlan;
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     key={p}
-                    style={[styles.planOpt, isActive && styles.planOptActive, isSelected && styles.planOptSelected]}
+                    style={[
+                      styles.planOpt,
+                      isActive && styles.planOptActive,
+                      isSelected && styles.planOptSelected,
+                    ]}
                     onPress={() => handleSelectPlan(p)}
                   >
-                    <Text style={[styles.planOptName, (isActive || isSelected) && styles.planOptNameSelected]}>
-                      {pm.label}
-                    </Text>
-                    <Text style={styles.planOptPrice}>{pm.price}</Text>
-                    {isActive && <Text style={styles.planOptCurrent}>actual</Text>}
-                  </TouchableOpacity>
+                    <Text variant="smallMedium">{pm.label}</Text>
+                    <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{pm.price}</Text>
+                    {isActive && (
+                      <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>actual</Text>
+                    )}
+                  </Pressable>
                 );
               })}
 
-              {/* Selector de duración para planes free */}
               {selectedPlan && PLAN_META[selectedPlan].free && (
-                <View style={styles.durationWrap}>
-                  <Text style={styles.durationTitle}>Duración del acceso gratuito</Text>
+                <View style={{ width: '100%', marginTop: space[1] }}>
+                  <Text variant="small" color="ink2" style={{ marginBottom: space[2] }}>
+                    Duración del acceso gratuito
+                  </Text>
                   <View style={styles.durationRow}>
                     {DURATIONS.map(d => (
-                      <TouchableOpacity
+                      <Pressable
                         key={d.label}
                         style={[styles.durationOpt, selectedDuration === d.days && styles.durationOptSelected]}
                         onPress={() => setSelectedDuration(d.days)}
                       >
-                        <Text style={[styles.durationOptText, selectedDuration === d.days && styles.durationOptTextSelected]}>
+                        <Text
+                          variant="smallMedium"
+                          style={{ color: selectedDuration === d.days ? colors.white : colors.ink2 }}
+                        >
                           {d.label}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </View>
                 </View>
               )}
 
-              {/* Botón confirmar */}
               {selectedPlan && (
-                <TouchableOpacity style={styles.confirmBtn} onPress={confirmPlanChange}>
-                  <Text style={styles.confirmBtnText}>
-                    Confirmar — {PLAN_META[selectedPlan].label}
-                    {PLAN_META[selectedPlan].free && selectedDuration
-                      ? ` (${DURATIONS.find(d => d.days === selectedDuration)?.label})`
-                      : PLAN_META[selectedPlan].free ? ' (Ilimitado)' : ''}
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ width: '100%', marginTop: space[2] }}>
+                  <Button
+                    label={`Confirmar — ${PLAN_META[selectedPlan].label}${
+                      PLAN_META[selectedPlan].free && selectedDuration
+                        ? ` (${DURATIONS.find(d => d.days === selectedDuration)?.label})`
+                        : PLAN_META[selectedPlan].free ? ' (Ilimitado)' : ''
+                    }`}
+                    onPress={confirmPlanChange}
+                    fullWidth
+                  />
+                </View>
               )}
             </View>
           )}
         </View>
       </View>
 
-      {/* Acciones peligrosas */}
+      {/* Acciones */}
       <View style={styles.dangerCard}>
-        <Text style={styles.dangerTitle}>Acciones de cuenta</Text>
+        <Text variant="caption" color="ink3" style={styles.dangerTitle}>
+          ACCIONES DE CUENTA
+        </Text>
         <View style={styles.dangerActions}>
-          <TouchableOpacity
-            style={[styles.dangerBtn, agent.active ? styles.dangerBtnDestructive : styles.dangerBtnSuccess]}
+          <Button
+            label={agent.active ? 'Desactivar cuenta' : 'Activar cuenta'}
+            variant="secondary"
             onPress={handleToggleActive}
-          >
-            <Text style={[styles.dangerBtnText, agent.active ? styles.dangerBtnTextRed : styles.dangerBtnTextGreen]}>
-              {agent.active ? 'Desactivar cuenta' : 'Activar cuenta'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dangerBtn}>
-            <Text style={styles.dangerBtnText}>Ver pedidos</Text>
-          </TouchableOpacity>
+          />
+          <Button label="Ver pedidos" variant="secondary" onPress={() => {}} />
         </View>
       </View>
     </AdminShell>
@@ -221,19 +227,22 @@ export default function AdminAgenteDetailScreen() {
 function KpiMini({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.kpiMini}>
-      <Text style={styles.kpiMiniLabel}>{label}</Text>
-      <Text style={styles.kpiMiniValue}>{value}</Text>
+      <Text variant="caption" color="ink3">{label}</Text>
+      <Text variant="heading" style={{ marginTop: space[1] }}>{value}</Text>
     </View>
   );
 }
 
-function FieldRow({ label, value, mono, highlight }: {
-  label: string; value: string; mono?: boolean; highlight?: boolean;
+function FieldRow({ label, value, mono, last }: {
+  label: string; value: string; mono?: boolean; last?: boolean;
 }) {
   return (
-    <View style={styles.fieldRow}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={[styles.fieldValue, mono && styles.fieldMono, highlight && styles.fieldHighlight]}
+    <View style={[styles.fieldRow, !last && styles.fieldRowBorder]}>
+      <Text variant="small" color="ink3">{label}</Text>
+      <Text
+        variant={mono ? 'caption' : 'smallMedium'}
+        color={mono ? 'ink3' : 'ink'}
+        style={{ textAlign: 'right', flex: 1 }}
         numberOfLines={1}
       >
         {value}
@@ -243,100 +252,80 @@ function FieldRow({ label, value, mono, highlight }: {
 }
 
 const styles = StyleSheet.create({
-  emptyText: { textAlign: 'center', color: '#aaa', fontSize: 13, padding: 20 },
+  emptyText: { paddingVertical: space[6] },
+
   agentHeader: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 0.5, borderColor: '#e8e8e8',
-    padding: 18, flexDirection: 'row', alignItems: 'flex-start', gap: 16,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    padding: space[4],
+    flexDirection: 'row', alignItems: 'flex-start', gap: space[3],
     flexWrap: 'wrap',
   },
-  agentAv: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#FDECEA',
-    alignItems: 'center', justifyContent: 'center',
+  agentMeta: {
+    flexDirection: 'row', gap: space[2], marginTop: space[2],
+    flexWrap: 'wrap', alignItems: 'center',
   },
-  agentAvText: { fontSize: 17, fontWeight: '500', color: '#C4260F' },
-  agentInfo: { flex: 1, minWidth: 180 },
-  agentName: { fontSize: 17, fontWeight: '500', color: '#1a1a1a' },
-  agentContact: { fontSize: 12, color: '#999', marginTop: 3 },
-  agentMeta: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' },
-  tag: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 7, alignSelf: 'flex-start' },
-  tagText: { fontSize: 11, fontWeight: '500' },
-  metaTxt: { fontSize: 11, color: '#bbb' },
-  kpiGrid: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+
+  kpiGrid: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap' },
   kpiMini: {
-    flex: 1, minWidth: 120,
-    backgroundColor: '#fff', borderRadius: 10,
-    borderWidth: 0.5, borderColor: '#e8e8e8',
-    padding: 13, paddingHorizontal: 16,
+    flex: 1, minWidth: 130,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    padding: space[3],
   },
-  kpiMiniLabel: { fontSize: 11, color: '#999', marginBottom: 4 },
-  kpiMiniValue: { fontSize: 20, fontWeight: '500', color: '#1a1a1a' },
-  rowCards: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+
+  rowCards: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap' },
   card: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 0.5, borderColor: '#e8e8e8',
-    overflow: 'hidden', minWidth: 260,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    overflow: 'hidden',
+    minWidth: 280,
   },
   cardHeader: {
-    padding: 13, paddingHorizontal: 18,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    padding: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  cardTitle: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  cardEdit: { fontSize: 12, color: '#E73121' },
+
   fieldRow: {
-    paddingHorizontal: 18, paddingVertical: 10,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8', gap: 12,
+    paddingHorizontal: space[3], paddingVertical: space[2] + 2,
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
   },
-  fieldLabel: { fontSize: 12, color: '#bbb', flexShrink: 0 },
-  fieldValue: { fontSize: 12, fontWeight: '500', color: '#1a1a1a', textAlign: 'right', flex: 1 },
-  fieldMono: { fontSize: 10, color: '#999' },
-  fieldHighlight: { color: '#E73121' },
+  fieldRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+
   planSelector: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 14,
+    flexDirection: 'row', flexWrap: 'wrap', gap: space[2],
+    padding: space[3],
   },
   planOpt: {
     flex: 1, minWidth: '45%',
-    borderWidth: 1.5, borderColor: '#e8e8e8',
-    borderRadius: 10, padding: 10,
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: space[3],
+    backgroundColor: colors.white,
   },
-  planOptActive: { borderColor: '#ccc', backgroundColor: '#fafafa' },
-  planOptSelected: { borderColor: '#E73121', backgroundColor: '#FDECEA' },
-  planOptName: { fontSize: 12, fontWeight: '500', color: '#1a1a1a' },
-  planOptNameSelected: { color: '#C4260F' },
-  planOptPrice: { fontSize: 11, color: '#999', marginTop: 2 },
-  planOptCurrent: { fontSize: 9, color: '#999', marginTop: 2 },
-  durationWrap: { width: '100%', marginTop: 4 },
-  durationTitle: { fontSize: 12, color: '#666', marginBottom: 8 },
-  durationRow: { flexDirection: 'row', gap: 8 },
+  planOptActive: { backgroundColor: colors.surface2 },
+  planOptSelected: { borderColor: colors.ink, borderWidth: 2 },
+
+  durationRow: { flexDirection: 'row', gap: space[2] },
   durationOpt: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    borderWidth: 1.5, borderColor: '#e8e8e8', alignItems: 'center',
+    flex: 1, paddingVertical: space[2] + 2, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    alignItems: 'center',
+    backgroundColor: colors.white,
   },
-  durationOptSelected: { borderColor: '#E73121', backgroundColor: '#FDECEA' },
-  durationOptText: { fontSize: 12, color: '#555' },
-  durationOptTextSelected: { color: '#C4260F', fontWeight: '600' },
-  confirmBtn: {
-    width: '100%', paddingVertical: 11, borderRadius: 10,
-    backgroundColor: '#E73121', alignItems: 'center', marginTop: 4,
-  },
-  confirmBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  durationOptSelected: { backgroundColor: colors.ink, borderColor: colors.ink },
+
   dangerCard: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 0.5, borderColor: '#e8e8e8',
-    padding: 16, gap: 12,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    padding: space[3],
+    gap: space[2],
   },
-  dangerTitle: { fontSize: 13, fontWeight: '500', color: '#555' },
-  dangerActions: { flexDirection: 'row', gap: 8 },
-  dangerBtn: {
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 9, borderWidth: 1, borderColor: '#e8e8e8', backgroundColor: '#fff',
-  },
-  dangerBtnDestructive: { borderColor: '#F09595' },
-  dangerBtnSuccess: { borderColor: '#A8DFC9' },
-  dangerBtnText: { fontSize: 12, fontWeight: '500', color: '#555' },
-  dangerBtnTextRed: { color: '#A32D2D' },
-  dangerBtnTextGreen: { color: '#1D9E75' },
+  dangerTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
+  dangerActions: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap' },
 });

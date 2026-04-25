@@ -1,11 +1,9 @@
 // A-09 · Historial de pedidos (3 pestañas)
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import StatusBadge from '@/components/StatusBadge';
@@ -15,9 +13,10 @@ import type { Order } from '@/hooks/useAgent';
 type TabKey = 'realizados' | 'pendientes' | 'cancelados';
 
 const TAB_STATUS: Record<TabKey, Order['status'][]> = {
-  realizados: ['sent_to_supplier', 'confirmed'],
-  pendientes: ['confirmed'],
-  cancelados: ['cancelled'] };
+  realizados: ['sent_to_supplier'],
+  pendientes: ['draft', 'confirmed'],
+  cancelados: ['cancelled'],
+};
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -34,7 +33,7 @@ function formatDate(iso: string) {
 
 export default function PedidosScreen() {
   const router = useRouter();
-  const { orders, loading } = useOrders();
+  const { orders, loading, deleteOrder, refetch } = useOrders();
   const [tab, setTab] = useState<TabKey>('realizados');
   const [search, setSearch] = useState('');
 
@@ -50,203 +49,254 @@ export default function PedidosScreen() {
     });
   }, [orders, tab, search]);
 
-  const pendingCount = orders.filter(o => o.status === 'confirmed').length;
+  const pendingCount = orders.filter(o => o.status === 'confirmed' || o.status === 'draft').length;
   const doneCount = orders.filter(o => o.status === 'sent_to_supplier').length;
+
+  function handleDeleteDraft(id: string) {
+    Alert.alert(
+      'Descartar pedido',
+      '¿Seguro que quieres eliminar este pedido pendiente? No se podrá recuperar.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Descartar', style: 'destructive',
+          onPress: async () => { await deleteOrder(id); refetch(); },
+        },
+      ]
+    );
+  }
+
+  function handleOpenOrder(order: Order) {
+    if (order.status === 'draft') {
+      router.push({ pathname: '/(agent)/pedido/nuevo', params: { draftId: order.id } } as any);
+    } else {
+      router.push(`/(agent)/pedido/${order.id}` as any);
+    }
+  }
 
   // KPIs del periodo
   const totalFiltered = filtered.reduce((s, o) => s + o.total, 0);
   const ticketMedio = filtered.length > 0 ? totalFiltered / filtered.length : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Topbar */}
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.push('/(agent)/home')}>
-          <Text style={styles.back}>← Inicio</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Mis pedidos</Text>
-        <TouchableOpacity style={styles.newBtn} onPress={() => router.push('/(agent)/pedido/nuevo')}>
-          <Text style={styles.newBtnText}>+</Text>
-        </TouchableOpacity>
-      </View>
+    <Screen>
+      <TopBar
+        title="Mis pedidos"
+        onBack={() => router.push('/(agent)/home')}
+        actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/pedido/nuevo'), accessibilityLabel: 'Nuevo pedido' }]}
+      />
 
       {/* Buscador */}
-      <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por cliente, proveedor o nº pedido..."
-          placeholderTextColor={colors.textMuted}
-          value={search}
-          onChangeText={setSearch}
-        />
+      <View style={styles.searchBarWrap}>
+        <View style={styles.inputWithIcon}>
+          <Icon name="Search" size={16} color={colors.ink4} />
+          <TextInput
+            style={styles.inputEl}
+            placeholder="Buscar por cliente, proveedor o nº pedido..."
+            placeholderTextColor={colors.ink4}
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
       </View>
 
       {/* Pestañas */}
       <View style={styles.tabBar}>
-        <TabBtn label="Realizados" count={doneCount} countColor="green" active={tab === 'realizados'} onPress={() => setTab('realizados')} />
-        <TabBtn label="Pendientes" count={pendingCount} countColor="amber" active={tab === 'pendientes'} onPress={() => setTab('pendientes')} />
+        <TabBtn label="Realizados" count={doneCount} active={tab === 'realizados'} onPress={() => setTab('realizados')} />
+        <TabBtn label="Pendientes" count={pendingCount} active={tab === 'pendientes'} onPress={() => setTab('pendientes')} />
         <TabBtn label="Cancelados" active={tab === 'cancelados'} onPress={() => setTab('cancelados')} />
       </View>
 
       {/* KPIs */}
       {filtered.length > 0 && (
         <View style={styles.kpiRow}>
-          <View style={styles.kpi}><Text style={styles.kpiV}>{filtered.length}</Text><Text style={styles.kpiL}>Pedidos</Text></View>
-          <View style={styles.kpi}><Text style={styles.kpiV}>{formatEur(totalFiltered)}</Text><Text style={styles.kpiL}>Facturado</Text></View>
-          <View style={styles.kpi}><Text style={styles.kpiV}>{formatEur(ticketMedio)}</Text><Text style={styles.kpiL}>Ticket medio</Text></View>
+          <Kpi value={String(filtered.length)} label="Pedidos" />
+          <Kpi value={formatEur(totalFiltered)} label="Facturado" />
+          <Kpi value={formatEur(ticketMedio)} label="Ticket medio" />
         </View>
       )}
 
       {/* Lista */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-        {loading && <Text style={styles.emptyText}>Cargando...</Text>}
+        {loading && <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>}
         {!loading && filtered.length === 0 && (
-          <Text style={styles.emptyText}>Sin pedidos en esta sección</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Sin pedidos en esta sección</Text>
         )}
         {filtered.map(order => (
-          <OrderCard key={order.id} order={order} onPress={() => router.push(`/(agent)/pedido/${order.id}` as any)} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            onPress={() => handleOpenOrder(order)}
+            onDelete={order.status === 'draft' ? () => handleDeleteDraft(order.id) : undefined}
+          />
         ))}
       </ScrollView>
 
       <BottomTabBar activeTab="pedidos" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-function TabBtn({ label, count, countColor, active, onPress }: {
-  label: string; count?: number; countColor?: 'green' | 'amber';
+function TabBtn({ label, count, active, onPress }: {
+  label: string; count?: number;
   active: boolean; onPress: () => void;
 }) {
-  const badgeBg = countColor === 'green' ? '#EAF3DE' : '#FAEEDA';
-  const badgeColor = countColor === 'green' ? '#3B6D11' : '#854F0B';
   return (
-    <TouchableOpacity style={styles.tab} onPress={onPress}>
+    <Pressable style={styles.tab} onPress={onPress}>
       <View style={styles.tabInner}>
-        <Text style={[styles.tabText, active && styles.tabActive]}>{label}</Text>
+        <Text variant="smallMedium" color={active ? 'ink' : 'ink3'}>{label}</Text>
         {!!count && (
-          <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-            <Text style={[styles.badgeText, { color: badgeColor }]}>{count}</Text>
+          <View style={styles.tabCount}>
+            <Text variant="caption" color="ink2">{count}</Text>
           </View>
         )}
       </View>
       {active && <View style={styles.tabIndicator} />}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
-function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
+function Kpi({ value, label }: { value: string; label: string }) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <View style={styles.kpi}>
+      <Text variant="heading">{value}</Text>
+      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{label}</Text>
+    </View>
+  );
+}
+
+function OrderCard({ order, onPress, onDelete }: {
+  order: Order; onPress: () => void; onDelete?: () => void;
+}) {
+  const isDraft = order.status === 'draft';
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+    >
       <View style={styles.cardHead}>
         <Avatar name={order.client?.name ?? '?'} size={38} fontSize={12} />
         <View style={styles.cardBody}>
-          <Text style={styles.cardNum}>{order.order_number ?? '—'}</Text>
-          <Text style={styles.cardClient}>{order.client?.name ?? 'Sin cliente'}</Text>
-          <Text style={styles.cardProv}>{order.supplier?.name} · {order.catalog?.name}</Text>
+          {order.order_number && <Text variant="caption" color="ink3">{order.order_number}</Text>}
+          <Text variant="bodyMedium">{order.client?.name ?? (isDraft ? 'Sin cliente aún' : 'Sin cliente')}</Text>
+          <Text variant="small" color="ink3" numberOfLines={1}>
+            {order.supplier?.name ?? '—'}{order.catalog?.name ? ` · ${order.catalog.name}` : ''}
+          </Text>
         </View>
         <View style={styles.cardRight}>
-          <Text style={styles.cardAmount}>{formatEur(order.total)}</Text>
-          <Text style={styles.cardDate}>{formatDate(order.created_at)}</Text>
+          <Text variant="bodyMedium">{formatEur(order.total)}</Text>
+          <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{formatDate(order.created_at)}</Text>
         </View>
       </View>
       <View style={styles.cardFoot}>
         <StatusBadge status={order.status} />
         <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.actBtn}>
-            <Text style={styles.actBtnText}>Reenviar PDF</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actBtn}>
-            <Text style={styles.actBtnText}>Duplicar</Text>
-          </TouchableOpacity>
+          {isDraft ? (
+            <>
+              {onDelete && (
+                <Pressable
+                  style={styles.actBtn}
+                  onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
+                  hitSlop={6}
+                >
+                  <Text variant="caption" color="ink2">Descartar</Text>
+                </Pressable>
+              )}
+              <Pressable style={[styles.actBtn, styles.actBtnPrimary]} onPress={onPress}>
+                <Text variant="caption" color="brand">Continuar</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Pressable style={styles.actBtn}>
+                <Text variant="caption" color="ink2">Reenviar PDF</Text>
+              </Pressable>
+              <Pressable style={styles.actBtn}>
+                <Text variant="caption" color="ink2">Duplicar</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.1)' },
-  back: { fontSize: 13, color: '#ffffff', marginRight: 10 },
-  title: { flex: 1, fontSize: 17, fontWeight: '500', color: '#ffffff' },
-  newBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.brand,
-    alignItems: 'center', justifyContent: 'center' },
-  newBtnText: { color: colors.white, fontSize: 20, lineHeight: 22 },
-  searchWrap: {
+  searchBarWrap: {
     backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef',
-    gap: 8 },
-  searchIcon: { fontSize: 14 },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.border },
+    paddingHorizontal: space[4], paddingVertical: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
+  inputWithIcon: {
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
+    paddingHorizontal: space[3], height: 40,
+    backgroundColor: colors.white,
+  },
+  inputEl: { flex: 1, fontSize: 14, color: colors.ink, paddingVertical: 0 },
+
   tabBar: {
     backgroundColor: colors.white,
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#efefef' },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' },
-  tabInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  tabText: { fontSize: 12, fontWeight: '500', color: colors.textMuted },
-  tabActive: { color: colors.brand },
-  tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: colors.brand },
-  badge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 },
-  badgeText: { fontSize: 9, fontWeight: '500' },
+    paddingHorizontal: space[4],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: space[3], position: 'relative' },
+  tabInner: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  tabCount: {
+    backgroundColor: colors.surface2,
+    paddingHorizontal: 6, paddingVertical: 1,
+    borderRadius: radius.full,
+    minWidth: 18, alignItems: 'center',
+  },
+  tabIndicator: {
+    position: 'absolute', bottom: 0, left: space[4], right: space[4],
+    height: 2, backgroundColor: colors.ink,
+  },
+
   kpiRow: {
     flexDirection: 'row',
-    gap: 8,
-    padding: 12,
-    paddingBottom: 4 },
-  kpi: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 10, alignItems: 'center' },
-  kpiV: { fontSize: 17, fontWeight: '500', color: colors.text },
-  kpiL: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  listContent: { padding: 10, gap: 7 },
-  card: { backgroundColor: colors.white, borderRadius: 13, overflow: 'hidden' },
-  cardHead: { padding: 11, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  cardBody: { flex: 1, minWidth: 0 },
-  cardNum: { fontSize: 10, color: colors.textMuted, marginBottom: 2 },
-  cardClient: { fontSize: 13, fontWeight: '500', color: colors.text },
-  cardProv: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
-  cardRight: { alignItems: 'flex-end' },
-  cardAmount: { fontSize: 13, fontWeight: '500', color: colors.text },
-  cardDate: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  cardFoot: {
-    padding: 7,
-    paddingHorizontal: 13,
-    borderTopWidth: 0.5,
-    borderTopColor: '#f5f5f5',
-    flexDirection: 'row',
+    gap: space[2],
+    padding: space[3], paddingBottom: 0,
+  },
+  kpi: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
     alignItems: 'center',
-    justifyContent: 'space-between' },
-  cardActions: { flexDirection: 'row', gap: 6 },
+    borderWidth: 1, borderColor: colors.line,
+  },
+
+  listContent: { padding: space[3], gap: space[2] },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+  cardHead: {
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+  },
+  cardBody: { flex: 1, minWidth: 0, gap: 1 },
+  cardRight: { alignItems: 'flex-end' },
+  cardFoot: {
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    borderTopWidth: 1, borderTopColor: colors.line2,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: space[2],
+  },
+  cardActions: { flexDirection: 'row', gap: space[1] },
   actBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: colors.border },
-  actBtnText: { fontSize: 10, fontWeight: '500', color: colors.brand },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 13, paddingVertical: 32 } });
+    paddingHorizontal: space[2], paddingVertical: 4,
+    borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  actBtnPrimary: {
+    borderColor: colors.brand,
+    backgroundColor: colors.brandSoft,
+  },
+  emptyText: { paddingVertical: space[8] },
+});

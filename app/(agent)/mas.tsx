@@ -1,20 +1,15 @@
 // Más — acceso a Proveedores, Estadísticas, Perfil
 import React from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgent, useSuppliers } from '@/hooks/useAgent';
 import type { Supplier } from '@/hooks/useAgent';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
+import type { IconName } from '@/components/ui/Icon';
 
 export default function MasScreen() {
   const router = useRouter();
@@ -25,30 +20,40 @@ export default function MasScreen() {
   const active = suppliers.filter(s => s.active).length;
   const totalRefs = suppliers.reduce((s, sup) => s + (sup.catalog_count ?? 0), 0);
 
+  const menuItems: { label: string; icon: IconName; route: string | null }[] = [
+    { label: 'Estadísticas', icon: 'ChartBar', route: '/(agent)/estadisticas' },
+    { label: 'Notificaciones', icon: 'Bell', route: null },
+    { label: 'Perfil y ajustes', icon: 'Settings', route: '/(agent)/perfil' },
+    { label: 'Facturas', icon: 'Receipt', route: null },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <Text style={styles.title}>Más</Text>
-      </View>
+    <Screen>
+      <TopBar title="Más" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Perfil del agente */}
-        <TouchableOpacity style={styles.profileCard} onPress={() => router.push('/(agent)/perfil')} activeOpacity={0.85}>
+        <Pressable
+          style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/(agent)/perfil')}
+        >
           <Avatar name={agent?.name ?? profile?.email ?? 'A'} size={48} fontSize={16} />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{agent?.name ?? profile?.email}</Text>
-            <Text style={styles.profilePlan}>Plan {agent?.plan ?? '—'}</Text>
+            <Text variant="bodyMedium">{agent?.name ?? profile?.email}</Text>
+            <Text variant="caption" color="ink3" style={{ marginTop: 2, textTransform: 'capitalize' }}>
+              Plan {agent?.plan ?? '—'}
+            </Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
+          <Icon name="ChevronRight" size={18} color={colors.ink4} />
+        </Pressable>
 
         {/* Mis proveedores */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mis proveedores</Text>
-            <TouchableOpacity onPress={() => router.push('/(agent)/catalogos')}>
-              <Text style={styles.seeAll}>Ver proveedores →</Text>
-            </TouchableOpacity>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Mis proveedores</Text>
+            <Pressable onPress={() => router.push('/(agent)/catalogos')}>
+              <Text variant="caption" color="ink2">Ver todos</Text>
+            </Pressable>
           </View>
 
           {/* Resumen */}
@@ -63,123 +68,153 @@ export default function MasScreen() {
             <SupplierRow key={s.id} supplier={s} onPress={() => router.push(`/(agent)/proveedor/${s.id}` as any)} />
           ))}
 
-          <TouchableOpacity style={styles.addSupplierBtn} onPress={() => router.push('/(agent)/proveedor/nuevo' as any)}>
-            <Text style={styles.addSupplierText}>+ Añadir proveedor</Text>
-          </TouchableOpacity>
+          <Pressable
+            style={({ pressed }) => [styles.addSupplierBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/(agent)/proveedor/nuevo' as any)}
+          >
+            <Icon name="Plus" size={16} color={colors.ink2} />
+            <Text variant="smallMedium" color="ink2">Añadir proveedor</Text>
+          </Pressable>
         </View>
 
         {/* Otras opciones */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cuenta y ajustes</Text>
+          <Text variant="caption" color="ink3" style={styles.sectionTitle}>Cuenta y ajustes</Text>
           <View style={styles.menuBlock}>
-            {[
-              { label: 'Estadísticas', icon: '📊', route: '/(agent)/estadisticas' },
-              { label: 'Notificaciones', icon: '🔔', route: null },
-              { label: 'Perfil y ajustes', icon: '⚙️', route: '/(agent)/perfil' },
-              { label: 'Facturas', icon: '🧾', route: null },
-            ].map((item, i) => (
-              <TouchableOpacity
+            {menuItems.map((item, i) => (
+              <Pressable
                 key={i}
-                style={styles.menuItem}
+                style={({ pressed }) => [styles.menuItem, i < menuItems.length - 1 && styles.menuItemBorder, pressed && { opacity: 0.7 }]}
                 onPress={() => item.route && router.push(item.route as any)}
               >
-                <Text style={styles.menuIcon}>{item.icon}</Text>
-                <Text style={styles.menuLabel}>{item.label}</Text>
-                <Text style={styles.chevron}>›</Text>
-              </TouchableOpacity>
+                <Icon name={item.icon} size={18} color={colors.ink2} />
+                <Text variant="body" style={{ flex: 1 }}>{item.label}</Text>
+                <Icon name="ChevronRight" size={18} color={colors.ink4} />
+              </Pressable>
             ))}
           </View>
         </View>
 
-        <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
-          <Text style={styles.signOutText}>Cerrar sesión</Text>
-        </TouchableOpacity>
+        <Pressable
+          style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+          onPress={signOut}
+        >
+          <Icon name="LogOut" size={18} color={colors.danger} />
+          <Text variant="bodyMedium" color="danger">Cerrar sesión</Text>
+        </Pressable>
       </ScrollView>
 
       <BottomTabBar activeTab="mas" />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 function SumItem({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.sumItem}>
-      <Text style={styles.sumValue}>{value}</Text>
-      <Text style={styles.sumLabel}>{label}</Text>
+      <Text variant="heading">{value}</Text>
+      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
 function SupplierRow({ supplier, onPress }: { supplier: Supplier; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.supplierRow} onPress={onPress} activeOpacity={0.85}>
-      <View style={[styles.supplierLogo, { backgroundColor: supplier.active ? colors.brandLight : '#F1EFE8' }]}>
-        <Text style={{ color: supplier.active ? colors.brandDark : '#888', fontWeight: '500' }}>
-          {supplier.name.charAt(0)}
-        </Text>
-      </View>
+    <Pressable
+      style={({ pressed }) => [styles.supplierRow, pressed && { opacity: 0.7 }]}
+      onPress={onPress}
+    >
+      {supplier.logo_url ? (
+        <Image source={{ uri: supplier.logo_url }} style={styles.supplierLogoImage} resizeMode="contain" />
+      ) : (
+        <View style={styles.supplierLogo}>
+          <Text variant="bodyMedium" color="ink2">{supplier.name.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
       <View style={styles.supplierBody}>
-        <Text style={styles.supplierName}>{supplier.name}</Text>
-        <Text style={styles.supplierMeta}>{supplier.catalog_count ?? 0} catálogos</Text>
-      </View>
-      <View style={[styles.statusPill, { backgroundColor: supplier.active ? '#EAF3DE' : '#F1EFE8' }]}>
-        <Text style={[styles.statusText, { color: supplier.active ? '#3B6D11' : '#888780' }]}>
-          {supplier.active ? 'Activo' : 'Inactivo'}
+        <Text variant="bodyMedium">{supplier.name}</Text>
+        <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+          {supplier.catalog_count ?? 0} catálogos
         </Text>
       </View>
-    </TouchableOpacity>
+      <Badge label={supplier.active ? 'Activo' : 'Inactivo'} variant={supplier.active ? 'success' : 'neutral'} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  title: { fontSize: 18, fontWeight: '500', color: '#ffffff' },
-  content: { padding: 14, gap: 14 },
+  content: { padding: space[3], gap: space[4] },
+
   profileCard: {
-    backgroundColor: colors.white, borderRadius: 16,
-    padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[4],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    borderWidth: 1, borderColor: colors.line,
+  },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 16, fontWeight: '500', color: colors.text },
-  profilePlan: { fontSize: 12, color: colors.brand, marginTop: 3, textTransform: 'capitalize' },
-  chevron: { fontSize: 18, color: '#ccc' },
-  section: { gap: 10 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { fontSize: 12, fontWeight: '500', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  seeAll: { fontSize: 12, color: colors.brand },
+
+  section: { gap: space[2] },
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: space[1],
+  },
+  sectionTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
+
   summaryBar: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 12, flexDirection: 'row', justifyContent: 'space-around' },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', justifyContent: 'space-around',
+    borderWidth: 1, borderColor: colors.line,
+  },
   sumItem: { alignItems: 'center' },
-  sumValue: { fontSize: 18, fontWeight: '500', color: colors.text },
-  sumLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+
   supplierRow: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    borderWidth: 1, borderColor: colors.line,
+  },
   supplierLogo: {
-    width: 40, height: 40, borderRadius: 11,
-    alignItems: 'center', justifyContent: 'center' },
-  supplierBody: { flex: 1 },
-  supplierName: { fontSize: 14, fontWeight: '500', color: colors.text },
-  supplierMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  statusPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: '500' },
+    width: 40, height: 40, borderRadius: radius.md,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface2,
+  },
+  supplierLogoImage: {
+    width: 40, height: 40, borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+  },
+  supplierBody: { flex: 1, minWidth: 0 },
+
   addSupplierBtn: {
-    backgroundColor: colors.white, borderRadius: 12,
-    padding: 14, alignItems: 'center',
-    borderWidth: 1.5, borderColor: colors.brand, borderStyle: 'dashed' },
-  addSupplierText: { fontSize: 14, color: colors.brand, fontWeight: '500' },
-  menuBlock: { backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', gap: space[1],
+    borderWidth: 1, borderColor: colors.line, borderStyle: 'dashed',
+  },
+
+  menuBlock: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
   menuItem: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 14, gap: 12,
-    borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
-  menuIcon: { fontSize: 18 },
-  menuLabel: { flex: 1, fontSize: 15, color: colors.text },
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    gap: space[3],
+  },
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+
   signOutBtn: {
-    backgroundColor: colors.white, borderRadius: 14,
-    padding: 14, alignItems: 'center' },
-  signOutText: { fontSize: 15, color: colors.red, fontWeight: '500' } });
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2],
+    borderWidth: 1, borderColor: colors.line,
+  },
+});

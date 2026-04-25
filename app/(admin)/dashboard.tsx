@@ -1,9 +1,12 @@
 // ADM-01 · Dashboard de administración
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
 import { useAdminKPIs, useAdminAgents } from '@/hooks/useAdmin';
+import { colors, space, radius } from '@/theme';
+import { Text, Icon, Badge } from '@/components/ui';
+import Avatar from '@/components/Avatar';
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
@@ -13,11 +16,11 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const PLAN_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  basic:       { bg: '#F1EFE8', text: '#5F5E5A', label: 'Básico'      },
-  pro:         { bg: '#FDECEA', text: '#C4260F', label: 'Pro'          },
-  agency:      { bg: '#E6F1FB', text: '#0C447C', label: 'Agencia'      },
-  agency_pro:  { bg: '#042C53', text: '#85B7EB', label: 'Agencia Pro'  },
+const PLAN_LABELS: Record<string, string> = {
+  basic:       'Básico',
+  pro:         'Pro',
+  agency:      'Agencia',
+  agency_pro:  'Agencia Pro',
 };
 
 const MONTHS = ['Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar', 'Abr'];
@@ -32,7 +35,7 @@ const MAX_REV = Math.max(...PLAN_REVENUE.map(p => p.rev));
 
 export default function AdminDashboardScreen() {
   const router = useRouter();
-  const { kpis, loading: kpisLoading } = useAdminKPIs();
+  const { kpis } = useAdminKPIs();
   const { agents, loading: agentsLoading } = useAdminAgents();
 
   const recentAgents = agents.slice(0, 5);
@@ -44,27 +47,27 @@ export default function AdminDashboardScreen() {
         <KpiCard
           label="Ingresos mensuales"
           value={formatEur(kpis.mrr)}
-          delta={`▲ ${kpis.mrrDelta.toFixed(0)}% vs mes anterior`}
-          deltaUp
+          delta={`+${kpis.mrrDelta.toFixed(0)}% vs mes anterior`}
+          trend="up"
           accent
         />
         <KpiCard
           label="Agentes activos"
           value={kpis.activeAgents.toString()}
-          delta={`▲ ${kpis.agentsDelta} nuevos este mes`}
-          deltaUp
+          delta={`+${kpis.agentsDelta} nuevos este mes`}
+          trend="up"
         />
         <KpiCard
           label="Pedidos generados"
           value={kpis.ordersThisMonth.toString()}
           delta="Este mes"
-          deltaUp
+          trend="neutral"
         />
         <KpiCard
           label="Pagos pendientes"
           value={kpis.pendingPayments.toString()}
           delta={kpis.pendingPayments > 0 ? `${kpis.pendingPayments} agentes con cuota vencida` : 'Todo al día'}
-          deltaUp={kpis.pendingPayments === 0}
+          trend={kpis.pendingPayments === 0 ? 'up' : 'down'}
         />
       </View>
 
@@ -73,7 +76,7 @@ export default function AdminDashboardScreen() {
         {/* Bar chart */}
         <View style={[styles.card, { flex: 1.3 }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Evolución de ingresos</Text>
+            <Text variant="bodyMedium">Evolución de ingresos</Text>
           </View>
           <View style={styles.chartArea}>
             {MONTHS.map((m, i) => (
@@ -87,7 +90,7 @@ export default function AdminDashboardScreen() {
                     ]}
                   />
                 </View>
-                <Text style={styles.barLabel}>{m}</Text>
+                <Text variant="caption" color="ink4">{m}</Text>
               </View>
             ))}
           </View>
@@ -101,18 +104,22 @@ export default function AdminDashboardScreen() {
         {/* Por plan */}
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Ingresos por plan</Text>
+            <Text variant="bodyMedium">Ingresos por plan</Text>
           </View>
-          {PLAN_REVENUE.map(p => (
-            <View key={p.plan} style={styles.planRow}>
-              <View style={{ width: 80 }}>
-                <Text style={styles.planName}>{p.plan}</Text>
-                <Text style={styles.planAgents}>{p.agents} ag · {p.price} €/mes</Text>
+          {PLAN_REVENUE.map((p, i) => (
+            <View key={p.plan} style={[styles.planRow, i === PLAN_REVENUE.length - 1 && { borderBottomWidth: 0 }]}>
+              <View style={{ width: 90 }}>
+                <Text variant="smallMedium">{p.plan}</Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                  {p.agents} ag · {p.price} €/mes
+                </Text>
               </View>
               <View style={styles.planBarWrap}>
                 <View style={[styles.planBar, { width: `${(p.rev / MAX_REV) * 100}%` as any }]} />
               </View>
-              <Text style={styles.planRevenue}>{formatEur(p.rev)}</Text>
+              <Text variant="smallMedium" style={{ width: 60, textAlign: 'right' }}>
+                {formatEur(p.rev)}
+              </Text>
             </View>
           ))}
         </View>
@@ -121,61 +128,73 @@ export default function AdminDashboardScreen() {
       {/* Tabla agentes recientes */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Últimos agentes registrados</Text>
-          <TouchableOpacity onPress={() => router.push('/(admin)/agentes')}>
-            <Text style={styles.cardLink}>Ver todos →</Text>
-          </TouchableOpacity>
+          <Text variant="bodyMedium">Últimos agentes registrados</Text>
+          <Pressable
+            onPress={() => router.push('/(admin)/agentes')}
+            hitSlop={8}
+            style={({ pressed }) => [styles.cardLink, pressed && { opacity: 0.6 }]}
+          >
+            <Text variant="smallMedium" color="ink2">Ver todos</Text>
+            <Icon name="ArrowRight" size={16} color={colors.ink2} />
+          </Pressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View>
             <View style={styles.tableHead}>
               {['Agente', 'Plan', 'Alta', 'Estado'].map(h => (
-                <Text key={h} style={[styles.th, h === 'Agente' ? { width: 180 } : { width: 100 }]}>{h}</Text>
+                <Text
+                  key={h}
+                  variant="caption"
+                  color="ink3"
+                  style={[styles.th, h === 'Agente' ? { width: 200 } : { width: 120 }]}
+                >
+                  {h.toUpperCase()}
+                </Text>
               ))}
             </View>
             {agentsLoading && (
-              <Text style={styles.emptyText}>Cargando...</Text>
+              <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+                Cargando...
+              </Text>
             )}
-            {recentAgents.map(agent => {
-              const plan = PLAN_COLORS[agent.plan] ?? PLAN_COLORS.basic;
-              return (
-                <TouchableOpacity
-                  key={agent.id}
-                  style={styles.tableRow}
-                  onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
-                  activeOpacity={0.85}
-                >
-                  <View style={[styles.td, { width: 180 }]}>
-                    <View style={styles.agentCell}>
-                      <View style={[styles.av, { backgroundColor: '#FDECEA' }]}>
-                        <Text style={[styles.avText, { color: '#C4260F' }]}>
-                          {agent.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
-                        </Text>
-                      </View>
-                      <View>
-                        <Text style={styles.agentName}>{agent.name}</Text>
-                        <Text style={styles.agentEmail}>{agent.email}</Text>
-                      </View>
+            {!agentsLoading && recentAgents.length === 0 && (
+              <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+                Sin agentes registrados
+              </Text>
+            )}
+            {recentAgents.map((agent, i) => (
+              <Pressable
+                key={agent.id}
+                style={({ pressed }) => [
+                  styles.tableRow,
+                  i === recentAgents.length - 1 && { borderBottomWidth: 0 },
+                  pressed && { backgroundColor: colors.line2 },
+                ]}
+                onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
+              >
+                <View style={[styles.td, { width: 200 }]}>
+                  <View style={styles.agentCell}>
+                    <Avatar name={agent.name} size={32} fontSize={12} />
+                    <View style={{ flex: 1 }}>
+                      <Text variant="smallMedium" numberOfLines={1}>{agent.name}</Text>
+                      <Text variant="caption" color="ink3" numberOfLines={1}>{agent.email}</Text>
                     </View>
                   </View>
-                  <View style={[styles.td, { width: 100 }]}>
-                    <View style={[styles.tag, { backgroundColor: plan.bg }]}>
-                      <Text style={[styles.tagText, { color: plan.text }]}>{plan.label}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.td, { width: 100 }]}>
-                    <Text style={styles.tdText}>{formatDate(agent.created_at)}</Text>
-                  </View>
-                  <View style={[styles.td, { width: 100 }]}>
-                    <View style={[styles.tag, { backgroundColor: agent.active ? '#EAF3DE' : '#F1EFE8' }]}>
-                      <Text style={[styles.tagText, { color: agent.active ? '#3B6D11' : '#888' }]}>
-                        {agent.active ? 'Activo' : 'Inactivo'}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                </View>
+                <View style={[styles.td, { width: 120 }]}>
+                  <Badge label={PLAN_LABELS[agent.plan] ?? 'Básico'} variant="neutral" />
+                </View>
+                <View style={[styles.td, { width: 120 }]}>
+                  <Text variant="small" color="ink2">{formatDate(agent.created_at)}</Text>
+                </View>
+                <View style={[styles.td, { width: 120 }]}>
+                  <Badge
+                    label={agent.active ? 'Activo' : 'Inactivo'}
+                    variant={agent.active ? 'success' : 'neutral'}
+                  />
+                </View>
+              </Pressable>
+            ))}
           </View>
         </ScrollView>
       </View>
@@ -183,18 +202,34 @@ export default function AdminDashboardScreen() {
   );
 }
 
-function KpiCard({ label, value, delta, deltaUp, accent }: {
-  label: string; value: string; delta: string; deltaUp: boolean; accent?: boolean;
+function KpiCard({ label, value, delta, trend, accent }: {
+  label: string; value: string; delta: string;
+  trend: 'up' | 'down' | 'neutral'; accent?: boolean;
 }) {
+  const deltaColor = accent
+    ? 'rgba(255,255,255,0.8)'
+    : trend === 'up' ? colors.success
+    : trend === 'down' ? colors.danger
+    : colors.ink3;
+
   return (
     <View style={[styles.kpiCard, accent && styles.kpiCardAccent]}>
-      <Text style={[styles.kpiLabel, accent && styles.kpiLabelAccent]}>{label}</Text>
-      <Text style={[styles.kpiValue, accent && styles.kpiValueAccent]}>{value}</Text>
-      <Text style={[
-        styles.kpiDelta,
-        deltaUp ? styles.kpiDeltaUp : styles.kpiDeltaDown,
-        accent && { color: '#C0BBF0' },
-      ]}>
+      <Text
+        variant="caption"
+        style={{ color: accent ? 'rgba(255,255,255,0.85)' : colors.ink3 }}
+      >
+        {label}
+      </Text>
+      <Text
+        variant="display"
+        style={{ color: accent ? colors.white : colors.ink, marginTop: space[1] }}
+      >
+        {value}
+      </Text>
+      <Text
+        variant="caption"
+        style={{ color: deltaColor, marginTop: space[1] }}
+      >
         {delta}
       </Text>
     </View>
@@ -204,93 +239,81 @@ function KpiCard({ label, value, delta, deltaUp, accent }: {
 function ChartStat({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.cfItem}>
-      <Text style={styles.cfVal}>{value}</Text>
-      <Text style={styles.cfLbl}>{label}</Text>
+      <Text variant="smallMedium">{value}</Text>
+      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  kpiGrid: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  kpiGrid: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap' },
   kpiCard: {
-    flex: 1, minWidth: 140,
-    backgroundColor: '#fff',
-    borderRadius: 12, padding: 16,
-    borderWidth: 0.5, borderColor: '#e8e8e8',
+    flex: 1, minWidth: 150,
+    backgroundColor: colors.white,
+    borderRadius: radius.md, padding: space[3],
+    borderWidth: 1, borderColor: colors.line,
   },
-  kpiCardAccent: { backgroundColor: '#E73121', borderColor: '#E73121' },
+  kpiCardAccent: { backgroundColor: colors.brand, borderColor: colors.brand },
 
-  kpiLabel: { fontSize: 11, color: '#999', marginBottom: 6 },
-  kpiLabelAccent: { color: '#FDECEA' },
-  kpiValue: { fontSize: 24, fontWeight: '500', color: '#1a1a1a' },
-  kpiValueAccent: { color: '#fff' },
-  kpiDelta: { fontSize: 11, marginTop: 5 },
-  kpiDeltaUp: { color: '#3B6D11' },
-  kpiDeltaDown: { color: '#A32D2D' },
-  rowCards: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  rowCards: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap' },
   card: {
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 0.5, borderColor: '#e8e8e8', overflow: 'hidden',
-    minWidth: 260,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    overflow: 'hidden',
+    minWidth: 280,
   },
   cardHeader: {
-    padding: 14, paddingHorizontal: 18,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    padding: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  cardTitle: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  cardLink: { fontSize: 12, color: '#E73121' },
+  cardLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+
   chartArea: {
     flexDirection: 'row', alignItems: 'flex-end',
-    paddingHorizontal: 18, paddingTop: 16,
-    height: 100, gap: 6,
+    paddingHorizontal: space[3], paddingTop: space[3],
+    height: 120, gap: 6,
   },
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   barTrack: { flex: 1, width: '100%', justifyContent: 'flex-end' },
-  bar: { width: '100%', backgroundColor: '#FDECEA', borderRadius: 3 },
-  barActive: { backgroundColor: '#E73121' },
-  barLabel: { fontSize: 10, color: '#bbb' },
+  bar: { width: '100%', backgroundColor: colors.line, borderRadius: 3 },
+  barActive: { backgroundColor: colors.ink },
+
   chartFooter: {
     flexDirection: 'row', justifyContent: 'space-around',
-    padding: 12, paddingHorizontal: 18,
-    borderTopWidth: 0.5, borderTopColor: '#f0f0f0',
-    marginTop: 10,
+    padding: space[3],
+    borderTopWidth: 1, borderTopColor: colors.line2,
   },
   cfItem: { alignItems: 'center' },
-  cfVal: { fontSize: 12, fontWeight: '500', color: '#1a1a1a' },
-  cfLbl: { fontSize: 10, color: '#bbb', marginTop: 1 },
+
   planRow: {
-    paddingHorizontal: 18, paddingVertical: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8',
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
   },
-  planName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  planAgents: { fontSize: 10, color: '#999', marginTop: 2 },
-  planBarWrap: { flex: 1, height: 5, backgroundColor: '#f0f0f0', borderRadius: 3 },
-  planBar: { height: 5, borderRadius: 3, backgroundColor: '#E73121' },
-  planRevenue: { fontSize: 13, fontWeight: '500', color: '#E73121', width: 60, textAlign: 'right' },
+  planBarWrap: {
+    flex: 1, height: 6,
+    backgroundColor: colors.line2, borderRadius: 3,
+    overflow: 'hidden',
+  },
+  planBar: { height: 6, borderRadius: 3, backgroundColor: colors.ink },
+
   tableHead: {
-    flexDirection: 'row', backgroundColor: '#fafafa',
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
+    flexDirection: 'row', backgroundColor: colors.surface2,
+    borderBottomWidth: 1, borderBottomColor: colors.line,
   },
   th: {
-    fontSize: 11, fontWeight: '500', color: '#999',
-    padding: 10, paddingHorizontal: 18,
+    paddingVertical: space[2] + 2, paddingHorizontal: space[3],
+    textTransform: 'uppercase', letterSpacing: 0.5,
   },
   tableRow: {
-    flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#f8f8f8',
+    flexDirection: 'row',
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+    alignItems: 'center',
   },
-  td: { padding: 11, paddingHorizontal: 18, justifyContent: 'center' },
-  tdText: { fontSize: 13, color: '#1a1a1a' },
-  agentCell: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  av: {
-    width: 30, height: 30, borderRadius: 15,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avText: { fontSize: 10, fontWeight: '500' },
-  agentName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  agentEmail: { fontSize: 11, color: '#bbb' },
-  tag: { paddingHorizontal: 9, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
-  tagText: { fontSize: 10, fontWeight: '500' },
-  emptyText: { textAlign: 'center', color: '#aaa', fontSize: 13, padding: 20 },
+  td: { paddingVertical: space[2] + 4, paddingHorizontal: space[3], justifyContent: 'center' },
+  agentCell: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+
+  emptyText: { paddingVertical: space[6] },
 });

@@ -1,11 +1,12 @@
 // C-04 · Confirmación de pedido (éxito)
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Share, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, ScrollView,
+  StyleSheet, Share, Linking,
+} from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, Text, Icon, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useClientData } from '@/hooks/useClient';
 
@@ -56,171 +57,192 @@ export default function ConfirmacionScreen() {
   }, [id]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero de éxito */}
         <View style={styles.hero}>
           <View style={styles.heroIcon}>
-            <Text style={styles.heroCheck}>✓</Text>
+            <Icon name="Check" size={24} color={colors.white} strokeWidth={2.5} />
           </View>
-          <Text style={styles.heroTitle}>¡Pedido enviado!</Text>
+          <Text variant="display" align="center">¡Pedido enviado!</Text>
           {order?.order_number && (
             <View style={styles.orderNumBadge}>
-              <Text style={styles.orderNum}>{order.order_number}</Text>
+              <Text variant="smallMedium">{order.order_number}</Text>
             </View>
           )}
           {order && (
-            <Text style={styles.heroDate}>{formatDateTime(order.created_at)}</Text>
+            <Text variant="caption" color="ink3" align="center">
+              {formatDateTime(order.created_at)}
+            </Text>
           )}
         </View>
 
-        {/* Resumen del pedido */}
+        {/* Resumen */}
         {order && (
-          <View style={styles.summaryBlock}>
-            <Text style={styles.summaryTitle}>Resumen</Text>
-            <SummaryRow label="Proveedor" value={(order as any).supplier?.name ?? '—'} />
-            <SummaryRow label="Catálogo" value={(order as any).catalog?.name ?? '—'} />
-            <SummaryRow label="Total" value={formatEur(order.total)} bold />
-            {order.notes && <SummaryRow label="Notas" value={order.notes} />}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Resumen</Text>
+            <View style={styles.sectionBody}>
+              <SummaryRow label="Proveedor" value={(order as any).supplier?.name ?? '—'} />
+              <SummaryRow label="Catálogo" value={(order as any).catalog?.name ?? '—'} />
+              <SummaryRow label="Total" value={formatEur(order.total)} bold />
+              {order.notes && <SummaryRow label="Notas" value={order.notes} last />}
+              {!order.notes && null}
+            </View>
           </View>
         )}
 
-        {/* Agente lo ha recibido */}
+        {/* Agente */}
         {agent && (
           <View style={styles.agentCard}>
-            <Text style={styles.agentCardTitle}>✓ Pedido recibido por tu agente</Text>
-            <Text style={styles.agentCardName}>{agent.name} ha recibido tu pedido y lo procesará en breve</Text>
+            <Icon name="CircleCheckBig" size={20} color={colors.success} />
+            <View style={{ flex: 1 }}>
+              <Text variant="smallMedium">Pedido recibido por tu agente</Text>
+              <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                {agent.name} lo procesará en breve.
+              </Text>
+            </View>
           </View>
         )}
 
         {/* Timeline */}
-        <View style={styles.timelineCard}>
-          <Text style={styles.timelineTitle}>Estado del pedido</Text>
-          {TIMELINE.map((step, i) => (
-            <View key={step.key} style={styles.timelineStep}>
-              <View style={styles.timelineLeft}>
-                <View style={[styles.timelineDot, step.done && styles.timelineDotDone]}>
-                  {step.done && <Text style={styles.timelineDotCheck}>✓</Text>}
+        <View style={styles.section}>
+          <Text variant="caption" color="ink3" style={styles.sectionTitle}>Estado del pedido</Text>
+          <View style={styles.sectionBody}>
+            <View style={{ padding: space[4], gap: 0 }}>
+              {TIMELINE.map((step, i) => (
+                <View key={step.key} style={styles.timelineStep}>
+                  <View style={styles.timelineLeft}>
+                    <View style={[styles.timelineDot, step.done && styles.timelineDotDone]}>
+                      {step.done && <Icon name="Check" size={16} color={colors.white} strokeWidth={2.5} />}
+                    </View>
+                    {i < TIMELINE.length - 1 && (
+                      <View style={[styles.timelineLine, step.done && styles.timelineLineDone]} />
+                    )}
+                  </View>
+                  <Text
+                    variant={step.done ? 'bodyMedium' : 'body'}
+                    color={step.done ? 'ink' : 'ink3'}
+                    style={styles.timelineLabel}
+                  >
+                    {step.label}
+                  </Text>
                 </View>
-                {i < TIMELINE.length - 1 && (
-                  <View style={[styles.timelineLine, step.done && styles.timelineLineDone]} />
-                )}
-              </View>
-              <Text style={[styles.timelineLabel, step.done && styles.timelineLabelDone]}>
-                {step.label}
-              </Text>
+              ))}
             </View>
-          ))}
+          </View>
         </View>
 
         {/* Acciones */}
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => order && Share.share({ message: `Pedido ${order.order_number} · ${formatEur(order.total)}\nNudofy` })}
-          >
-            <Text style={styles.actionBtnText}>↗ Compartir pedido</Text>
-          </TouchableOpacity>
+          <Button
+            label="Compartir"
+            icon="Share2"
+            variant="secondary"
+            onPress={() => order && Share.share({
+              message: `Pedido ${order.order_number} · ${formatEur(order.total)}\nNudofy`,
+            })}
+            style={{ flex: 1 }}
+          />
           {agent?.phone && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnSecondary]}
+            <Button
+              label="WhatsApp"
+              icon="MessageCircle"
+              variant="secondary"
               onPress={() => Linking.openURL(`https://wa.me/${agent.phone?.replace(/\D/g, '')}`)}
-            >
-              <Text style={[styles.actionBtnText, styles.actionBtnTextSecondary]}>💬 Contactar agente</Text>
-            </TouchableOpacity>
+              style={{ flex: 1 }}
+            />
           )}
         </View>
 
-        <TouchableOpacity
-          style={styles.homeBtn}
+        <Button
+          label="Volver al inicio"
+          variant="primary"
           onPress={() => router.replace('/(client)/home')}
-        >
-          <Text style={styles.homeBtnText}>Volver al inicio</Text>
-        </TouchableOpacity>
+          fullWidth
+        />
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-function SummaryRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function SummaryRow({ label, value, bold, last }: {
+  label: string; value: string; bold?: boolean; last?: boolean;
+}) {
   return (
-    <View style={styles.summaryRow}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryValue, bold && styles.summaryValueBold]}>{value}</Text>
+    <View style={[styles.summaryRow, !last && styles.summaryRowBorder]}>
+      <Text variant="small" color="ink3" style={{ flex: 1 }}>{label}</Text>
+      <Text
+        variant={bold ? 'bodyMedium' : 'smallMedium'}
+        style={{ textAlign: 'right', flex: 1 }}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
+  content: { padding: space[3], gap: space[3], paddingBottom: space[8] },
+
   hero: {
-    backgroundColor: colors.greenLight,
-    borderRadius: 20, padding: 28,
-    alignItems: 'center', gap: 10,
-    marginTop: 8 },
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.lg,
+    padding: space[6],
+    alignItems: 'center', gap: space[2],
+    marginTop: space[2],
+    borderWidth: 1, borderColor: colors.successSoft,
+  },
   heroIcon: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: colors.green,
-    alignItems: 'center', justifyContent: 'center' },
-  heroCheck: { color: colors.white, fontSize: 36, fontWeight: '700' },
-  heroTitle: { fontSize: 22, fontWeight: '700', color: '#1A3A0A', marginTop: 4 },
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: colors.success,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: space[1],
+  },
   orderNumBadge: {
     backgroundColor: colors.white,
-    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
-  orderNum: { fontSize: 13, fontWeight: '600', color: colors.green },
-  heroDate: { fontSize: 12, color: colors.green },
-  summaryBlock: {
-    backgroundColor: colors.white, borderRadius: 14,
-    paddingHorizontal: 14, paddingVertical: 12,
-    gap: 0 },
-  summaryTitle: {
-    fontSize: 11, fontWeight: '500', color: colors.textMuted,
+    borderRadius: radius.sm,
+    paddingHorizontal: space[3], paddingVertical: 4,
+    borderWidth: 1, borderColor: colors.line,
+  },
+
+  section: { gap: space[2] },
+  sectionTitle: {
     textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 8 },
+    marginLeft: space[1],
+  },
+  sectionBody: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+
   summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderTopWidth: 0.5, borderTopColor: colors.borderLight },
-  summaryLabel: { fontSize: 13, color: colors.textMuted },
-  summaryValue: { fontSize: 13, fontWeight: '500', color: colors.text },
-  summaryValueBold: { color: colors.purple, fontSize: 15 },
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    flexDirection: 'row', alignItems: 'flex-start',
+    gap: space[3],
+  },
+  summaryRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+
   agentCard: {
-    backgroundColor: '#E1F5EE',
-    borderRadius: 14, padding: 14 },
-  agentCardTitle: { fontSize: 13, fontWeight: '600', color: '#0B5E38', marginBottom: 4 },
-  agentCardName: { fontSize: 12, color: '#0B5E38' },
-  timelineCard: {
-    backgroundColor: colors.white, borderRadius: 14, padding: 16, gap: 0 },
-  timelineTitle: {
-    fontSize: 11, fontWeight: '500', color: colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-    marginBottom: 14 },
-  timelineStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  timelineLeft: { alignItems: 'center', width: 20 },
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+  },
+
+  timelineStep: { flexDirection: 'row', alignItems: 'flex-start', gap: space[3] },
+  timelineLeft: { alignItems: 'center', width: 24 },
   timelineDot: {
-    width: 20, height: 20, borderRadius: 10,
-    borderWidth: 2, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center' },
-  timelineDotDone: { backgroundColor: colors.green, borderColor: colors.green },
-  timelineDotCheck: { color: colors.white, fontSize: 10, fontWeight: '700' },
-  timelineLine: { width: 2, height: 24, backgroundColor: colors.border, marginVertical: 2 },
-  timelineLineDone: { backgroundColor: colors.green },
-  timelineLabel: {
-    fontSize: 13, color: colors.textMuted,
-    paddingBottom: 28, paddingTop: 1 },
-  timelineLabelDone: { color: colors.green, fontWeight: '500' },
-  actions: { flexDirection: 'row', gap: 8 },
-  actionBtn: {
-    flex: 1, backgroundColor: colors.purple,
-    borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  actionBtnSecondary: { backgroundColor: '#25D366' },
-  actionBtnText: { color: colors.white, fontSize: 13, fontWeight: '500' },
-  actionBtnTextSecondary: { color: colors.white },
-  homeBtn: {
-    backgroundColor: colors.white, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center' },
-  homeBtnText: { fontSize: 14, color: colors.textMuted, fontWeight: '500' } });
+    width: 24, height: 24, borderRadius: 12,
+    borderWidth: 2, borderColor: colors.line,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  timelineDotDone: { backgroundColor: colors.success, borderColor: colors.success },
+  timelineLine: { width: 2, height: 24, backgroundColor: colors.line, marginVertical: 2 },
+  timelineLineDone: { backgroundColor: colors.success },
+  timelineLabel: { paddingTop: 4, paddingBottom: 24, flex: 1 },
+
+  actions: { flexDirection: 'row', gap: space[2] },
+});

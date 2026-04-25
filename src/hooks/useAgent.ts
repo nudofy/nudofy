@@ -70,6 +70,7 @@ export interface Product {
   standard_box?: number;
   min_units?: number;
   image_url?: string;
+  vat_rate?: number | null;
   active: boolean;
 }
 
@@ -350,7 +351,15 @@ export function useOrders(status?: Order['status'] | Order['status'][]) {
     return { error: error?.message ?? null };
   }
 
-  return { orders, loading, createOrder, updateOrderStatus, refetch: fetchOrders };
+  async function deleteOrder(id: string) {
+    // Borra los items primero (foreign key), luego el pedido
+    await supabase.from('order_items').delete().eq('order_id', id);
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (!error) fetchOrders();
+    return { error: error?.message ?? null };
+  }
+
+  return { orders, loading, createOrder, updateOrderStatus, deleteOrder, refetch: fetchOrders };
 }
 
 // ——————————————————————————————

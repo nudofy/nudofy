@@ -1,16 +1,17 @@
 // Importar productos desde CSV/Excel
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, Alert } from 'react-native';
+  View, Pressable, ScrollView, StyleSheet,
+} from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import Papa from 'papaparse';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/contexts/ToastContext';
 
 const REQUIRED_COLS = ['nombre'];
 const OPTIONAL_COLS = ['referencia', 'referencia_2', 'ean', 'familia', 'subfamilia', 'precio', 'pvpr', 'descripcion', 'medidas', 'stock', 'caja_estandar', 'unidades_minimas'];
@@ -49,6 +50,7 @@ function normalizeHeader(h: string): string {
 
 export default function ImportarProductosScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
 
   const [preview, setPreview] = useState<PreviewRow[]>([]);
@@ -72,10 +74,10 @@ export default function ImportarProductosScreen() {
           UTI: 'public.comma-separated-values-text',
         });
       } else {
-        Alert.alert('No disponible', 'La función de compartir no está disponible en este dispositivo.');
+        toast.error('La función de compartir no está disponible en este dispositivo.');
       }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo descargar la plantilla');
+      toast.error(e?.message ?? 'No se pudo descargar la plantilla');
     }
   }
 
@@ -104,7 +106,7 @@ export default function ImportarProductosScreen() {
         transformHeader: normalizeHeader });
 
       if (parsed.errors.length > 0 && parsed.data.length === 0) {
-        Alert.alert('Error al leer el fichero', 'Asegúrate de que es un CSV válido.');
+        toast.error('Asegúrate de que es un CSV válido.');
         return;
       }
 
@@ -113,13 +115,10 @@ export default function ImportarProductosScreen() {
       setPreview(parsed.data.slice(0, 5));
 
       if (!cols.includes('nombre')) {
-        Alert.alert(
-          'Columna requerida',
-          'El fichero debe tener una columna "nombre". Columnas detectadas: ' + cols.join(', ')
-        );
+        toast.error('Columna requerida "nombre". Columnas detectadas: ' + cols.join(', '));
       }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo leer el fichero');
+      toast.error(e?.message ?? 'No se pudo leer el fichero');
     }
   }
 
@@ -177,7 +176,7 @@ export default function ImportarProductosScreen() {
       setResults(res);
       setDone(true);
     } catch (e: any) {
-      Alert.alert('Error inesperado', e?.message ?? 'Inténtalo de nuevo');
+      toast.error(e?.message ?? 'Inténtalo de nuevo');
     } finally {
       setImporting(false);
     }
@@ -187,65 +186,63 @@ export default function ImportarProductosScreen() {
   const errCount = results.filter(r => !r.ok).length;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>← Cancelar</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Importar productos</Text>
-        <View style={{ width: 60 }} />
-      </View>
+    <Screen>
+      <TopBar title="Importar productos" onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
         {/* Plantilla CSV */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Plantilla CSV</Text>
-            <TouchableOpacity style={styles.shareBtn} onPress={shareTemplate}>
-              <Text style={styles.shareBtnText}>⬇ Descargar plantilla</Text>
-            </TouchableOpacity>
+            <Text variant="bodyMedium">Plantilla CSV</Text>
+            <Pressable style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.7 }]} onPress={shareTemplate}>
+              <Icon name="Download" size={14} color={colors.ink2} />
+              <Text variant="caption" color="ink2">Descargar</Text>
+            </Pressable>
           </View>
-          <Text style={styles.cardDesc}>
+          <Text variant="small" color="ink3">
             Descarga la plantilla y rellena tus productos. Solo{' '}
-            <Text style={styles.bold}>nombre</Text> es obligatorio.
+            <Text variant="smallMedium">nombre</Text> es obligatorio.
           </Text>
 
-          {/* Tabla de columnas con descripción */}
           <View style={styles.colTable}>
-            {ALL_COLS.map(col => (
-              <View key={col} style={styles.colRow}>
+            {ALL_COLS.map((col, i) => (
+              <View key={col} style={[styles.colRow, i === ALL_COLS.length - 1 && { borderBottomWidth: 0 }]}>
                 <View style={styles.colNameWrap}>
-                  <Text style={[styles.colName, REQUIRED_COLS.includes(col) && styles.colNameRequired]}>
+                  <Text variant="smallMedium" color={REQUIRED_COLS.includes(col) ? 'ink' : 'ink2'}>
                     {col}
                   </Text>
                   {REQUIRED_COLS.includes(col) && (
                     <View style={styles.reqBadge}>
-                      <Text style={styles.reqBadgeText}>obligatorio</Text>
+                      <Text variant="caption" color="ink2" style={styles.reqBadgeText}>obligatorio</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.colDesc}>{COL_DESCRIPTIONS[col]}</Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{COL_DESCRIPTIONS[col]}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Selector de fichero */}
-        <TouchableOpacity style={styles.pickBtn} onPress={pickFile} disabled={importing}>
-          <Text style={styles.pickBtnIcon}>📂</Text>
-          <Text style={styles.pickBtnText}>{fileName || 'Seleccionar fichero CSV'}</Text>
-        </TouchableOpacity>
+        <Pressable style={({ pressed }) => [styles.pickBtn, pressed && { opacity: 0.7 }]} onPress={pickFile} disabled={importing}>
+          <Icon name="FileUp" size={20} color={colors.ink2} />
+          <Text variant="bodyMedium" color="ink2">{fileName || 'Seleccionar fichero CSV'}</Text>
+        </Pressable>
 
         {/* Preview */}
         {preview.length > 0 && !done && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Vista previa ({preview.length} de las primeras filas)</Text>
+            <Text variant="bodyMedium">Vista previa ({preview.length} filas)</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View>
                 <View style={styles.tableRow}>
                   {headers.map(h => (
-                    <Text key={h} style={[styles.th, ALL_COLS.includes(h) ? styles.thValid : styles.thUnknown]}>
+                    <Text
+                      key={h}
+                      variant="caption"
+                      color={ALL_COLS.includes(h) ? 'ink' : 'ink4'}
+                      style={styles.th}
+                    >
                       {h}
                     </Text>
                   ))}
@@ -253,23 +250,21 @@ export default function ImportarProductosScreen() {
                 {preview.map((row, i) => (
                   <View key={i} style={[styles.tableRow, i % 2 === 1 && styles.tableRowAlt]}>
                     {headers.map(h => (
-                      <Text key={h} style={styles.td} numberOfLines={1}>{row[h] ?? ''}</Text>
+                      <Text key={h} variant="small" style={styles.td} numberOfLines={1}>{row[h] ?? ''}</Text>
                     ))}
                   </View>
                 ))}
               </View>
             </ScrollView>
 
-            <TouchableOpacity
-              style={[styles.importBtn, !headers.includes('nombre') && styles.importBtnDisabled]}
+            <Button
+              label="Importar todos los productos"
               onPress={handleImportFromPreview}
-              disabled={!headers.includes('nombre') || importing}
-            >
-              {importing
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={styles.importBtnText}>Importar todos los productos</Text>
-              }
-            </TouchableOpacity>
+              loading={importing}
+              disabled={!headers.includes('nombre')}
+              fullWidth
+              style={{ marginTop: space[2] }}
+            />
           </View>
         )}
 
@@ -278,111 +273,101 @@ export default function ImportarProductosScreen() {
           <View style={styles.card}>
             <View style={styles.resultsHeader}>
               <View style={styles.resultStat}>
-                <Text style={styles.resultStatNum}>{okCount}</Text>
-                <Text style={styles.resultStatLabel}>Importados</Text>
+                <Text variant="heading" color="success">{okCount}</Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Importados</Text>
               </View>
               {errCount > 0 && (
-                <View style={[styles.resultStat, styles.resultStatErr]}>
-                  <Text style={[styles.resultStatNum, { color: '#C0392B' }]}>{errCount}</Text>
-                  <Text style={styles.resultStatLabel}>Con error</Text>
+                <View style={[styles.resultStat, { backgroundColor: colors.dangerSoft }]}>
+                  <Text variant="heading" color="danger">{errCount}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Con error</Text>
                 </View>
               )}
             </View>
 
             {errCount > 0 && (
               <>
-                <Text style={styles.errTitle}>Filas con error:</Text>
+                <Text variant="smallMedium" color="danger" style={{ marginTop: space[2] }}>Filas con error:</Text>
                 {results.filter(r => !r.ok).map((r, i) => (
                   <View key={i} style={styles.errRow}>
-                    <Text style={styles.errName}>{r.name}</Text>
-                    <Text style={styles.errMsg}>{r.error}</Text>
+                    <Text variant="smallMedium">{r.name}</Text>
+                    <Text variant="caption" color="danger">{r.error}</Text>
                   </View>
                 ))}
               </>
             )}
 
-            <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
-              <Text style={styles.doneBtnText}>Ver catálogo</Text>
-            </TouchableOpacity>
+            <Button
+              label="Ver catálogo"
+              onPress={() => router.back()}
+              fullWidth
+              style={{ marginTop: space[3] }}
+            />
           </View>
         )}
-
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.white, paddingHorizontal: 18, paddingVertical: 14,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.brand, width: 60 },
-  title: { fontSize: 16, fontWeight: '500', color: colors.text },
-  content: { padding: 16, gap: 14 },
+  content: { padding: space[4], gap: space[3] },
   card: {
-    backgroundColor: colors.white, borderRadius: 14,
-    padding: 16, gap: 12 },
+    backgroundColor: colors.white, borderRadius: radius.md,
+    padding: space[4], gap: space[2],
+    borderWidth: 1, borderColor: colors.line,
+  },
   cardHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { fontSize: 13, fontWeight: '600', color: colors.text },
-  cardDesc: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
-  bold: { fontWeight: '600', color: colors.text },
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
   shareBtn: {
-    backgroundColor: colors.brandLight ?? '#EEEDFE',
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  shareBtnText: { fontSize: 12, color: colors.brand, fontWeight: '600' },
-  colTable: { gap: 0, borderRadius: 10, overflow: 'hidden', borderWidth: 0.5, borderColor: '#efefef' },
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: space[2], paddingVertical: 6,
+    borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.line,
+  },
+  colTable: {
+    borderRadius: radius.md, overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+    marginTop: space[1],
+  },
   colRow: {
-    paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0',
-    gap: 2 },
-  colNameWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colName: { fontSize: 12, fontWeight: '600', color: colors.textMuted, fontFamily: 'monospace' },
-  colNameRequired: { color: colors.brand },
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+  },
+  colNameWrap: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   reqBadge: {
-    backgroundColor: colors.brandLight ?? '#EEEDFE',
-    paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  reqBadgeText: { fontSize: 9, color: colors.brand, fontWeight: '600', textTransform: 'uppercase' },
-  colDesc: { fontSize: 11, color: colors.textMuted, lineHeight: 15 },
+    backgroundColor: colors.surface2,
+    paddingHorizontal: 6, paddingVertical: 1,
+    borderRadius: radius.sm,
+  },
+  reqBadgeText: { textTransform: 'uppercase', letterSpacing: 0.3 },
   pickBtn: {
-    backgroundColor: colors.white, borderRadius: 14,
-    borderWidth: 1.5, borderColor: colors.brand, borderStyle: 'dashed',
-    paddingVertical: 18, paddingHorizontal: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  pickBtnIcon: { fontSize: 20 },
-  pickBtnText: { fontSize: 14, color: colors.brand, fontWeight: '500' },
+    backgroundColor: colors.white, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.ink2, borderStyle: 'dashed',
+    paddingVertical: space[4], paddingHorizontal: space[4],
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: space[2],
+  },
   tableRow: { flexDirection: 'row' },
-  tableRowAlt: { backgroundColor: '#fafafa' },
+  tableRowAlt: { backgroundColor: colors.surface },
   th: {
-    fontSize: 10, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 6,
-    minWidth: 90, borderBottomWidth: 1, borderBottomColor: '#efefef' },
-  thValid: { color: colors.brand },
-  thUnknown: { color: '#bbb' },
+    paddingHorizontal: space[2], paddingVertical: 6,
+    minWidth: 90,
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+    fontWeight: '600',
+  },
   td: {
-    fontSize: 12, color: colors.text,
-    paddingHorizontal: 10, paddingVertical: 6,
+    paddingHorizontal: space[2], paddingVertical: 6,
     minWidth: 90, maxWidth: 150,
-    borderBottomWidth: 0.5, borderBottomColor: '#f5f5f5' },
-  importBtn: {
-    backgroundColor: colors.brand, borderRadius: 10,
-    paddingVertical: 13, alignItems: 'center', marginTop: 6 },
-  importBtnDisabled: { opacity: 0.4 },
-  importBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  resultsHeader: { flexDirection: 'row', gap: 12 },
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+  },
+  resultsHeader: { flexDirection: 'row', gap: space[2] },
   resultStat: {
-    flex: 1, alignItems: 'center', paddingVertical: 10,
-    backgroundColor: '#EAF3DE', borderRadius: 10 },
-  resultStatErr: { backgroundColor: '#FDECEA' },
-  resultStatNum: { fontSize: 28, fontWeight: '500', color: '#3B6D11' },
-  resultStatLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  errTitle: { fontSize: 12, fontWeight: '600', color: '#C0392B', marginTop: 4 },
+    flex: 1, alignItems: 'center', paddingVertical: space[3],
+    backgroundColor: colors.successSoft, borderRadius: radius.md,
+  },
   errRow: {
-    paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: '#f5f5f5' },
-  errName: { fontSize: 12, fontWeight: '500', color: colors.text },
-  errMsg: { fontSize: 11, color: '#C0392B' },
-  doneBtn: {
-    backgroundColor: colors.brand, borderRadius: 10,
-    paddingVertical: 13, alignItems: 'center', marginTop: 4 },
-  doneBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' } });
+    paddingVertical: 6,
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+  },
+});

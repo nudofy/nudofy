@@ -1,17 +1,20 @@
 // A-10 · Perfil y ajustes del agente
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  ScrollView, StyleSheet, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, TextInput, Pressable,
+  ScrollView, StyleSheet,
+  KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { useAgent } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function PerfilScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { agent } = useAgent();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
@@ -35,129 +38,144 @@ export default function PerfilScreen() {
       .update({ name: name.trim(), phone: phone.trim() || null })
       .eq('id', agent.id);
     setSaving(false);
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (error) { toast.error(error.message); return; }
     setEditing(false);
+    toast.success('Perfil actualizado');
   }
 
   async function handleChangePassword() {
     if (!email) return;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'nudofy://reset-password' });
-    if (error) { Alert.alert('Error', error.message); return; }
-    Alert.alert('Correo enviado', `Hemos enviado un enlace a ${email} para cambiar tu contraseña.`);
+      redirectTo: 'nudofy://reset-password',
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Hemos enviado un enlace a ${email} para cambiar tu contraseña.`);
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>← Más</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Perfil y ajustes</Text>
-        <TouchableOpacity onPress={() => editing ? handleSave() : setEditing(true)} disabled={saving}>
-          {saving
-            ? <ActivityIndicator size="small" color={colors.brand} />
-            : <Text style={styles.editBtn}>{editing ? 'Guardar' : 'Editar'}</Text>
-          }
-        </TouchableOpacity>
-      </View>
+    <Screen>
+      <TopBar
+        title="Perfil y ajustes"
+        onBack={() => router.back()}
+        actions={[{
+          icon: editing ? 'Check' : 'Pencil',
+          onPress: () => editing ? handleSave() : setEditing(true),
+          accessibilityLabel: editing ? 'Guardar' : 'Editar',
+          disabled: saving,
+        }]}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos personales</Text>
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+          {/* Datos personales */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Datos personales</Text>
+            <View style={styles.sectionBody}>
+              <View style={[styles.field, styles.fieldBorder]}>
+                <Text variant="caption" color="ink3">Nombre</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Tu nombre"
+                    placeholderTextColor={colors.ink4}
+                  />
+                ) : (
+                  <Text variant="body" style={{ marginTop: 4 }}>{name || '—'}</Text>
+                )}
+              </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Nombre</Text>
-            {editing ? (
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="Tu nombre"
-                placeholderTextColor={colors.textMuted}
-              />
-            ) : (
-              <Text style={styles.value}>{name || '—'}</Text>
-            )}
+              <View style={[styles.field, styles.fieldBorder]}>
+                <Text variant="caption" color="ink3">Email</Text>
+                <Text variant="body" style={{ marginTop: 4 }}>{email || '—'}</Text>
+                <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>
+                  El email no se puede cambiar desde aquí
+                </Text>
+              </View>
+
+              <View style={[styles.field, styles.fieldBorder]}>
+                <Text variant="caption" color="ink3">Teléfono</Text>
+                {editing ? (
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="000 000 000"
+                    placeholderTextColor={colors.ink4}
+                    keyboardType="phone-pad"
+                  />
+                ) : (
+                  <Text variant="body" style={{ marginTop: 4 }}>{phone || '—'}</Text>
+                )}
+              </View>
+
+              <View style={styles.field}>
+                <Text variant="caption" color="ink3">Plan</Text>
+                <Text variant="bodyMedium" style={{ marginTop: 4, textTransform: 'capitalize' }}>
+                  {agent?.plan ?? '—'}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{email || '—'}</Text>
-            <Text style={styles.fieldNote}>El email no se puede cambiar desde aquí</Text>
+          {/* Seguridad */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Seguridad</Text>
+            <View style={styles.sectionBody}>
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={handleChangePassword}
+              >
+                <Icon name="KeyRound" size={18} color={colors.ink2} />
+                <Text variant="body" style={{ flex: 1 }}>Cambiar contraseña</Text>
+                <Icon name="ChevronRight" size={18} color={colors.ink4} />
+              </Pressable>
+            </View>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Teléfono</Text>
-            {editing ? (
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="000 000 000"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-              />
-            ) : (
-              <Text style={styles.value}>{phone || '—'}</Text>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Plan</Text>
-            <Text style={[styles.value, { color: colors.brand, textTransform: 'capitalize' }]}>
-              {agent?.plan ?? '—'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Seguridad</Text>
-          <TouchableOpacity style={styles.actionRow} onPress={handleChangePassword}>
-            <Text style={styles.actionLabel}>Cambiar contraseña</Text>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          {editing && (
+            <Button
+              label="Guardar cambios"
+              onPress={handleSave}
+              loading={saving}
+              fullWidth
+              style={{ marginTop: space[2] }}
+            />
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.dark,
-    paddingHorizontal: 18, paddingVertical: 14,
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  back: { fontSize: 14, color: '#ffffff', width: 60 },
-  title: { fontSize: 16, fontWeight: '500', color: '#ffffff' },
-  editBtn: { fontSize: 14, color: '#ffffff', fontWeight: '500', width: 60, textAlign: 'right' },
-  content: { padding: 16, gap: 16 },
-  section: {
-    backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
+  content: { padding: space[4], gap: space[4] },
+
+  section: { gap: space[2] },
   sectionTitle: {
-    fontSize: 11, fontWeight: '600', color: colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5,
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+    marginLeft: space[1],
+  },
+  sectionBody: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+
   field: {
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderTopWidth: 0.5, borderTopColor: '#f5f5f5', gap: 4 },
-  label: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
-  value: { fontSize: 15, color: colors.text },
-  fieldNote: { fontSize: 11, color: '#bbb', marginTop: 2 },
+    paddingHorizontal: space[3], paddingVertical: space[3],
+  },
+  fieldBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
   input: {
-    fontSize: 15, color: colors.text,
-    backgroundColor: colors.bg,
-    borderWidth: 1, borderColor: colors.border,
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9,
-    marginTop: 4 },
+    fontSize: 15, color: colors.ink,
+    marginTop: 4, paddingVertical: 2,
+  },
+
   actionRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderTopWidth: 0.5, borderTopColor: '#f5f5f5' },
-  actionLabel: { flex: 1, fontSize: 15, color: colors.text },
-  chevron: { fontSize: 18, color: '#ccc' } });
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    gap: space[3],
+  },
+});

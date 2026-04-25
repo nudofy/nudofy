@@ -1,19 +1,24 @@
-// Shell compartido del panel de administración: topbar dark + drawer lateral (móvil) / sidebar fija (web)
+// Shell compartido del panel de administración (v2 · minimalista).
+// Móvil: topbar + drawer. Desktop: sidebar fija a la izquierda.
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Modal, Animated, Pressable, ScrollView, Platform, useWindowDimensions } from 'react-native';
+  View, StyleSheet, Modal, Animated, Pressable, ScrollView, Platform, useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { colors, space, radius } from '@/theme';
+import { Text, Icon } from '@/components/ui';
+import type { IconName } from '@/components/ui/Icon';
 
 export type AdminSection = 'dashboard' | 'agentes' | 'planes' | 'facturacion' | 'configuracion';
 
-const NAV_ITEMS: { key: AdminSection; label: string; icon: string; route: string }[] = [
-  { key: 'dashboard',     label: 'Dashboard',     icon: '⊞', route: '/(admin)/dashboard'     },
-  { key: 'agentes',       label: 'Agentes',        icon: '○', route: '/(admin)/agentes'       },
-  { key: 'planes',        label: 'Planes',          icon: '✦', route: '/(admin)/planes'        },
-  { key: 'facturacion',   label: 'Facturación',    icon: '▭', route: '/(admin)/facturacion'   },
-  { key: 'configuracion', label: 'Configuración',  icon: '⚙', route: '/(admin)/configuracion' },
+const NAV_ITEMS: { key: AdminSection; label: string; icon: IconName; route: string }[] = [
+  { key: 'dashboard',     label: 'Dashboard',      icon: 'LayoutDashboard', route: '/(admin)/dashboard'     },
+  { key: 'agentes',       label: 'Agentes',         icon: 'Users',           route: '/(admin)/agentes'       },
+  { key: 'planes',        label: 'Planes',          icon: 'Sparkles',        route: '/(admin)/planes'        },
+  { key: 'facturacion',   label: 'Facturación',     icon: 'Receipt',         route: '/(admin)/facturacion'   },
+  { key: 'configuracion', label: 'Configuración',   icon: 'Settings',        route: '/(admin)/configuracion' },
 ];
 
 interface Props {
@@ -30,7 +35,7 @@ export default function AdminShell({ activeSection, title, rightElement, childre
   const isDesktop = Platform.OS === 'web' && width >= 900;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-240)).current;
+  const slideAnim = useRef(new Animated.Value(-SIDEBAR_W)).current;
 
   function openDrawer() {
     setDrawerOpen(true);
@@ -38,7 +43,7 @@ export default function AdminShell({ activeSection, title, rightElement, childre
   }
 
   function closeDrawer() {
-    Animated.timing(slideAnim, { toValue: -240, duration: 220, useNativeDriver: true })
+    Animated.timing(slideAnim, { toValue: -SIDEBAR_W, duration: 220, useNativeDriver: true })
       .start(() => setDrawerOpen(false));
   }
 
@@ -61,63 +66,80 @@ export default function AdminShell({ activeSection, title, rightElement, childre
       <View style={styles.drawerHeader}>
         <View style={styles.drawerLogoWrap}>
           <View style={styles.logoMark}>
-            <Text style={styles.logoMarkText}>N</Text>
+            <Text variant="bodyMedium" style={styles.logoMarkText}>N</Text>
           </View>
           <View>
-            <Text style={styles.drawerLogoTitle}>Nudofy</Text>
-            <Text style={styles.drawerLogoSub}>Administración</Text>
+            <Text variant="bodyMedium">Nudofy</Text>
+            <Text variant="caption" color="ink3">Administración</Text>
           </View>
         </View>
         {!isDesktop && (
-          <TouchableOpacity style={styles.drawerClose} onPress={closeDrawer}>
-            <Text style={styles.drawerCloseText}>✕</Text>
-          </TouchableOpacity>
+          <Pressable
+            style={({ pressed }) => [styles.drawerClose, pressed && { opacity: 0.6 }]}
+            onPress={closeDrawer}
+            hitSlop={8}
+          >
+            <Icon name="X" size={20} color={colors.ink2} />
+          </Pressable>
         )}
       </View>
 
       <View style={styles.drawerNav}>
-        <Text style={styles.navSectionLabel}>Principal</Text>
-        {NAV_ITEMS.map(item => (
-          <TouchableOpacity
-            key={item.key}
-            style={[styles.navItem, activeSection === item.key && styles.navItemActive]}
-            onPress={() => navigate(item.route)}
-          >
-            <Text style={[styles.navIcon, activeSection === item.key && styles.navIconActive]}>
-              {item.icon}
-            </Text>
-            <Text style={[styles.navLabel2, activeSection === item.key && styles.navLabel2Active]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text variant="caption" color="ink3" style={styles.navSectionLabel}>Principal</Text>
+        {NAV_ITEMS.map(item => {
+          const active = activeSection === item.key;
+          return (
+            <Pressable
+              key={item.key}
+              style={({ pressed }) => [
+                styles.navItem,
+                active && styles.navItemActive,
+                pressed && !active && { backgroundColor: colors.line2 },
+              ]}
+              onPress={() => navigate(item.route)}
+            >
+              <Icon name={item.icon} size={16} color={active ? colors.ink : colors.ink3} />
+              <Text
+                variant={active ? 'smallMedium' : 'small'}
+                color={active ? 'ink' : 'ink2'}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.drawerFooter}>
         <View style={styles.userAv}>
-          <Text style={styles.userAvText}>{initials}</Text>
+          <Text variant="caption" color="white" style={{ fontWeight: '600' }}>{initials}</Text>
         </View>
-        <Text style={styles.drawerFooterName} numberOfLines={1}>{profile?.name ?? 'Admin'}</Text>
-        <TouchableOpacity onPress={signOut} style={styles.signOutBtn}>
-          <Text style={styles.signOutText}>↪</Text>
-        </TouchableOpacity>
+        <Text variant="small" color="ink2" style={{ flex: 1 }} numberOfLines={1}>
+          {profile?.name ?? 'Admin'}
+        </Text>
+        <Pressable
+          onPress={signOut}
+          style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.6 }]}
+          hitSlop={8}
+        >
+          <Icon name="LogOut" size={16} color={colors.ink3} />
+        </Pressable>
       </View>
     </>
   );
 
-  // ── Diseño escritorio: sidebar fija a la izquierda ──
+  // ── Desktop: sidebar fija ──
   if (isDesktop) {
     return (
       <View style={styles.desktopRoot}>
         <View style={styles.sidebar}>{sidebarContent}</View>
         <View style={styles.desktopMain}>
-          {/* Topbar */}
           <View style={styles.desktopTopbar}>
-            <Text style={styles.desktopTopbarTitle}>{title ?? sectionLabel}</Text>
+            <Text variant="title">{title ?? sectionLabel}</Text>
             <View style={styles.topbarRight}>
               {rightElement}
               <View style={styles.userAv}>
-                <Text style={styles.userAvText}>{initials}</Text>
+                <Text variant="caption" color="white" style={{ fontWeight: '600' }}>{initials}</Text>
               </View>
             </View>
           </View>
@@ -133,29 +155,24 @@ export default function AdminShell({ activeSection, title, rightElement, childre
     );
   }
 
-  // ── Diseño móvil: topbar + drawer ──
+  // ── Móvil: topbar + drawer ──
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.topbar}>
-        <View style={styles.topbarLeft}>
-          <TouchableOpacity style={styles.hamburger} onPress={openDrawer}>
-            <View style={styles.hLine} />
-            <View style={styles.hLine} />
-            <View style={styles.hLine} />
-          </TouchableOpacity>
-          <View style={styles.logoWrap}>
-            <View style={styles.logoMark}>
-              <Text style={styles.logoMarkText}>N</Text>
-            </View>
-            <Text style={styles.logoText}>Nudofy</Text>
-            <Text style={styles.logoSub}>Admin</Text>
-          </View>
-        </View>
-        <Text style={styles.topbarCenter}>{title ?? sectionLabel}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
+          onPress={openDrawer}
+          hitSlop={8}
+        >
+          <Icon name="Menu" size={20} color={colors.ink} />
+        </Pressable>
+        <Text variant="title" style={{ flex: 1, textAlign: 'center' }} numberOfLines={1}>
+          {title ?? sectionLabel}
+        </Text>
         <View style={styles.topbarRight}>
           {rightElement}
           <View style={styles.userAv}>
-            <Text style={styles.userAvText}>{initials}</Text>
+            <Text variant="caption" color="white" style={{ fontWeight: '600' }}>{initials}</Text>
           </View>
         </View>
       </View>
@@ -180,84 +197,93 @@ export default function AdminShell({ activeSection, title, rightElement, childre
   );
 }
 
-const DARK = '#1a1a1a';
-const BORDER_DARK = '#2a2a2a';
-const SIDEBAR_W = 220;
+const SIDEBAR_W = 240;
 
 const styles = StyleSheet.create({
-  // ── Móvil ──
-  root: { flex: 1, backgroundColor: '#f5f5f3' },
+  // Móvil
+  root: { flex: 1, backgroundColor: colors.surface },
   topbar: {
-    backgroundColor: DARK, height: 52,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16 },
-  topbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  hamburger: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', gap: 5 },
-  hLine: { width: 18, height: 1.5, backgroundColor: '#888', borderRadius: 2 },
-  logoWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  logoText: { fontSize: 14, fontWeight: '500', color: '#fff' },
-  logoSub: { fontSize: 10, color: '#555', marginLeft: 2 },
-  topbarCenter: { fontSize: 14, fontWeight: '500', color: '#fff', flex: 1, textAlign: 'center' },
-  topbarRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    backgroundColor: colors.white,
+    height: 52,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space[3], gap: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
+  hamburger: {
+    width: 36, height: 36,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  topbarRight: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   content: { flex: 1 },
-  contentInner: { padding: 20, paddingBottom: 32, gap: 14 },
+  contentInner: { padding: space[3], paddingBottom: space[8], gap: space[3] },
+
   modalRoot: { flex: 1, flexDirection: 'row' },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   drawer: {
     width: SIDEBAR_W, height: '100%',
-    backgroundColor: DARK,
-    position: 'absolute', top: 0, left: 0, bottom: 0 },
-  // ── Escritorio ──
-  desktopRoot: { flex: 1, flexDirection: 'row', backgroundColor: '#f5f5f3' },
+    backgroundColor: colors.white,
+    position: 'absolute', top: 0, left: 0, bottom: 0,
+    borderRightWidth: 1, borderRightColor: colors.line,
+  },
+
+  // Desktop
+  desktopRoot: { flex: 1, flexDirection: 'row', backgroundColor: colors.surface },
   sidebar: {
     width: SIDEBAR_W,
-    backgroundColor: DARK,
-    flexDirection: 'column' },
+    backgroundColor: colors.white,
+    borderRightWidth: 1, borderRightColor: colors.line,
+  },
   desktopMain: { flex: 1, flexDirection: 'column' },
   desktopTopbar: {
-    height: 52, backgroundColor: '#fff',
-    borderBottomWidth: 1, borderBottomColor: '#ececec',
+    height: 56, backgroundColor: colors.white,
+    borderBottomWidth: 1, borderBottomColor: colors.line,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 24 },
-  desktopTopbarTitle: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
-  // ── Compartidos sidebar ──
+    paddingHorizontal: space[4],
+  },
+
+  // Sidebar compartido
   logoMark: {
-    width: 26, height: 26, borderRadius: 7,
-    backgroundColor: '#534AB7',
-    alignItems: 'center', justifyContent: 'center' },
-  logoMarkText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    width: 28, height: 28, borderRadius: radius.sm,
+    backgroundColor: colors.ink,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  logoMarkText: { color: colors.white, fontWeight: '700' },
   drawerHeader: {
-    padding: 18, paddingBottom: 14,
-    borderBottomWidth: 0.5, borderBottomColor: BORDER_DARK,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  drawerLogoWrap: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  drawerLogoTitle: { fontSize: 14, fontWeight: '500', color: '#fff' },
-  drawerLogoSub: { fontSize: 10, color: '#555' },
-  drawerClose: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  drawerCloseText: { color: '#666', fontSize: 14 },
-  drawerNav: { flex: 1, padding: 10 },
+    padding: space[3],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  drawerLogoWrap: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  drawerClose: {
+    width: 32, height: 32, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  drawerNav: { flex: 1, padding: space[2], gap: 2 },
   navSectionLabel: {
-    fontSize: 10, color: '#555',
-    textTransform: 'uppercase', letterSpacing: 0.6,
-    paddingHorizontal: 8, marginBottom: 5 },
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    paddingHorizontal: space[2], paddingVertical: space[2],
+  },
   navItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 9, paddingHorizontal: 10,
-    borderRadius: 8, marginBottom: 2 },
-  navItemActive: { backgroundColor: '#534AB7' },
-  navIcon: { fontSize: 14, color: '#888', width: 18, textAlign: 'center' },
-  navIconActive: { color: '#fff' },
-  navLabel2: { fontSize: 13, color: '#888' },
-  navLabel2Active: { color: '#fff', fontWeight: '500' },
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    paddingVertical: space[2] + 2, paddingHorizontal: space[2],
+    borderRadius: radius.sm,
+  },
+  navItemActive: { backgroundColor: colors.surface2 },
+
   drawerFooter: {
-    padding: 14,
-    borderTopWidth: 0.5, borderTopColor: BORDER_DARK,
-    flexDirection: 'row', alignItems: 'center', gap: 10 },
-  drawerFooterName: { flex: 1, fontSize: 12, color: '#888' },
-  signOutBtn: { padding: 4 },
-  signOutText: { color: '#555', fontSize: 16 },
+    padding: space[3],
+    borderTopWidth: 1, borderTopColor: colors.line,
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+  },
+  signOutBtn: {
+    width: 32, height: 32, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   userAv: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#534AB7',
-    alignItems: 'center', justifyContent: 'center' },
-  userAvText: { color: '#fff', fontSize: 10, fontWeight: '500' } });
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: colors.ink,
+    alignItems: 'center', justifyContent: 'center',
+  },
+});

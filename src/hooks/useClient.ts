@@ -34,6 +34,7 @@ export interface PortalSupplier {
   name: string;
   access_id: string;
   catalog_id?: string; // null = todos los catálogos del proveedor
+  logo_url?: string | null;
 }
 
 export interface PortalCatalog {
@@ -96,7 +97,7 @@ export function useClientPortalSuppliers(clientId?: string) {
     if (!clientId) return;
     const { data } = await supabase
       .from('client_portal_access')
-      .select('id, supplier_id, catalog_id, supplier:suppliers(id, name)')
+      .select('id, supplier_id, catalog_id, supplier:suppliers(id, name, logo_url)')
       .eq('client_id', clientId)
       .eq('enabled', true);
 
@@ -105,6 +106,7 @@ export function useClientPortalSuppliers(clientId?: string) {
       name: row.supplier?.name,
       access_id: row.id,
       catalog_id: row.catalog_id ?? undefined,
+      logo_url: row.supplier?.logo_url ?? null,
     }));
     setSuppliers(mapped);
     setLoading(false);

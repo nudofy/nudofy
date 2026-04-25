@@ -1,18 +1,22 @@
 // Editar producto existente
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, Image, ScrollView,
-  StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View, TextInput, Pressable, Image, ScrollView,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { colors } from '@/theme/colors';
+import { colors, space, radius } from '@/theme';
+import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { useProducts } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/contexts/ToastContext';
+import { ProductSchema, validate } from '@/lib/validation';
 import type { Product, ProductImage } from '@/hooks/useAgent';
 
 export default function EditarProductoScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -27,12 +31,13 @@ export default function EditarProductoScreen() {
   const [subfamilia, setSubfamilia] = useState('');
   const [price, setPrice] = useState('');
   const [pvpr, setPvpr] = useState('');
+  const [vatRate, setVatRate] = useState<number | null>(21);
   const [description, setDescription] = useState('');
   const [measures, setMeasures] = useState('');
   const [stock, setStock] = useState('');
   const [standardBox, setStandardBox] = useState('');
   const [minUnits, setMinUnits] = useState('');
-  const [images, setImages] = useState<string[]>([]); // URIs locales o URLs remotas
+  const [images, setImages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -53,12 +58,12 @@ export default function EditarProductoScreen() {
       setSubfamilia(p.subfamilia ?? '');
       setPrice(p.price != null ? String(p.price) : '');
       setPvpr(p.pvpr != null ? String(p.pvpr) : '');
+      setVatRate(p.vat_rate !== undefined ? p.vat_rate : 21);
       setDescription(p.description ?? '');
       setMeasures(p.measures ?? '');
       setStock(p.stock != null ? String(p.stock) : '');
       setStandardBox(p.standard_box != null ? String(p.standard_box) : '');
       setMinUnits(p.min_units != null ? String(p.min_units) : '');
-      // Usar imágenes de product_images si existen, si no la image_url principal
       const urls: string[] = (imgs ?? []).map((i: ProductImage) => i.url);
       setImages(urls.length > 0 ? urls : p.image_url ? [p.image_url] : []);
       setLoaded(true);
@@ -68,9 +73,9 @@ export default function EditarProductoScreen() {
   const canSave = name.trim().length > 0 && price.trim().length > 0;
 
   async function pickImage() {
-    if (images.length >= 10) { Alert.alert('Límite alcanzado', 'Máximo 10 imágenes por producto.'); return; }
+    if (images.length >= 10) { toast.error('Máximo 10 imágenes por producto.'); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería.'); return; }
+    if (status !== 'granted') { toast.error('Necesitamos acceso a tu galería.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -83,7 +88,6 @@ export default function EditarProductoScreen() {
   }
 
   async function uploadImage(uri: string): Promise<string | null> {
-    // Si ya es una URL remota, no re-subir
     if (uri.startsWith('http')) return uri;
     try {
       const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
@@ -101,11 +105,19 @@ export default function EditarProductoScreen() {
 
   async function handleSave() {
     if (!canSave || !id) return;
-    const priceNum = parseFloat(price.replace(',', '.'));
-    if (isNaN(priceNum) || priceNum < 0) { Alert.alert('Precio no válido'); return; }
+    const v = validate(ProductSchema, {
+      name,
+      reference,
+      price,
+      vat_rate: vatRate ?? undefined,
+      description,
+      family: familia,
+      subfamily: subfamilia,
+    });
+    if (!v.ok) { toast.error(v.firstError); return; }
+    const priceNum = v.data.price ?? 0;
     setSaving(true);
     try {
-      // Subir imágenes nuevas (las remotas se devuelven tal cual)
       const uploadedUrls: string[] = [];
       for (const uri of images) {
         const url = await uploadImage(uri);
@@ -120,6 +132,7 @@ export default function EditarProductoScreen() {
         familia: familia.trim() || undefined,
         subfamilia: subfamilia.trim() || undefined,
         price: priceNum,
+        vat_rate: vatRate,
         pvpr: pvpr ? parseFloat(pvpr.replace(',', '.')) : undefined,
         description: description.trim() || undefined,
         measures: measures.trim() || undefined,
@@ -128,9 +141,8 @@ export default function EditarProductoScreen() {
         min_units: minUnits ? parseInt(minUnits) : undefined,
         image_url: uploadedUrls[0] ?? undefined });
 
-      if (error) { Alert.alert('Error', error); return; }
+      if (error) { toast.error(error); return; }
 
-      // Reemplazar imágenes en product_images
       if (uploadedUrls.length > 0) {
         await supabase.from('product_images').delete().eq('product_id', id);
         await supabase.from('product_images').insert(
@@ -140,7 +152,7 @@ export default function EditarProductoScreen() {
 
       router.back();
     } catch (e: any) {
-      Alert.alert('Error inesperado', e?.message ?? 'Inténtalo de nuevo');
+      toast.error(e?.message ?? 'Inténtalo de nuevo');
     } finally {
       setSaving(false);
     }
@@ -148,115 +160,147 @@ export default function EditarProductoScreen() {
 
   if (!loaded) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand} />
-      </SafeAreaView>
+      <Screen>
+        <TopBar title="Editar producto" onBack={() => router.back()} />
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.ink} />
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>← Cancelar</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Editar producto</Text>
-        <TouchableOpacity
-          style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-          onPress={handleSave}
-          disabled={!canSave || saving}
-        >
-          {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Guardar</Text>}
-        </TouchableOpacity>
-      </View>
+    <Screen>
+      <TopBar
+        title="Editar producto"
+        onBack={() => router.back()}
+        actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: 'Guardar', disabled: !canSave || saving }]}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-
           {/* Imágenes */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Imágenes</Text>
-              <Text style={styles.imgCounter}>{images.length}/10</Text>
-            </View>
+          <Section title="Imágenes" trailing={<Text variant="caption" color="ink3">{images.length}/10</Text>}>
             <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
               {images.map((uri, i) => (
                 <View key={i} style={styles.imageThumbWrap}>
                   <Image source={{ uri }} style={styles.imageThumb} />
-                  {i === 0 && <View style={styles.imgPrincipalBadge}><Text style={styles.imgPrincipalText}>Principal</Text></View>}
-                  <TouchableOpacity style={styles.imageRemove} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
-                    <Text style={styles.imageRemoveText}>✕</Text>
-                  </TouchableOpacity>
+                  {i === 0 && (
+                    <View style={styles.imgPrincipalBadge}>
+                      <Text variant="caption" color="white" style={styles.imgPrincipalText}>Principal</Text>
+                    </View>
+                  )}
+                  <Pressable style={styles.imageRemove} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
+                    <Icon name="X" size={12} color={colors.white} />
+                  </Pressable>
                 </View>
               ))}
               {images.length < 10 && (
-                <TouchableOpacity style={styles.imageAdd} onPress={pickImage}>
-                  <Text style={styles.imageAddIcon}>📷</Text>
-                  <Text style={styles.imageAddText}>Añadir</Text>
-                </TouchableOpacity>
+                <Pressable style={({ pressed }) => [styles.imageAdd, pressed && { opacity: 0.7 }]} onPress={pickImage}>
+                  <Icon name="Camera" size={20} color={colors.ink3} />
+                  <Text variant="caption" color="ink3">Añadir</Text>
+                </Pressable>
               )}
             </ScrollView>
-          </View>
+          </Section>
 
           {/* Identificación */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Identificación</Text>
+          <Section title="Identificación">
             <Field label="Nombre *" value={name} onChangeText={setName} placeholder="Nombre del producto" />
             <Field label="Referencia" value={reference} onChangeText={setReference} placeholder="REF-001" />
             <Field label="Referencia 2" value={reference2} onChangeText={setReference2} placeholder="REF-ALT-001" />
             <Field label="EAN / Código de barras" value={barcode} onChangeText={setBarcode} placeholder="8400000000000" keyboardType="numeric" />
             <Field label="Familia" value={familia} onChangeText={setFamilia} placeholder="Ej: Juguetes, Alimentación..." />
-            <Field label="Subfamilia" value={subfamilia} onChangeText={setSubfamilia} placeholder="Ej: Puzzles, Snacks..." />
-          </View>
+            <Field label="Subfamilia" value={subfamilia} onChangeText={setSubfamilia} placeholder="Ej: Puzzles, Snacks..." last />
+          </Section>
 
           {/* Precios */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Precios</Text>
+          <Section title="Precios">
             <Field label="Precio (€) *" value={price} onChangeText={setPrice} placeholder="0,00" keyboardType="decimal-pad" />
             <Field label="PVPR (€)" value={pvpr} onChangeText={setPvpr} placeholder="Precio venta recomendado" keyboardType="decimal-pad" />
-          </View>
+            <IvaSelector value={vatRate} onChange={setVatRate} />
+          </Section>
 
           {/* Detalles */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Detalles</Text>
+          <Section title="Detalles">
             <Field label="Descripción" value={description} onChangeText={setDescription} placeholder="Descripción del producto" multiline />
-            <Field label="Medidas" value={measures} onChangeText={setMeasures} placeholder="Ej: 10x20x5 cm" />
-          </View>
+            <Field label="Medidas" value={measures} onChangeText={setMeasures} placeholder="Ej: 10x20x5 cm" last />
+          </Section>
 
           {/* Logística */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Logística</Text>
+          <Section title="Logística">
             <Field label="Stock" value={stock} onChangeText={setStock} placeholder="0" keyboardType="numeric" />
             <Field label="Caja estándar (uds.)" value={standardBox} onChangeText={setStandardBox} placeholder="12" keyboardType="numeric" />
-            <Field label="Unidades mínimas" value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" />
-          </View>
+            <Field label="Unidades mínimas" value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" last />
+          </Section>
 
-          <TouchableOpacity
-            style={[styles.mainSaveBtn, !canSave && styles.saveBtnDisabled]}
+          <Button
+            label="Guardar cambios"
             onPress={handleSave}
-            disabled={!canSave || saving}
-          >
-            {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.mainSaveBtnText}>Guardar cambios</Text>}
-          </TouchableOpacity>
+            loading={saving}
+            disabled={!canSave}
+            fullWidth
+            style={{ marginTop: space[2] }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: {
-  label: string; value: string; onChangeText: (v: string) => void;
-  placeholder?: string; keyboardType?: any; multiline?: boolean;
-}) {
+const IVA_OPTIONS: { label: string; value: number | null }[] = [
+  { label: '21%', value: 21 },
+  { label: '10%', value: 10 },
+  { label: '4%', value: 4 },
+  { label: '0%', value: 0 },
+  { label: 'Exento', value: null },
+];
+
+function IvaSelector({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text variant="caption" color="ink3" style={{ marginBottom: 4 }}>IVA</Text>
+      <View style={styles.ivaPills}>
+        {IVA_OPTIONS.map(opt => {
+          const active = value === opt.value;
+          return (
+            <Pressable
+              key={String(opt.value)}
+              style={[styles.ivaPill, active && styles.ivaPillActive]}
+              onPress={() => onChange(opt.value)}
+            >
+              <Text variant="smallMedium" color={active ? 'white' : 'ink2'}>{opt.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function Section({ title, trailing, children }: { title: string; trailing?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text variant="caption" color="ink3" style={styles.sectionTitle}>{title}</Text>
+        {trailing}
+      </View>
+      <View style={styles.sectionBody}>{children}</View>
+    </View>
+  );
+}
+
+function Field({ label, value, onChangeText, placeholder, keyboardType, multiline, last }: {
+  label: string; value: string; onChangeText: (v: string) => void;
+  placeholder?: string; keyboardType?: any; multiline?: boolean; last?: boolean;
+}) {
+  return (
+    <View style={[styles.field, !last && styles.fieldBorder]}>
+      <Text variant="caption" color="ink3" style={{ marginBottom: 4 }}>{label}</Text>
       <TextInput
         style={[styles.fieldInput, multiline && styles.fieldTextarea]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.ink4}
         keyboardType={keyboardType}
         multiline={multiline}
         numberOfLines={multiline ? 3 : 1}
@@ -268,52 +312,54 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    backgroundColor: colors.white, paddingHorizontal: 18, paddingVertical: 14,
+  content: { padding: space[4], gap: space[4] },
+  section: { gap: space[2] },
+  sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomWidth: 0.5, borderBottomColor: '#efefef' },
-  back: { fontSize: 14, color: colors.brand },
-  title: { fontSize: 16, fontWeight: '500', color: colors.text },
-  saveBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.brand },
-  saveBtnDisabled: { opacity: 0.4 },
-  saveBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  content: { padding: 16, gap: 16 },
-  section: { backgroundColor: colors.white, borderRadius: 14, overflow: 'hidden' },
-  sectionTitle: {
-    fontSize: 11, fontWeight: '600', color: colors.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
-  field: {
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 0.5, borderTopColor: '#f5f5f5' },
-  fieldLabel: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
-  fieldInput: { fontSize: 15, color: colors.text },
+    paddingHorizontal: space[1],
+  },
+  sectionTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionBody: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.line,
+  },
+  field: { paddingHorizontal: space[3], paddingVertical: space[2] },
+  fieldBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  fieldInput: { fontSize: 15, color: colors.ink, paddingVertical: 2 },
   fieldTextarea: { minHeight: 70, paddingTop: 4 },
-  sectionHeaderRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
-  imgCounter: { fontSize: 11, color: colors.textMuted },
-  imagesRow: { paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8, gap: 10, flexDirection: 'row', alignItems: 'center' },
+
+  imagesRow: {
+    padding: space[3], gap: space[2],
+    flexDirection: 'row', alignItems: 'center',
+  },
   imageThumbWrap: { position: 'relative' },
-  imageThumb: { width: 80, height: 80, borderRadius: 10 },
+  imageThumb: { width: 80, height: 80, borderRadius: radius.md },
   imgPrincipalBadge: {
     position: 'absolute', bottom: 4, left: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4,
-    paddingHorizontal: 5, paddingVertical: 2 },
-  imgPrincipalText: { fontSize: 9, color: '#fff', fontWeight: '600' },
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: radius.sm,
+    paddingHorizontal: 5, paddingVertical: 2,
+  },
+  imgPrincipalText: { fontSize: 9, fontWeight: '600' },
   imageRemove: {
     position: 'absolute', top: -6, right: -6,
     width: 20, height: 20, borderRadius: 10,
-    backgroundColor: '#C0392B', alignItems: 'center', justifyContent: 'center' },
-  imageRemoveText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    backgroundColor: colors.ink,
+    alignItems: 'center', justifyContent: 'center',
+  },
   imageAdd: {
-    width: 80, height: 80, borderRadius: 10,
-    borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center', gap: 4 },
-  imageAddIcon: { fontSize: 20 },
-  imageAddText: { fontSize: 10, color: colors.textMuted },
-  mainSaveBtn: {
-    backgroundColor: colors.brand, borderRadius: 14,
-    paddingVertical: 15, alignItems: 'center' },
-  mainSaveBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' } });
+    width: 80, height: 80, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+    backgroundColor: colors.surface,
+  },
+
+  ivaPills: { flexDirection: 'row', flexWrap: 'wrap', gap: space[1], marginTop: 4 },
+  ivaPill: {
+    paddingHorizontal: space[3], paddingVertical: 6, borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white,
+  },
+  ivaPillActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+});
