@@ -159,6 +159,7 @@ export default function CatalogoScreen() {
         onBack={() => router.back()}
         actions={[
           { icon: 'Upload', onPress: () => router.push(`/(agent)/catalogo/importar?catalogId=${id}` as any), accessibilityLabel: 'Importar CSV' },
+          { icon: 'Images', onPress: () => router.push(`/(agent)/catalogo/imagenes?catalogId=${id}` as any), accessibilityLabel: 'Subir imágenes en bloque' },
           { icon: 'Pencil', onPress: openEdit, accessibilityLabel: 'Editar catálogo' },
           { icon: 'Trash2', onPress: handleDeleteCatalog, accessibilityLabel: 'Eliminar catálogo' },
           { icon: 'Plus', onPress: () => router.push(`/(agent)/producto/nuevo?catalogId=${id}` as any), accessibilityLabel: 'Nuevo producto' },
