@@ -35,13 +35,15 @@ export default function ClientBottomTabBar({ activeTab }: Props) {
           >
             <Icon
               name={tab.icon}
-              size={20}
-              color={isActive ? colors.ink : colors.ink4}
+              size={22}
+              color={isActive ? colors.brand : colors.ink4}
+              strokeWidth={isActive ? 2.25 : 1.75}
             />
             <Text
               variant="caption"
-              color={isActive ? 'ink' : 'ink4'}
-              style={{ fontWeight: isActive ? '600' : '400' }}
+              numberOfLines={1}
+              allowFontScaling={false}
+              style={[styles.label, { color: isActive ? colors.brand : colors.ink4 }]}
             >
               {tab.label}
             </Text>
@@ -63,6 +65,13 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
+    paddingHorizontal: 2,
+  },
+  label: {
+    textTransform: 'none',
+    letterSpacing: 0,
+    fontSize: 10,
+    fontWeight: '500',
   },
 });

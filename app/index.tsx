@@ -1,2 +1,2 @@
-import SplashScreen from '@/screens/SplashScreen';
-export default SplashScreen;
+import LoginScreen from '@/screens/LoginScreen';
+export default LoginScreen;

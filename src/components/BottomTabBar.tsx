@@ -42,13 +42,15 @@ export default function BottomTabBar({ activeTab }: { activeTab: string }) {
           >
             <Icon
               name={tab.icon}
-              size={24}
-              color={active ? colors.ink : colors.ink4}
-              strokeWidth={active ? 2 : 1.75}
+              size={22}
+              color={active ? colors.brand : colors.ink4}
+              strokeWidth={active ? 2.25 : 1.75}
             />
             <Text
               variant="caption"
-              style={[styles.label, { color: active ? colors.ink : colors.ink4 }]}
+              numberOfLines={1}
+              allowFontScaling={false}
+              style={[styles.label, { color: active ? colors.brand : colors.ink4 }]}
             >
               {tab.label}
             </Text>
@@ -71,11 +73,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 2,
   },
   label: {
     // caption ya es uppercase — para tab bar queremos normal
     textTransform: 'none',
     letterSpacing: 0,
     fontSize: 10,
+    fontWeight: '500',
   },
 });

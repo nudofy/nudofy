@@ -335,7 +335,7 @@ export default function NuevoPedidoScreen() {
       client_id: clientId,
       supplier_id: selectedSupplier.id,
       catalog_id: selectedCatalog?.id ?? null,
-      status: 'confirmed' as const,
+      status: 'sent_to_supplier' as const,
       total: cartTotal,
       discount_code: discountCode || null,
       notes: notes || null,

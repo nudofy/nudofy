@@ -1,6 +1,6 @@
 // A-08 · Resumen de pedido (solo lectura tras confirmar)
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Share } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, Share, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
@@ -35,8 +35,8 @@ export default function PedidoScreen() {
       .from('orders')
       .select(`
         id, order_number, status, total, discount_code, notes, pdf_url, created_at, sent_at,
-        client:clients(id, name, address),
-        supplier:suppliers(id, name, conditions),
+        client:clients(id, name, address, email),
+        supplier:suppliers(id, name, conditions, email, phone),
         catalog:catalogs(id, name)
       `)
       .eq('id', id)
@@ -74,6 +74,90 @@ export default function PedidoScreen() {
   async function shareOrder() {
     await Share.share({
       message: `Pedido ${order?.order_number} · ${formatEur(order?.total ?? 0)}\nNudofy` });
+  }
+
+  async function emailToSupplier() {
+    if (!order) return;
+    const supplier = (order as any).supplier;
+    const client = (order as any).client;
+    const catalog = (order as any).catalog;
+
+    if (!supplier?.email) {
+      toast.error('El proveedor no tiene email configurado');
+      return;
+    }
+
+    const lines = items.map(it => {
+      const ref = (it as any).product?.reference ? ` (${(it as any).product.reference})` : '';
+      const name = (it as any).product?.name ?? '—';
+      return `• ${name}${ref} — x${it.quantity} · ${formatEur(it.total)}`;
+    }).join('\n');
+
+    const subject = `Pedido ${order.order_number ?? ''} · ${client?.name ?? ''}`.trim();
+    const body =
+`Hola${supplier?.name ? ' ' + supplier.name : ''},
+
+Te envío un nuevo pedido:
+
+Nº pedido: ${order.order_number ?? '—'}
+Cliente: ${client?.name ?? '—'}
+Dirección de envío: ${client?.address ?? '—'}
+Catálogo: ${catalog?.name ?? '—'}
+
+Líneas:
+${lines}
+
+Total: ${formatEur(order.total)}
+${order.notes ? '\nObservaciones:\n' + order.notes + '\n' : ''}
+Un saludo.`;
+
+    const url = `mailto:${encodeURIComponent(supplier.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) { toast.error('No se pudo abrir el cliente de correo'); return; }
+    await Linking.openURL(url);
+  }
+
+  async function whatsappToSupplier() {
+    if (!order) return;
+    const supplier = (order as any).supplier;
+    const client = (order as any).client;
+    const catalog = (order as any).catalog;
+
+    if (!supplier?.phone) {
+      toast.error('El proveedor no tiene teléfono configurado');
+      return;
+    }
+
+    // Limpiar teléfono: solo dígitos. Si no empieza por código país, asumir España (34)
+    let phone = supplier.phone.replace(/\D/g, '');
+    if (phone.length === 9) phone = '34' + phone;
+
+    const lines = items.map(it => {
+      const name = (it as any).product?.name ?? '—';
+      return `• ${name} — x${it.quantity} · ${formatEur(it.total)}`;
+    }).join('\n');
+
+    const message =
+`Hola${supplier?.name ? ' ' + supplier.name : ''},
+
+Te paso un pedido nuevo:
+
+*Nº pedido:* ${order.order_number ?? '—'}
+*Cliente:* ${client?.name ?? '—'}
+*Dirección:* ${client?.address ?? '—'}
+*Catálogo:* ${catalog?.name ?? '—'}
+
+*Líneas:*
+${lines}
+
+*Total:* ${formatEur(order.total)}
+${order.notes ? '\n*Observaciones:* ' + order.notes + '\n' : ''}
+Un saludo.`;
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) { toast.error('No se pudo abrir WhatsApp'); return; }
+    await Linking.openURL(url);
   }
 
   if (loading || !order) {
@@ -188,8 +272,8 @@ export default function PedidoScreen() {
         {/* Acciones */}
         <View style={styles.actionsGrid}>
           <ActionBtn icon="Download" label="Ver PDF" onPress={() => {}} />
-          <ActionBtn icon="Mail" label="Enviar email" onPress={shareOrder} />
-          <ActionBtn icon="MessageCircle" label="WhatsApp" onPress={shareOrder} />
+          <ActionBtn icon="Mail" label="Enviar email" onPress={emailToSupplier} />
+          <ActionBtn icon="MessageCircle" label="WhatsApp" onPress={whatsappToSupplier} />
           <ActionBtn icon="Share2" label="Compartir" onPress={shareOrder} />
         </View>
 
