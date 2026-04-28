@@ -15,6 +15,7 @@ export default function AgentLayout() {
       <Stack.Screen name="pedido/nuevo" />
       <Stack.Screen name="pedido/[id]" />
       <Stack.Screen name="mas" />
+      <Stack.Screen name="tarifas" />
     </Stack>
   );
 }

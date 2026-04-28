@@ -55,6 +55,7 @@ export interface PortalProduct {
   price: number;
   description?: string;
   image_url?: string;
+  stock?: number | null;
 }
 
 // ——————————————————————————————
@@ -157,14 +158,45 @@ export function useClientProducts(catalogId?: string, search?: string) {
 
   const fetchProducts = useCallback(async () => {
     if (!catalogId) { setLoading(false); return; }
-    let query = supabase
-      .from('products')
-      .select('id, catalog_id, name, reference, barcode, price, description, image_url')
-      .eq('catalog_id', catalogId)
-      .eq('active', true);
 
-    const { data } = await query.order('name');
-    setProducts(data ?? []);
+    // 1) Productos publicados del catálogo
+    const { data } = await supabase
+      .from('products')
+      .select('id, catalog_id, name, reference, barcode, price, description, image_url, stock')
+      .eq('catalog_id', catalogId)
+      .eq('active', true)
+      .eq('published', true)
+      .order('name');
+
+    const list: PortalProduct[] = (data ?? []) as any;
+
+    // 2) ¿Tiene tarifa el cliente actual? Si sí, sustituimos precio por el de la tarifa.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && list.length > 0) {
+      const { data: clientRow } = await supabase
+        .from('clients')
+        .select('tariff_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const tariffId = clientRow?.tariff_id ?? null;
+
+      if (tariffId) {
+        const ids = list.map(p => p.id);
+        const { data: pps } = await supabase
+          .from('product_prices')
+          .select('product_id, price')
+          .eq('tariff_id', tariffId)
+          .in('product_id', ids);
+        const map = new Map<string, number>();
+        for (const pp of pps ?? []) map.set(pp.product_id, pp.price);
+        for (const p of list) {
+          const tp = map.get(p.id);
+          if (tp != null) p.price = tp;
+        }
+      }
+    }
+
+    setProducts(list);
     setLoading(false);
   }, [catalogId]);
 

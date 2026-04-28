@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, TextInput, Pressable, Image, ScrollView,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,6 +38,9 @@ export default function EditarProductoScreen() {
   const [standardBox, setStandardBox] = useState('');
   const [minUnits, setMinUnits] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [published, setPublished] = useState(true);
+  const [tariffs, setTariffs] = useState<{ id: string; name: string }[]>([]);
+  const [tariffPrices, setTariffPrices] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -64,9 +67,24 @@ export default function EditarProductoScreen() {
       setStock(p.stock != null ? String(p.stock) : '');
       setStandardBox(p.standard_box != null ? String(p.standard_box) : '');
       setMinUnits(p.min_units != null ? String(p.min_units) : '');
+      setPublished(p.published !== false);
       const urls: string[] = (imgs ?? []).map((i: ProductImage) => i.url);
       setImages(urls.length > 0 ? urls : p.image_url ? [p.image_url] : []);
       setLoaded(true);
+    });
+
+    // Tarifas y precios por tarifa
+    Promise.all([
+      supabase.from('tariffs').select('id, name').order('position'),
+      supabase.from('product_prices').select('tariff_id, price').eq('product_id', id),
+    ]).then(([{ data: ts }, { data: pps }]) => {
+      const tarifaList = (ts ?? []) as { id: string; name: string }[];
+      setTariffs(tarifaList);
+      const map: Record<string, string> = {};
+      for (const pp of pps ?? []) {
+        map[pp.tariff_id] = String(pp.price);
+      }
+      setTariffPrices(map);
     });
   }, [id]);
 
@@ -139,7 +157,8 @@ export default function EditarProductoScreen() {
         stock: stock ? parseInt(stock) : undefined,
         standard_box: standardBox ? parseInt(standardBox) : undefined,
         min_units: minUnits ? parseInt(minUnits) : undefined,
-        image_url: uploadedUrls[0] ?? undefined });
+        image_url: uploadedUrls[0] ?? undefined,
+        published });
 
       if (error) { toast.error(error); return; }
 
@@ -148,6 +167,30 @@ export default function EditarProductoScreen() {
         await supabase.from('product_images').insert(
           uploadedUrls.map((url, i) => ({ product_id: id, url, position: i }))
         );
+      }
+
+      // Sincronizar precios por tarifa
+      const upserts: { product_id: string; tariff_id: string; price: number }[] = [];
+      const deletes: string[] = [];
+      for (const t of tariffs) {
+        const raw = (tariffPrices[t.id] ?? '').trim().replace(',', '.');
+        if (raw === '') {
+          deletes.push(t.id);
+        } else {
+          const num = parseFloat(raw);
+          if (!isNaN(num)) upserts.push({ product_id: id, tariff_id: t.id, price: num });
+          else deletes.push(t.id);
+        }
+      }
+      if (upserts.length > 0) {
+        await supabase.from('product_prices')
+          .upsert(upserts, { onConflict: 'product_id,tariff_id' });
+      }
+      if (deletes.length > 0) {
+        await supabase.from('product_prices')
+          .delete()
+          .eq('product_id', id)
+          .in('tariff_id', deletes);
       }
 
       router.back();
@@ -214,10 +257,29 @@ export default function EditarProductoScreen() {
 
           {/* Precios */}
           <Section title="Precios">
-            <Field label="Precio (€) *" value={price} onChangeText={setPrice} placeholder="0,00" keyboardType="decimal-pad" />
+            <Field label="Precio base (€) *" value={price} onChangeText={setPrice} placeholder="0,00" keyboardType="decimal-pad" />
             <Field label="PVPR (€)" value={pvpr} onChangeText={setPvpr} placeholder="Precio venta recomendado" keyboardType="decimal-pad" />
             <IvaSelector value={vatRate} onChange={setVatRate} />
           </Section>
+
+          {tariffs.length > 0 && (
+            <Section
+              title="Precios por tarifa"
+              trailing={<Text variant="caption" color="ink3">vacío = usa el precio base</Text>}
+            >
+              {tariffs.map((t, idx) => (
+                <Field
+                  key={t.id}
+                  label={t.name}
+                  value={tariffPrices[t.id] ?? ''}
+                  onChangeText={(v) => setTariffPrices(prev => ({ ...prev, [t.id]: v }))}
+                  placeholder={price ? `${price} (base)` : '0,00'}
+                  keyboardType="decimal-pad"
+                  last={idx === tariffs.length - 1}
+                />
+              ))}
+            </Section>
+          )}
 
           {/* Detalles */}
           <Section title="Detalles">
@@ -230,6 +292,25 @@ export default function EditarProductoScreen() {
             <Field label="Stock" value={stock} onChangeText={setStock} placeholder="0" keyboardType="numeric" />
             <Field label="Caja estándar (uds.)" value={standardBox} onChangeText={setStandardBox} placeholder="12" keyboardType="numeric" />
             <Field label="Unidades mínimas" value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" last />
+          </Section>
+
+          <Section title="Visibilidad">
+            <View style={styles.publishedRow}>
+              <View style={{ flex: 1 }}>
+                <Text variant="smallMedium">Publicado en el portal del cliente</Text>
+                <Text variant="caption" color="ink3">
+                  {published
+                    ? 'Tus clientes ven este producto en su portal.'
+                    : 'Oculto: no aparece en el portal del cliente.'}
+                </Text>
+              </View>
+              <Switch
+                value={published}
+                onValueChange={setPublished}
+                trackColor={{ false: colors.line, true: colors.brand }}
+                thumbColor={colors.white}
+              />
+            </View>
           </Section>
 
           <Button
@@ -313,6 +394,11 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
 
 const styles = StyleSheet.create({
   content: { padding: space[4], gap: space[4] },
+  publishedRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    gap: space[3],
+  },
   section: { gap: space[2] },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

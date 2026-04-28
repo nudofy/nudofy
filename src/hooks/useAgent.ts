@@ -26,6 +26,7 @@ export interface Client {
   payment_method?: string;
   iban?: string;
   notes?: string;
+  tariff_id?: string | null;
   created_at: string;
 }
 
@@ -72,6 +73,7 @@ export interface Product {
   image_url?: string;
   vat_rate?: number | null;
   active: boolean;
+  published?: boolean;
 }
 
 export interface ProductImage {
@@ -256,7 +258,7 @@ export function useCatalogs(supplierId?: string) {
 // ——————————————————————————————
 // Productos
 // ——————————————————————————————
-export function useProducts(catalogId?: string) {
+export function useProducts(catalogId?: string, tariffId?: string | null) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -268,9 +270,28 @@ export function useProducts(catalogId?: string) {
       .eq('catalog_id', catalogId)
       .eq('active', true)
       .order('name');
-    setProducts(data ?? []);
+
+    const list = (data ?? []) as Product[];
+
+    // Si hay tarifa, aplicar overrides de product_prices
+    if (tariffId && list.length > 0) {
+      const ids = list.map(p => p.id);
+      const { data: pps } = await supabase
+        .from('product_prices')
+        .select('product_id, price')
+        .eq('tariff_id', tariffId)
+        .in('product_id', ids);
+      const map = new Map<string, number>();
+      for (const pp of pps ?? []) map.set(pp.product_id, pp.price);
+      for (const p of list) {
+        const tp = map.get(p.id);
+        if (tp != null) p.price = tp;
+      }
+    }
+
+    setProducts(list);
     setLoading(false);
-  }, [catalogId]);
+  }, [catalogId, tariffId]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 

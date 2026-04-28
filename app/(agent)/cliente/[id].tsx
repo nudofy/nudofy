@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, ScrollView, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform } from 'react-native';
+  KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
@@ -37,6 +37,7 @@ export default function ClienteScreen() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Partial<Client>>({});
   const [loading, setLoading] = useState(true);
+  const [tariffs, setTariffs] = useState<{ id: string; name: string }[]>([]);
   const [addresses, setAddresses] = useState<ClientAddress[]>([]);
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState<Partial<ClientAddress>>({});
@@ -66,6 +67,12 @@ export default function ClienteScreen() {
       .eq('client_id', id)
       .order('is_default', { ascending: false })
       .then(({ data }) => setAddresses((data as ClientAddress[]) ?? []));
+
+    supabase
+      .from('tariffs')
+      .select('id, name')
+      .order('position')
+      .then(({ data }) => setTariffs((data ?? []) as { id: string; name: string }[]));
   }, [id]);
 
   useEffect(() => { fetchClient(); }, [fetchClient]);
@@ -209,7 +216,13 @@ export default function ClienteScreen() {
             </DataBlock>
             <DataBlock title="Condiciones comerciales" icon="CreditCard">
               <Field label="Forma de pago" value={form.payment_method} onChangeText={v => setForm(f => ({ ...f, payment_method: v }))} editing={editing} />
-              <Field label="IBAN" value={form.iban} onChangeText={v => setForm(f => ({ ...f, iban: v }))} editing={editing} last />
+              <Field label="IBAN" value={form.iban} onChangeText={v => setForm(f => ({ ...f, iban: v }))} editing={editing} />
+              <TarifaSelectorRow
+                tariffs={tariffs}
+                value={(form as any).tariff_id ?? null}
+                editing={editing}
+                onChange={v => setForm(f => ({ ...f, tariff_id: v } as any))}
+              />
             </DataBlock>
 
             {/* Direcciones de envío */}
@@ -384,9 +397,305 @@ function PortalTab({ client }: { client: Client }) {
           style={{ marginTop: space[2] }}
         />
       </View>
+
+      <PortalAccessSection clientId={client.id} />
     </View>
   );
 }
+
+// ─── Acceso a proveedores y catálogos ────────────────────────────────────
+type SupplierAccessRow = {
+  supplier_id: string;
+  supplier_name: string;
+  catalogs: { id: string; name: string }[];
+  enabled: boolean;
+  scope: 'all' | 'specific';
+  selectedCatalogIds: Set<string>;
+  expanded: boolean;
+};
+
+function PortalAccessSection({ clientId }: { clientId: string }) {
+  const toast = useToast();
+  const [rows, setRows] = useState<SupplierAccessRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const [{ data: suppliers }, { data: catalogs }, { data: access }] = await Promise.all([
+      supabase.from('suppliers').select('id, name').order('name'),
+      supabase.from('catalogs').select('id, supplier_id, name').eq('status', 'active').order('name'),
+      supabase.from('client_portal_access')
+        .select('supplier_id, catalog_id, enabled')
+        .eq('client_id', clientId),
+    ]);
+
+    const accessBySupplier = new Map<string, { hasNull: boolean; catalogIds: Set<string> }>();
+    for (const a of access ?? []) {
+      if (!a.enabled) continue;
+      const cur = accessBySupplier.get(a.supplier_id) ?? { hasNull: false, catalogIds: new Set() };
+      if (a.catalog_id == null) cur.hasNull = true;
+      else cur.catalogIds.add(a.catalog_id);
+      accessBySupplier.set(a.supplier_id, cur);
+    }
+
+    const newRows: SupplierAccessRow[] = (suppliers ?? []).map((s: any) => {
+      const supCats = (catalogs ?? []).filter((c: any) => c.supplier_id === s.id)
+        .map((c: any) => ({ id: c.id, name: c.name }));
+      const acc = accessBySupplier.get(s.id);
+      const enabled = !!acc;
+      const scope: 'all' | 'specific' = acc?.hasNull ? 'all' : 'specific';
+      return {
+        supplier_id: s.id,
+        supplier_name: s.name,
+        catalogs: supCats,
+        enabled,
+        scope,
+        selectedCatalogIds: acc?.catalogIds ?? new Set(),
+        expanded: enabled,
+      };
+    });
+    setRows(newRows);
+    setLoading(false);
+  }, [clientId]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  async function syncSupplier(row: SupplierAccessRow) {
+    // Borrar todos los registros de este (cliente, proveedor) y reinsertar según estado
+    await supabase.from('client_portal_access')
+      .delete()
+      .eq('client_id', clientId)
+      .eq('supplier_id', row.supplier_id);
+
+    if (!row.enabled) return;
+
+    if (row.scope === 'all') {
+      const { error } = await supabase.from('client_portal_access').insert({
+        client_id: clientId,
+        supplier_id: row.supplier_id,
+        catalog_id: null,
+        enabled: true,
+      });
+      if (error) toast.error(error.message);
+    } else {
+      const ids = Array.from(row.selectedCatalogIds);
+      if (ids.length === 0) return;
+      const inserts = ids.map(catId => ({
+        client_id: clientId,
+        supplier_id: row.supplier_id,
+        catalog_id: catId,
+        enabled: true,
+      }));
+      const { error } = await supabase.from('client_portal_access').insert(inserts);
+      if (error) toast.error(error.message);
+    }
+  }
+
+  function updateRow(id: string, patch: Partial<SupplierAccessRow>) {
+    setRows(prev => prev.map(r => r.supplier_id === id ? { ...r, ...patch } : r));
+  }
+
+  async function onToggleEnabled(row: SupplierAccessRow, value: boolean) {
+    const updated = { ...row, enabled: value, expanded: value };
+    updateRow(row.supplier_id, updated);
+    await syncSupplier(updated);
+  }
+
+  async function onChangeScope(row: SupplierAccessRow, scope: 'all' | 'specific') {
+    const updated = { ...row, scope };
+    updateRow(row.supplier_id, updated);
+    await syncSupplier(updated);
+  }
+
+  async function onToggleCatalog(row: SupplierAccessRow, catId: string) {
+    const next = new Set(row.selectedCatalogIds);
+    if (next.has(catId)) next.delete(catId); else next.add(catId);
+    const updated = { ...row, selectedCatalogIds: next, scope: 'specific' as const };
+    updateRow(row.supplier_id, updated);
+    await syncSupplier(updated);
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.portalCard}>
+        <ActivityIndicator color={colors.ink} />
+      </View>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <View style={styles.portalCard}>
+        <Text variant="heading">Acceso a catálogos</Text>
+        <Text variant="small" color="ink3">
+          Aún no tienes proveedores. Crea un proveedor antes de configurar el acceso del cliente.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.portalCard}>
+      <Text variant="heading">Acceso a catálogos</Text>
+      <Text variant="small" color="ink3" style={{ marginBottom: space[2] }}>
+        Decide qué proveedores y catálogos puede ver este cliente en su portal.
+      </Text>
+
+      {rows.map((row, idx) => (
+        <View key={row.supplier_id} style={[styles.supplierRow, idx !== 0 && styles.rowBorder]}>
+          <Pressable
+            style={styles.supplierHeader}
+            onPress={() => row.enabled && updateRow(row.supplier_id, { expanded: !row.expanded })}
+          >
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyMedium">{row.supplier_name}</Text>
+              <Text variant="caption" color="ink3">
+                {!row.enabled
+                  ? 'Sin acceso'
+                  : row.scope === 'all'
+                    ? `Todos los catálogos (${row.catalogs.length})`
+                    : `${row.selectedCatalogIds.size} de ${row.catalogs.length} catálogos`}
+              </Text>
+            </View>
+            <Switch
+              value={row.enabled}
+              onValueChange={v => onToggleEnabled(row, v)}
+              trackColor={{ false: colors.line, true: colors.brand }}
+              thumbColor={colors.white}
+            />
+          </Pressable>
+
+          {row.enabled && row.expanded && (
+            <View style={styles.supplierBody}>
+              {/* Selector de alcance */}
+              <View style={styles.scopeRow}>
+                <Pressable
+                  onPress={() => onChangeScope(row, 'all')}
+                  style={[styles.scopeBtn, row.scope === 'all' && styles.scopeBtnActive]}
+                >
+                  <Text variant="caption" color={row.scope === 'all' ? 'brand' : 'ink2'}>
+                    Todos
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => onChangeScope(row, 'specific')}
+                  style={[styles.scopeBtn, row.scope === 'specific' && styles.scopeBtnActive]}
+                >
+                  <Text variant="caption" color={row.scope === 'specific' ? 'brand' : 'ink2'}>
+                    Solo algunos
+                  </Text>
+                </Pressable>
+              </View>
+
+              {row.scope === 'specific' && (
+                <View style={{ gap: space[1] + 2 }}>
+                  {row.catalogs.length === 0 && (
+                    <Text variant="caption" color="ink4">Este proveedor no tiene catálogos.</Text>
+                  )}
+                  {row.catalogs.map(cat => {
+                    const checked = row.selectedCatalogIds.has(cat.id);
+                    return (
+                      <Pressable
+                        key={cat.id}
+                        onPress={() => onToggleCatalog(row, cat.id)}
+                        style={styles.catalogRow}
+                      >
+                        <View style={[styles.checkbox, checked && styles.checkboxOn]}>
+                          {checked && <Icon name="Check" size={14} color={colors.white} />}
+                        </View>
+                        <Text variant="small" color="ink2" style={{ flex: 1 }}>{cat.name}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function TarifaSelectorRow({ tariffs, value, editing, onChange }: {
+  tariffs: { id: string; name: string }[];
+  value: string | null;
+  editing: boolean;
+  onChange: (v: string | null) => void;
+}) {
+  const selected = tariffs.find(t => t.id === value);
+  const label = selected?.name ?? 'Sin tarifa (precio base)';
+
+  if (!editing) {
+    return (
+      <View style={[styles.fieldRow]}>
+        <Text variant="small" color="ink3" style={{ minWidth: 120 }}>Tarifa</Text>
+        <Text variant="smallMedium" color={selected ? 'ink' : 'ink4'} align="right" style={{ flex: 1 }}>
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
+  if (tariffs.length === 0) {
+    return (
+      <View style={[styles.fieldRow]}>
+        <Text variant="small" color="ink3" style={{ minWidth: 120 }}>Tarifa</Text>
+        <Text variant="caption" color="ink4" align="right" style={{ flex: 1 }}>
+          Aún no tienes tarifas. Créalas en Más → Tarifas.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.fieldRow, { flexDirection: 'column', alignItems: 'stretch', gap: space[2] }]}>
+      <Text variant="small" color="ink3">Tarifa</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space[1] + 2 }}>
+        <Pressable
+          onPress={() => onChange(null)}
+          style={({ pressed }) => [
+            tarifaStyles.chip,
+            value == null && tarifaStyles.chipActive,
+            pressed && { opacity: 0.7 },
+          ]}
+        >
+          <Text variant="caption" color={value == null ? 'brand' : 'ink2'}>
+            Sin tarifa
+          </Text>
+        </Pressable>
+        {tariffs.map(t => (
+          <Pressable
+            key={t.id}
+            onPress={() => onChange(t.id)}
+            style={({ pressed }) => [
+              tarifaStyles.chip,
+              value === t.id && tarifaStyles.chipActive,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text variant="caption" color={value === t.id ? 'brand' : 'ink2'}>
+              {t.name}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const tarifaStyles = StyleSheet.create({
+  chip: {
+    paddingHorizontal: space[3], paddingVertical: 6,
+    borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  chipActive: {
+    borderColor: colors.brand,
+    backgroundColor: colors.brandSoft,
+  },
+});
 
 function DataBlock({ title, icon, children }: { title: string; icon: IconName; children: React.ReactNode }) {
   return (
@@ -548,5 +857,51 @@ const styles = StyleSheet.create({
     paddingVertical: space[2], paddingHorizontal: space[3],
     marginTop: space[2],
     flexDirection: 'row', alignItems: 'center', gap: space[2],
+  },
+
+  supplierRow: { paddingVertical: space[2] },
+  supplierHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    paddingVertical: space[1] + 2,
+  },
+  supplierBody: {
+    marginTop: space[2],
+    paddingLeft: space[2],
+    paddingTop: space[2],
+    borderTopWidth: 1, borderTopColor: colors.line2,
+    gap: space[2],
+  },
+  scopeRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface2,
+    borderRadius: radius.sm,
+    padding: 2,
+    alignSelf: 'flex-start',
+  },
+  scopeBtn: {
+    paddingHorizontal: space[3], paddingVertical: 6,
+    borderRadius: radius.sm - 2,
+  },
+  scopeBtnActive: {
+    backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  catalogRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    paddingVertical: 6,
+  },
+  checkbox: {
+    width: 18, height: 18, borderRadius: 4,
+    borderWidth: 1.5, borderColor: colors.line,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  checkboxOn: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
 });

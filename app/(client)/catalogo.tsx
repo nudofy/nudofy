@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
-import { Screen, TopBar, Text, Icon } from '@/components/ui';
+import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import { useClientData, useClientPortalSuppliers, useClientCatalogs, useClientProducts } from '@/hooks/useClient';
 import { useCart } from '@/contexts/CartContext';
@@ -225,8 +225,9 @@ function ProductGrid({
         renderItem={({ item: product }) => {
           const qty = getItemQty(supplierId, product.id);
           const inCart = qty > 0;
+          const outOfStock = product.stock === 0;
           return (
-            <View style={styles.productCard}>
+            <View style={[styles.productCard, outOfStock && { opacity: 0.85 }]}>
               <View style={styles.productImg}>
                 {product.image_url ? (
                   <Image
@@ -237,6 +238,9 @@ function ProductGrid({
                 ) : (
                   <Icon name="Package" size={24} color={colors.ink4} />
                 )}
+                {outOfStock && (
+                  <View style={styles.outOfStockOverlay} pointerEvents="none" />
+                )}
               </View>
               <View style={styles.productBody}>
                 <Text variant="smallMedium" numberOfLines={2}>{product.name}</Text>
@@ -246,8 +250,17 @@ function ProductGrid({
                   </Text>
                 )}
                 <Text variant="bodyMedium" style={{ marginTop: 4 }}>{formatEur(product.price)}</Text>
+                {outOfStock && (
+                  <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
+                    <Badge label="Sin stock" variant="danger" />
+                  </View>
+                )}
               </View>
-              {!inCart ? (
+              {outOfStock ? (
+                <View style={[styles.addBtn, { backgroundColor: colors.line }]}>
+                  <Text variant="smallMedium" style={{ color: colors.ink3 }}>No disponible</Text>
+                </View>
+              ) : !inCart ? (
                 <Pressable
                   style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.85 }]}
                   onPress={() => handleAdd(product)}
@@ -357,6 +370,10 @@ const styles = StyleSheet.create({
   },
   productImage: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+  },
+  outOfStockOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   productBody: { padding: space[2], gap: 2 },
 

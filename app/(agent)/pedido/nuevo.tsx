@@ -73,7 +73,7 @@ export default function NuevoPedidoScreen() {
   const { orders: drafts, loading: draftsLoading, deleteOrder, refetch: refetchDrafts } = useOrders('draft');
   const { suppliers } = useSuppliers();
   const { catalogs } = useCatalogs(selectedSupplier?.id);
-  const { products } = useProducts(selectedCatalog?.id);
+  const { products } = useProducts(selectedCatalog?.id, selectedClient?.tariff_id ?? null);
 
   // Pre-seleccionar cliente si viene de la ficha
   React.useEffect(() => {

@@ -22,6 +22,7 @@ export default function MasScreen() {
 
   const menuItems: { label: string; icon: IconName; route: string | null }[] = [
     { label: 'Estadísticas', icon: 'ChartBar', route: '/(agent)/estadisticas' },
+    { label: 'Tarifas', icon: 'Tag', route: '/(agent)/tarifas' },
     { label: 'Notificaciones', icon: 'Bell', route: null },
     { label: 'Perfil y ajustes', icon: 'Settings', route: '/(agent)/perfil' },
     { label: 'Facturas', icon: 'Receipt', route: null },

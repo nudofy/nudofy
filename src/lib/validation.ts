@@ -70,6 +70,7 @@ export const ClientSchema = z.object({
   payment_method: optionalTrim,
   iban: optionalTrim,
   notes: optionalTrim,
+  tariff_id: z.string().uuid().nullable().optional(),
 });
 export type ClientInput = z.infer<typeof ClientSchema>;
 

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
-import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
+import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import { useProducts } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -145,9 +145,18 @@ export default function CatalogoScreen() {
           ) : null}
           <Text variant="bodyMedium" style={{ marginTop: 2 }}>{formatEur(item.price)}</Text>
           {item.stock != null ? (
-            <Text variant="caption" color="ink3">Stock: {item.stock}</Text>
+            item.stock === 0 ? (
+              <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
+                <Badge label="Sin stock" variant="danger" />
+              </View>
+            ) : (
+              <Text variant="caption" color="ink3">Stock: {item.stock}</Text>
+            )
           ) : null}
         </View>
+        {item.stock === 0 && (
+          <View style={styles.outOfStockOverlay} pointerEvents="none" />
+        )}
       </Pressable>
     );
   }
@@ -381,6 +390,11 @@ const styles = StyleSheet.create({
   },
   productImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   cardInfo: { padding: space[2], gap: 2 },
+  outOfStockOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: radius.md,
+  },
   emptyText: { paddingVertical: space[8] },
 
   modalOverlay: {
