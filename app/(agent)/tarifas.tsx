@@ -13,31 +13,36 @@ import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAgent } from '@/hooks/useAgent';
 import { useToast } from '@/contexts/ToastContext';
 
 type Tariff = {
   id: string;
   name: string;
   position: number;
+  discount_percent: number | null;
 };
 
 export default function TarifasScreen() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
+  const { agent } = useAgent();
 
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newDiscount, setNewDiscount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editDiscount, setEditDiscount] = useState('');
 
   async function fetchTariffs() {
     setLoading(true);
     const { data, error } = await supabase
       .from('tariffs')
-      .select('id, name, position')
+      .select('id, name, position, discount_percent')
       .order('position');
     if (error) toast.error(error.message);
     setTariffs((data ?? []) as Tariff[]);
@@ -47,28 +52,47 @@ export default function TarifasScreen() {
   useEffect(() => { fetchTariffs(); }, []);
 
   async function handleCreate() {
-    if (!newName.trim() || !user?.id) return;
+    if (!newName.trim()) return;
+    if (!agent?.id) {
+      toast.error('No se pudo identificar tu cuenta. Reinicia la app.');
+      return;
+    }
+    const discountNum = parseDiscount(newDiscount);
     const { error } = await supabase.from('tariffs').insert({
-      agent_id: user.id,
+      agent_id: agent.id,
       name: newName.trim(),
       position: tariffs.length,
+      discount_percent: discountNum,
     });
     if (error) { toast.error(error.message); return; }
     setNewName('');
+    setNewDiscount('');
     setCreating(false);
     fetchTariffs();
+  }
+
+  function parseDiscount(s: string): number | null {
+    const v = s.trim().replace(',', '.').replace('%', '');
+    if (v === '') return null;
+    const num = parseFloat(v);
+    if (isNaN(num) || num < 0 || num > 100) return null;
+    return num;
   }
 
   function startEdit(t: Tariff) {
     setEditingId(t.id);
     setEditName(t.name);
+    setEditDiscount(t.discount_percent != null ? String(t.discount_percent) : '');
   }
 
   async function handleSaveEdit() {
     if (!editingId || !editName.trim()) return;
     const { error } = await supabase
       .from('tariffs')
-      .update({ name: editName.trim() })
+      .update({
+        name: editName.trim(),
+        discount_percent: parseDiscount(editDiscount),
+      })
       .eq('id', editingId);
     if (error) { toast.error(error.message); return; }
     setEditingId(null);
@@ -132,17 +156,35 @@ export default function TarifasScreen() {
             <View style={styles.list}>
               {tariffs.map(t => (
                 <View key={t.id} style={styles.row}>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, gap: 4 }}>
                     {editingId === t.id ? (
-                      <TextInput
-                        style={styles.input}
-                        value={editName}
-                        onChangeText={setEditName}
-                        autoFocus
-                        placeholderTextColor={colors.ink4}
-                      />
+                      <>
+                        <TextInput
+                          style={styles.input}
+                          value={editName}
+                          onChangeText={setEditName}
+                          autoFocus
+                          placeholder="Nombre"
+                          placeholderTextColor={colors.ink4}
+                        />
+                        <TextInput
+                          style={styles.input}
+                          value={editDiscount}
+                          onChangeText={setEditDiscount}
+                          keyboardType="decimal-pad"
+                          placeholder="Descuento %  (opcional, ej: 10)"
+                          placeholderTextColor={colors.ink4}
+                        />
+                      </>
                     ) : (
-                      <Text variant="bodyMedium">{t.name}</Text>
+                      <>
+                        <Text variant="bodyMedium">{t.name}</Text>
+                        <Text variant="caption" color="ink3">
+                          {t.discount_percent != null
+                            ? `Descuento ${t.discount_percent}% sobre precio base`
+                            : 'Sin descuento global · solo precios específicos'}
+                        </Text>
+                      </>
                     )}
                   </View>
                   {editingId === t.id ? (
@@ -180,12 +222,23 @@ export default function TarifasScreen() {
                 placeholderTextColor={colors.ink4}
                 autoFocus
               />
+              <Text variant="caption" color="ink3" style={{ marginTop: space[2] }}>
+                Descuento global (opcional)
+              </Text>
+              <TextInput
+                style={[styles.input, { marginTop: 4 }]}
+                value={newDiscount}
+                onChangeText={setNewDiscount}
+                keyboardType="decimal-pad"
+                placeholder="Ej: 10  →  todos los productos sin precio específico llevan -10%"
+                placeholderTextColor={colors.ink4}
+              />
               <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[2] }}>
                 <Button
                   label="Cancelar"
                   variant="secondary"
                   size="sm"
-                  onPress={() => { setCreating(false); setNewName(''); }}
+                  onPress={() => { setCreating(false); setNewName(''); setNewDiscount(''); }}
                   style={{ flex: 1 }}
                 />
                 <Button

@@ -182,16 +182,28 @@ export function useClientProducts(catalogId?: string, search?: string) {
 
       if (tariffId) {
         const ids = list.map(p => p.id);
-        const { data: pps } = await supabase
-          .from('product_prices')
-          .select('product_id, price')
-          .eq('tariff_id', tariffId)
-          .in('product_id', ids);
+        const [{ data: pps }, { data: tariff }] = await Promise.all([
+          supabase
+            .from('product_prices')
+            .select('product_id, price')
+            .eq('tariff_id', tariffId)
+            .in('product_id', ids),
+          supabase
+            .from('tariffs')
+            .select('discount_percent')
+            .eq('id', tariffId)
+            .maybeSingle(),
+        ]);
         const map = new Map<string, number>();
         for (const pp of pps ?? []) map.set(pp.product_id, pp.price);
+        const disc = (tariff as any)?.discount_percent;
         for (const p of list) {
           const tp = map.get(p.id);
-          if (tp != null) p.price = tp;
+          if (tp != null) {
+            p.price = tp;
+          } else if (disc != null && disc > 0) {
+            p.price = Math.round(p.price * (1 - disc / 100) * 100) / 100;
+          }
         }
       }
     }
