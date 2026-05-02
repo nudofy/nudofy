@@ -8,11 +8,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
-import { useProducts } from '@/hooks/useAgent';
+import { useProducts, useProductAttributes, useProductVariants } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { ProductSchema, validate } from '@/lib/validation';
 import type { Product, ProductImage } from '@/hooks/useAgent';
+import AttributesEditor, { type AttributeDraft, type VariantDraft } from '@/components/AttributesEditor';
 
 export default function EditarProductoScreen() {
   const router = useRouter();
@@ -41,8 +42,13 @@ export default function EditarProductoScreen() {
   const [published, setPublished] = useState(true);
   const [tariffs, setTariffs] = useState<{ id: string; name: string }[]>([]);
   const [tariffPrices, setTariffPrices] = useState<Record<string, string>>({});
+  const [attributeDrafts, setAttributeDrafts] = useState<AttributeDraft[]>([]);
+  const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
+  const { attributes: existingAttributes, saveAttributes } = useProductAttributes(id);
+  const { variants: existingVariants, saveVariants } = useProductVariants(id);
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +78,37 @@ export default function EditarProductoScreen() {
       setImages(urls.length > 0 ? urls : p.image_url ? [p.image_url] : []);
       setLoaded(true);
     });
+  }, [id]);
+
+  // Cargar atributos existentes en los drafts cuando están disponibles
+  useEffect(() => {
+    if (existingAttributes.length > 0) {
+      setAttributeDrafts(existingAttributes.map(a => ({
+        id: a.id,
+        name: a.name,
+        options: a.options.map(o => o.value),
+        optionInput: '',
+      })));
+    }
+  }, [existingAttributes]);
+
+  // Cargar variantes existentes en los drafts
+  useEffect(() => {
+    if (existingVariants.length > 0) {
+      setVariantDrafts(existingVariants.map(v => ({
+        attributes: v.attributes,
+        reference: v.reference ?? '',
+        barcode: v.barcode ?? '',
+        stock: v.stock != null ? String(v.stock) : '',
+        available: v.available !== false,
+        image_url: v.image_url ?? null,
+      })));
+    }
+  }, [existingVariants]);
+
+  useEffect(() => {
+    if (!id) return;
+    // Tarifas y precios por tarifa — bloque separado para evitar duplicar el useEffect principal
 
     // Tarifas y precios por tarifa
     Promise.all([
@@ -193,6 +230,28 @@ export default function EditarProductoScreen() {
           .in('tariff_id', deletes);
       }
 
+      // Guardar atributos
+      const { error: attrErr } = await saveAttributes(
+        attributeDrafts.map(a => ({ name: a.name, options: a.options }))
+      );
+      if (attrErr) { toast.error(attrErr); return; }
+
+      // Guardar variantes
+      const { error: varErr } = await saveVariants(
+        variantDrafts.map((vd, i) => ({
+          product_id: id,
+          attributes: vd.attributes,
+          reference: vd.reference.trim() || null,
+          barcode: vd.barcode.trim() || null,
+          stock: vd.stock ? parseInt(vd.stock) : null,
+          available: vd.available !== false,
+          image_url: vd.image_url ?? null,
+          position: i,
+        }))
+      );
+      if (varErr) { toast.error(varErr); return; }
+
+      toast.success('Producto actualizado');
       router.back();
     } catch (e: any) {
       toast.error(e?.message ?? 'Inténtalo de nuevo');
@@ -293,6 +352,22 @@ export default function EditarProductoScreen() {
             <Field label="Caja estándar (uds.)" value={standardBox} onChangeText={setStandardBox} placeholder="12" keyboardType="numeric" />
             <Field label="Unidades mínimas" value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" last />
           </Section>
+
+          {/* Atributos */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="caption" color="ink3" style={styles.sectionTitle}>ATRIBUTOS</Text>
+            </View>
+            <Text variant="small" color="ink3" style={{ paddingHorizontal: space[1], marginBottom: space[2] }}>
+              Variantes del producto (Talla, Color, Tamaño...). Al pedir se elige la opción.
+            </Text>
+            <AttributesEditor
+              attributes={attributeDrafts}
+              variants={variantDrafts}
+              onAttributesChange={setAttributeDrafts}
+              onVariantsChange={setVariantDrafts}
+            />
+          </View>
 
           <Section title="Visibilidad">
             <View style={styles.publishedRow}>

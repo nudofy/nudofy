@@ -1,13 +1,16 @@
 // A-09 · Estadísticas del agente
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, ScrollView, Pressable, StyleSheet,
+  View, ScrollView, Pressable, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text } from '@/components/ui';
-import { useStats } from '@/hooks/useAgent';
+import { useStats, useAgent } from '@/hooks/useAgent';
+import { supabase } from '@/lib/supabase';
 import type { MonthStat, YearStat } from '@/hooks/useAgent';
+
+type MonthOrder = { id: string; order_number?: string; total: number; created_at: string; client?: { name: string }; supplier?: { name: string } };
 
 type Tab = 'mensual' | 'anual';
 
@@ -19,11 +22,35 @@ export default function EstadisticasScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('mensual');
   const { monthStats, yearStats, totalOrders, totalRevenue, loading } = useStats();
+  const { agent } = useAgent();
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [monthOrders, setMonthOrders] = useState<MonthOrder[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
+  const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
   const currentMonthStat = monthStats[currentMonth];
   const maxMonthTotal = Math.max(...monthStats.map(m => m.total), 1);
   const maxYearTotal = Math.max(...yearStats.map(y => y.total), 1);
+
+  useEffect(() => {
+    if (selectedMonth === null || !agent) { setMonthOrders([]); return; }
+    setLoadingOrders(true);
+    const from = new Date(currentYear, selectedMonth, 1).toISOString();
+    const to = new Date(currentYear, selectedMonth + 1, 1).toISOString();
+    supabase
+      .from('orders')
+      .select('id, order_number, total, created_at, client:clients(name), supplier:suppliers(name)')
+      .eq('agent_id', agent.id)
+      .in('status', ['confirmed', 'sent_to_supplier', 'proposal_sent'])
+      .gte('created_at', from)
+      .lt('created_at', to)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setMonthOrders((data ?? []) as MonthOrder[]);
+        setLoadingOrders(false);
+      });
+  }, [selectedMonth, agent]);
 
   return (
     <Screen>
@@ -68,6 +95,10 @@ export default function EstadisticasScreen() {
             currentMonth={currentMonth}
             currentStat={currentMonthStat}
             maxTotal={maxMonthTotal}
+            selectedMonth={selectedMonth}
+            onSelectMonth={(m) => setSelectedMonth(prev => prev === m ? null : m)}
+            monthOrders={monthOrders}
+            loadingOrders={loadingOrders}
           />
         ) : (
           <AnualTab stats={yearStats} maxTotal={maxYearTotal} />
@@ -77,13 +108,18 @@ export default function EstadisticasScreen() {
   );
 }
 
-function MensualTab({ stats, currentMonth, currentStat, maxTotal }: {
+function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth, onSelectMonth, monthOrders, loadingOrders }: {
   stats: MonthStat[];
   currentMonth: number;
   currentStat?: MonthStat;
   maxTotal: number;
+  selectedMonth: number | null;
+  onSelectMonth: (m: number) => void;
+  monthOrders: MonthOrder[];
+  loadingOrders: boolean;
 }) {
   const year = new Date().getFullYear();
+  const selectedStat = selectedMonth !== null ? stats[selectedMonth] : null;
 
   return (
     <View style={styles.tabContent}>
@@ -105,37 +141,71 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal }: {
         </View>
       </View>
 
-      {/* Barras por mes */}
+      {/* Barras por mes — pulsables */}
       <View style={styles.card}>
         <Text variant="bodyMedium">Facturación mensual {year}</Text>
         <View style={styles.barsWrap}>
           {stats.map((m) => {
             const pct = maxTotal > 0 ? m.total / maxTotal : 0;
             const isCurrent = m.month === currentMonth;
+            const isSelected = m.month === selectedMonth;
             return (
-              <View key={m.month} style={styles.barCol}>
+              <Pressable key={m.month} style={styles.barCol} onPress={() => onSelectMonth(m.month)}>
                 <Text variant="caption" color="ink4" style={styles.barAmount}>
                   {m.total > 0 ? (m.total >= 1000 ? `${(m.total / 1000).toFixed(1)}k` : `${Math.round(m.total)}`) : ''}
                 </Text>
-                <View style={styles.barTrack}>
+                <View style={[styles.barTrack, isSelected && { backgroundColor: colors.brandSoft }]}>
                   <View style={[
                     styles.barFill,
                     { height: `${Math.max(pct * 100, m.total > 0 ? 4 : 0)}%` },
-                    isCurrent && styles.barFillActive,
+                    (isCurrent || isSelected) && styles.barFillActive,
+                    isSelected && styles.barFillSelected,
                   ]} />
                 </View>
                 <Text
                   variant="caption"
-                  color={isCurrent ? 'ink' : 'ink3'}
-                  style={styles.barLabel}
+                  color={isSelected ? 'brand' : isCurrent ? 'ink' : 'ink3'}
+                  style={[styles.barLabel, isSelected && { fontWeight: '700' }]}
                 >
                   {m.label}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </View>
+        {selectedMonth !== null && (
+          <Text variant="caption" color="ink3" align="center">
+            Toca el mismo mes para cerrar
+          </Text>
+        )}
       </View>
+
+      {/* Pedidos del mes seleccionado */}
+      {selectedMonth !== null && (
+        <View style={styles.card}>
+          <Text variant="bodyMedium">
+            {selectedStat?.label} {year} · {selectedStat?.orders ?? 0} pedido{(selectedStat?.orders ?? 0) !== 1 ? 's' : ''}
+          </Text>
+          {loadingOrders ? (
+            <ActivityIndicator size="small" color={colors.ink3} />
+          ) : monthOrders.length === 0 ? (
+            <Text variant="small" color="ink3" align="center" style={styles.empty}>
+              Sin pedidos confirmados este mes
+            </Text>
+          ) : (
+            monthOrders.map((o, i) => (
+              <View key={o.id} style={[styles.tableRow, i < monthOrders.length - 1 && styles.tableRowBorder]}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  {o.order_number ? <Text variant="caption" color="ink3">{o.order_number}</Text> : null}
+                  <Text variant="smallMedium">{(o.client as any)?.name ?? '—'}</Text>
+                  <Text variant="caption" color="ink3">{(o.supplier as any)?.name ?? '—'}</Text>
+                </View>
+                <Text variant="bodyMedium" style={styles.tableAmount}>{formatEur(o.total)}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      )}
 
       {/* Tabla mensual */}
       <View style={styles.card}>
@@ -146,9 +216,10 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal }: {
           </Text>
         ) : (
           stats.map((m, i) => m.orders > 0 && (
-            <View
+            <Pressable
               key={m.month}
-              style={[styles.tableRow, i < stats.length - 1 && styles.tableRowBorder]}
+              style={[styles.tableRow, i < stats.length - 1 && styles.tableRowBorder, m.month === selectedMonth && { backgroundColor: colors.surface }]}
+              onPress={() => onSelectMonth(m.month)}
             >
               <Text
                 variant={m.month === currentMonth ? 'bodyMedium' : 'body'}
@@ -162,7 +233,7 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal }: {
               <Text variant="bodyMedium" style={styles.tableAmount}>
                 {formatEur(m.total)}
               </Text>
-            </View>
+            </Pressable>
           ))
         )}
       </View>
@@ -180,29 +251,27 @@ function AnualTab({ stats, maxTotal }: { stats: YearStat[]; maxTotal: number }) 
       ) : (
         <>
           {/* Barras por año */}
-          {stats.length > 1 && (
-            <View style={styles.card}>
-              <Text variant="bodyMedium">Facturación anual</Text>
-              <View style={[styles.barsWrap, { gap: 16 }]}>
-                {stats.map((y) => {
-                  const pct = maxTotal > 0 ? y.total / maxTotal : 0;
-                  return (
-                    <View key={y.year} style={styles.barCol}>
-                      <Text variant="caption" color="ink4" style={styles.barAmount}>
-                        {y.total >= 1000 ? `${(y.total / 1000).toFixed(1)}k` : `${Math.round(y.total)}`}
-                      </Text>
-                      <View style={styles.barTrack}>
-                        <View style={[styles.barFill, styles.barFillActive, { height: `${Math.max(pct * 100, 4)}%` }]} />
-                      </View>
-                      <Text variant="caption" color="ink3" style={styles.barLabel}>
-                        {y.year}
-                      </Text>
+          <View style={styles.card}>
+            <Text variant="bodyMedium">Facturación anual</Text>
+            <View style={[styles.barsWrap, { gap: 16 }]}>
+              {stats.map((y) => {
+                const pct = maxTotal > 0 ? y.total / maxTotal : 0;
+                return (
+                  <View key={y.year} style={[styles.barCol, stats.length === 1 && { maxWidth: 80 }]}>
+                    <Text variant="caption" color="ink4" style={styles.barAmount}>
+                      {y.total >= 1000 ? `${(y.total / 1000).toFixed(1)}k` : `${Math.round(y.total)}`}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, styles.barFillActive, { height: `${Math.max(pct * 100, 4)}%` }]} />
                     </View>
-                  );
-                })}
-              </View>
+                    <Text variant="caption" color="ink3" style={styles.barLabel}>
+                      {y.year}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
-          )}
+          </View>
 
           {/* Tabla anual */}
           <View style={styles.card}>

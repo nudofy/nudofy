@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { AgentContext } from '@/contexts/AgentContext';
 
 // ——————————————————————————————
 // Tipos
@@ -11,6 +12,7 @@ export interface Agent {
   email: string;
   phone?: string;
   plan: string;
+  accepted_dpa_at?: string | null;
 }
 
 export interface Client {
@@ -24,7 +26,6 @@ export interface Client {
   contact_name?: string;
   client_type?: string;
   payment_method?: string;
-  iban?: string;
   notes?: string;
   tariff_id?: string | null;
   created_at: string;
@@ -83,13 +84,40 @@ export interface ProductImage {
   position: number;
 }
 
+export interface ProductAttributeOption {
+  id: string;
+  attribute_id: string;
+  value: string;
+  position: number;
+}
+
+export interface ProductAttribute {
+  id: string;
+  product_id: string;
+  name: string;
+  position: number;
+  options: ProductAttributeOption[];
+}
+
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  attributes: Record<string, string>;
+  reference?: string;
+  barcode?: string;
+  stock?: number;
+  position: number;
+  available?: boolean;
+  image_url?: string | null;
+}
+
 export interface Order {
   id: string;
   client_id?: string;
   supplier_id: string;
   catalog_id?: string;
   order_number?: string;
-  status: 'draft' | 'confirmed' | 'sent_to_supplier' | 'cancelled';
+  status: 'draft' | 'confirmed' | 'sent_to_supplier' | 'cancelled' | 'proposal_sent';
   total: number;
   discount_code?: string;
   notes?: string;
@@ -106,33 +134,43 @@ export interface OrderItem {
   id: string;
   order_id: string;
   product_id: string;
+  variant_id?: string | null;
   quantity: number;
   unit_price: number;
   total: number;
+  attributes?: Record<string, string> | null;
   product?: Pick<Product, 'id' | 'name' | 'reference'>;
+  variant?: Pick<ProductVariant, 'id' | 'reference' | 'barcode' | 'attributes'>;
 }
 
 // ——————————————————————————————
 // Hook principal del agente
+// Lee del AgentContext si está disponible (pantallas dentro de (agent)/_layout).
+// Hace su propio fetch solo como fallback para pantallas fuera de ese layout.
 // ——————————————————————————————
 export function useAgent() {
+  const ctx = useContext(AgentContext);
   const { user } = useAuth();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    // Si hay context, no hacemos fetch propio
+    if (ctx !== null) return;
+    if (!user) { setLoading(false); return; }
     supabase
       .from('agents')
       .select('id, name, email, phone, plan')
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
-        setAgent(data);
+        setAgent(data ?? null);
         setLoading(false);
       });
-  }, [user]);
+  }, [ctx, user]);
 
+  // Preferir datos del context
+  if (ctx !== null) return ctx;
   return { agent, loading };
 }
 
@@ -187,9 +225,10 @@ export function useSuppliers() {
     if (!agent) return;
     const { data } = await supabase
       .from('suppliers')
-      .select('id, name, contact, conditions, logo_url, active, catalogs(count)')
+      .select('id, name, contact, conditions, logo_url, active, position, catalogs(count)')
       .eq('agent_id', agent.id)
-      .order('name');
+      .order('position', { ascending: true })
+      .order('name', { ascending: true });
 
     const mapped = (data ?? []).map((s: any) => ({
       ...s,
@@ -232,8 +271,9 @@ export function useCatalogs(supplierId?: string) {
     if (!supplierId) { setLoading(false); return; }
     const { data } = await supabase
       .from('catalogs')
-      .select('id, supplier_id, name, season, status, created_at, products(count)')
+      .select('id, supplier_id, name, season, status, created_at, position, products(count)')
       .eq('supplier_id', supplierId)
+      .order('position', { ascending: true })
       .order('created_at', { ascending: false });
 
     const mapped = (data ?? []).map((c: any) => ({
@@ -516,4 +556,123 @@ export function useDashboardKPIs() {
   }, [agent]);
 
   return { kpis, recentOrders, loading };
+}
+
+// ——————————————————————————————
+// Atributos de producto
+// ——————————————————————————————
+export function useProductAttributes(productId: string | undefined) {
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchAttributes = useCallback(async () => {
+    if (!productId) { setAttributes([]); return; }
+    setLoading(true);
+    // Dos queries separadas para evitar statement timeout con el embed anidado
+    const { data: attrs } = await supabase
+      .from('product_attributes')
+      .select('id, product_id, name, position')
+      .eq('product_id', productId)
+      .order('position', { ascending: true });
+    if (!attrs || attrs.length === 0) { setAttributes([]); setLoading(false); return; }
+    const attrIds = attrs.map((a: any) => a.id);
+    const { data: opts } = await supabase
+      .from('product_attribute_options')
+      .select('id, attribute_id, value, position')
+      .in('attribute_id', attrIds)
+      .order('position', { ascending: true });
+    const optsMap: Record<string, any[]> = {};
+    for (const o of opts ?? []) {
+      if (!optsMap[o.attribute_id]) optsMap[o.attribute_id] = [];
+      optsMap[o.attribute_id].push(o);
+    }
+    const mapped: ProductAttribute[] = attrs.map((a: any) => ({
+      ...a,
+      options: (optsMap[a.id] ?? []).sort((x: any, y: any) => x.position - y.position),
+    }));
+    setAttributes(mapped);
+    setLoading(false);
+  }, [productId]);
+
+  useEffect(() => { fetchAttributes(); }, [fetchAttributes]);
+
+  async function saveAttributes(attrs: { name: string; options: string[] }[]): Promise<{ error: string | null }> {
+    if (!productId) return { error: 'No hay producto' };
+    // Borrar todos los atributos actuales (cascade borra opciones)
+    const { error: delErr } = await supabase
+      .from('product_attributes')
+      .delete()
+      .eq('product_id', productId);
+    if (delErr) return { error: delErr.message };
+
+    for (let i = 0; i < attrs.length; i++) {
+      const attr = attrs[i];
+      if (!attr.name.trim()) continue;
+      const { data: attrData, error: attrErr } = await supabase
+        .from('product_attributes')
+        .insert({ product_id: productId, name: attr.name.trim(), position: i })
+        .select('id')
+        .single();
+      if (attrErr || !attrData) return { error: attrErr?.message ?? 'Error al crear atributo' };
+
+      const optionRows = attr.options
+        .map((v, j) => ({ attribute_id: attrData.id, value: v.trim(), position: j }))
+        .filter(o => o.value);
+      if (optionRows.length > 0) {
+        const { error: optErr } = await supabase
+          .from('product_attribute_options')
+          .insert(optionRows);
+        if (optErr) return { error: optErr.message };
+      }
+    }
+
+    await fetchAttributes();
+    return { error: null };
+  }
+
+  return { attributes, loading, saveAttributes, refetch: fetchAttributes };
+}
+
+// ——————————————————————————————
+// Variantes de producto
+// ——————————————————————————————
+export function useProductVariants(productId: string | undefined) {
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchVariants = useCallback(async () => {
+    if (!productId) { setVariants([]); return; }
+    setLoading(true);
+    const { data } = await supabase
+      .from('product_variants')
+      .select('*')
+      .eq('product_id', productId)
+      .order('position', { ascending: true });
+    setVariants((data ?? []) as ProductVariant[]);
+    setLoading(false);
+  }, [productId]);
+
+  useEffect(() => { fetchVariants(); }, [fetchVariants]);
+
+  async function saveVariants(variants: Omit<ProductVariant, 'id' | 'created_at'>[]): Promise<{ error: string | null }> {
+    if (!productId) return { error: 'No hay producto' };
+    // Borrar todas las variantes actuales y recriarlas
+    const { error: delErr } = await supabase
+      .from('product_variants')
+      .delete()
+      .eq('product_id', productId);
+    if (delErr) return { error: delErr.message };
+
+    if (variants.length === 0) { await fetchVariants(); return { error: null }; }
+
+    const { error: insErr } = await supabase
+      .from('product_variants')
+      .insert(variants.map((v, i) => ({ ...v, product_id: productId, position: i })));
+    if (insErr) return { error: insErr.message };
+
+    await fetchVariants();
+    return { error: null };
+  }
+
+  return { variants, loading, saveVariants, refetch: fetchVariants };
 }

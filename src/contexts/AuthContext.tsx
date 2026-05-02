@@ -57,7 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', userId)
       .single();
 
-    if (!error && data) setProfile(data as UserProfile);
+    if (!error && data) {
+      setProfile(data as UserProfile);
+    } else {
+      // Perfil no encontrado o error de red: cerrar sesión para evitar limbo
+      console.warn('[AuthContext] fetchProfile falló, cerrando sesión:', error?.message);
+      await supabase.auth.signOut();
+    }
     setLoading(false);
   }
 

@@ -26,6 +26,10 @@ function DataRow({ label, value, last }: { label: string; value: string | number
   );
 }
 
+type AttrOption = { id: string; value: string; position: number };
+type AttrFull = { id: string; name: string; position: number; options: AttrOption[] };
+type VariantFull = { id: string; attributes: Record<string, string>; reference?: string; barcode?: string; stock?: number; position: number };
+
 export default function ProductoScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +40,8 @@ export default function ProductoScreen() {
   const [imgIndex, setImgIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [attributes, setAttributes] = useState<AttrFull[]>([]);
+  const [variants, setVariants] = useState<VariantFull[]>([]);
 
   const fetchProduct = useCallback(() => {
     if (!id) return;
@@ -64,6 +70,36 @@ export default function ProductoScreen() {
       .eq('product_id', id)
       .order('position')
       .then(({ data }) => setExtraImages(data ?? []));
+    // Atributos y variantes: queries simples por separado para evitar timeouts
+    supabase
+      .from('product_attributes')
+      .select('id, name, position')
+      .eq('product_id', id)
+      .order('position')
+      .then(async ({ data: attrs }) => {
+        if (!attrs || attrs.length === 0) { setAttributes([]); return; }
+        const attrIds = attrs.map((a: any) => a.id);
+        const { data: opts } = await supabase
+          .from('product_attribute_options')
+          .select('id, attribute_id, value, position')
+          .in('attribute_id', attrIds)
+          .order('position');
+        const optsMap: Record<string, AttrOption[]> = {};
+        for (const o of opts ?? []) {
+          if (!optsMap[o.attribute_id]) optsMap[o.attribute_id] = [];
+          optsMap[o.attribute_id].push(o);
+        }
+        setAttributes(attrs.map((a: any) => ({
+          ...a,
+          options: (optsMap[a.id] ?? []).sort((x, y) => x.position - y.position),
+        })));
+      });
+    supabase
+      .from('product_variants')
+      .select('id, attributes, reference, barcode, stock, position')
+      .eq('product_id', id)
+      .order('position')
+      .then(({ data }) => setVariants((data ?? []) as VariantFull[]));
   }, [id]);
 
   useEffect(() => { fetchProduct(); }, [fetchProduct]);
@@ -193,6 +229,53 @@ export default function ProductoScreen() {
             <DataRow label="Unidades mínimas" value={product.min_units != null ? `${product.min_units} uds.` : null} last />
           </View>
         </View>
+
+        {/* Atributos y variantes */}
+        {attributes.length > 0 && (
+          <View style={styles.detailsBlock}>
+            <Text variant="caption" color="ink3" style={styles.sectionLabel}>Atributos</Text>
+            <View style={styles.detailsCard}>
+              {attributes.map((attr, ai) => (
+                <View key={attr.id} style={[styles.attrRow, ai < attributes.length - 1 && styles.dataRowBorder]}>
+                  <Text variant="smallMedium" color="ink3" style={{ marginBottom: 6 }}>{attr.name}</Text>
+                  <View style={styles.optionsWrap}>
+                    {attr.options.map(opt => (
+                      <View key={opt.id} style={styles.optChip}>
+                        <Text variant="caption" color="ink2">{opt.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {variants.length > 0 && (
+          <View style={[styles.detailsBlock, { paddingBottom: space[8] }]}>
+            <Text variant="caption" color="ink3" style={styles.sectionLabel}>
+              Variantes ({variants.length})
+            </Text>
+            <View style={styles.detailsCard}>
+              {variants.map((v, vi) => {
+                const label = Object.entries(v.attributes).map(([k, val]) => `${k}: ${val}`).join(' · ');
+                const hasExtra = v.reference || v.barcode || v.stock != null;
+                return (
+                  <View key={v.id} style={[styles.variantRow, vi < variants.length - 1 && styles.dataRowBorder]}>
+                    <Text variant="smallMedium">{label}</Text>
+                    {hasExtra && (
+                      <View style={styles.variantMeta}>
+                        {v.reference ? <Text variant="caption" color="ink3">Ref: {v.reference}</Text> : null}
+                        {v.barcode ? <Text variant="caption" color="ink3">EAN: {v.barcode}</Text> : null}
+                        {v.stock != null ? <Text variant="caption" color="ink3">Stock: {v.stock}</Text> : null}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </Screen>
   );
@@ -248,4 +331,21 @@ const styles = StyleSheet.create({
     paddingVertical: space[3],
   },
   dataRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  attrRow: {
+    paddingHorizontal: space[3],
+    paddingVertical: space[3],
+  },
+  optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space[1] },
+  optChip: {
+    backgroundColor: colors.surface2,
+    borderRadius: radius.full,
+    paddingHorizontal: space[2],
+    paddingVertical: 4,
+  },
+  variantRow: {
+    paddingHorizontal: space[3],
+    paddingVertical: space[3],
+    gap: 4,
+  },
+  variantMeta: { flexDirection: 'row', gap: space[3], flexWrap: 'wrap', marginTop: 2 },
 });

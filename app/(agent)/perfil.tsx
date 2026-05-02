@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, TextInput, Pressable,
-  ScrollView, StyleSheet,
-  KeyboardAvoidingView, Platform,
+  ScrollView, StyleSheet, Alert,
+  KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
@@ -11,12 +11,15 @@ import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { useAgent } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PerfilScreen() {
   const router = useRouter();
   const toast = useToast();
   const { agent } = useAgent();
+  const { signOut, session } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -41,6 +44,67 @@ export default function PerfilScreen() {
     if (error) { toast.error(error.message); return; }
     setEditing(false);
     toast.success('Perfil actualizado');
+  }
+
+  async function handleExportData() {
+    if (!agent) return;
+    const { data: clients } = await supabase
+      .from('clients').select('name, email, phone, address, nif, fiscal_name, payment_method, notes').eq('agent_id', agent.id);
+    const { data: orders } = await supabase
+      .from('orders').select('id, created_at, status, total').eq('agent_id', agent.id);
+
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      agent: { name: agent.name, email: agent.email, phone: agent.phone, plan: agent.plan },
+      clients: clients ?? [],
+      orders: orders ?? [],
+    };
+
+    const json = JSON.stringify(exportData, null, 2);
+    // En móvil compartimos via Share
+    const { Share } = await import('react-native');
+    await Share.share({ message: json, title: 'Mis datos Nudofy' });
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Se borrarán permanentemente tu cuenta, todos tus clientes, catálogos, pedidos y datos. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: confirmDeleteAccount,
+        },
+      ]
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    if (!session) return;
+    setDeletingAccount(true);
+    try {
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+      const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+          'Content-Type': 'application/json',
+        },
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        toast.error(json.error ?? 'Error al eliminar la cuenta');
+      } else {
+        await signOut();
+      }
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setDeletingAccount(false);
+    }
   }
 
   async function handleChangePassword() {
@@ -129,6 +193,47 @@ export default function PerfilScreen() {
               >
                 <Icon name="KeyRound" size={18} color={colors.ink2} />
                 <Text variant="body" style={{ flex: 1 }}>Cambiar contraseña</Text>
+                <Icon name="ChevronRight" size={18} color={colors.ink4} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Privacidad y datos */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Privacidad y datos</Text>
+            <View style={styles.sectionBody}>
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, styles.fieldBorder, pressed && { opacity: 0.7 }]}
+                onPress={handleExportData}
+              >
+                <Icon name="Download" size={18} color={colors.ink2} />
+                <Text variant="body" style={{ flex: 1 }}>Exportar mis datos</Text>
+                <Icon name="ChevronRight" size={18} color={colors.ink4} />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={() => Linking.openURL('https://nudofy.com/privacidad')}
+              >
+                <Icon name="Shield" size={18} color={colors.ink2} />
+                <Text variant="body" style={{ flex: 1 }}>Política de privacidad</Text>
+                <Icon name="ChevronRight" size={18} color={colors.ink4} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Zona peligrosa */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Zona de peligro</Text>
+            <View style={styles.sectionBody}>
+              <Pressable
+                style={({ pressed }) => [styles.actionRow, pressed && { opacity: 0.7 }]}
+                onPress={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                <Icon name="Trash2" size={18} color={colors.danger ?? '#E73121'} />
+                <Text variant="body" style={{ flex: 1, color: colors.danger ?? '#E73121' }}>
+                  {deletingAccount ? 'Eliminando...' : 'Eliminar mi cuenta'}
+                </Text>
                 <Icon name="ChevronRight" size={18} color={colors.ink4} />
               </Pressable>
             </View>

@@ -12,6 +12,8 @@ import { useProducts } from '@/hooks/useAgent';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { ProductSchema, validate } from '@/lib/validation';
+import AttributesEditor, { type AttributeDraft, type VariantDraft } from '@/components/AttributesEditor';
+import { useProductVariants } from '@/hooks/useAgent';
 
 export default function NuevoProductoScreen() {
   const router = useRouter();
@@ -34,6 +36,8 @@ export default function NuevoProductoScreen() {
   const [standardBox, setStandardBox] = useState('');
   const [minUnits, setMinUnits] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [attributeDrafts, setAttributeDrafts] = useState<AttributeDraft[]>([]);
+  const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const [saving, setSaving] = useState(false);
 
   const canSave = name.trim().length > 0 && price.trim().length > 0;
@@ -114,6 +118,39 @@ export default function NuevoProductoScreen() {
         );
       }
 
+      // Guardar atributos
+      if (data?.id && attributeDrafts.length > 0) {
+        for (let i = 0; i < attributeDrafts.length; i++) {
+          const attr = attributeDrafts[i];
+          if (!attr.name.trim()) continue;
+          const { data: attrData } = await supabase
+            .from('product_attributes')
+            .insert({ product_id: data.id, name: attr.name.trim(), position: i })
+            .select('id').single();
+          if (attrData && attr.options.length > 0) {
+            await supabase.from('product_attribute_options').insert(
+              attr.options.map((v, j) => ({ attribute_id: attrData.id, value: v, position: j }))
+            );
+          }
+        }
+      }
+
+      // Guardar variantes
+      if (data?.id && variantDrafts.length > 0) {
+        await supabase.from('product_variants').insert(
+          variantDrafts.map((vd, i) => ({
+            product_id: data.id,
+            attributes: vd.attributes,
+            reference: vd.reference.trim() || null,
+            barcode: vd.barcode.trim() || null,
+            stock: vd.stock ? parseInt(vd.stock) : null,
+            available: vd.available !== false,
+            image_url: vd.image_url ?? null,
+            position: i,
+          }))
+        );
+      }
+
       toast.success('Producto creado');
       router.back();
     } catch (e: any) {
@@ -187,6 +224,22 @@ export default function NuevoProductoScreen() {
             <Field label="Caja estándar (uds.)" value={standardBox} onChangeText={setStandardBox} placeholder="12" keyboardType="numeric" />
             <Field label="Unidades mínimas" value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" last />
           </Section>
+
+          {/* Atributos */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="caption" color="ink3" style={styles.sectionTitle}>ATRIBUTOS</Text>
+            </View>
+            <Text variant="small" color="ink3" style={{ paddingHorizontal: space[1], marginBottom: space[2] }}>
+              Añade variantes del producto como Talla, Color o Tamaño. Al hacer un pedido se podrá elegir la opción.
+            </Text>
+            <AttributesEditor
+              attributes={attributeDrafts}
+              variants={variantDrafts}
+              onAttributesChange={setAttributeDrafts}
+              onVariantsChange={setVariantDrafts}
+            />
+          </View>
 
           <Button
             label="Guardar producto"

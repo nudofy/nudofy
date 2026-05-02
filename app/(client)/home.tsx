@@ -11,6 +11,7 @@ import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import Avatar from '@/components/Avatar';
 import StatusBadge from '@/components/StatusBadge';
 import { useClientData, useClientOrders } from '@/hooks/useClient';
+import { useToast } from '@/contexts/ToastContext';
 import type { IconName } from '@/components/ui/Icon';
 
 function formatEur(n: number) {
@@ -30,6 +31,7 @@ function formatDate(iso: string) {
 
 export default function ClientHomeScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { client, agent, loading } = useClientData();
   const { orders } = useClientOrders(client?.id);
 
@@ -55,7 +57,11 @@ export default function ClientHomeScreen() {
           </View>
           <Text variant="bodyMedium">nudofy</Text>
         </View>
-        <Pressable style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}>
+        <Pressable
+          style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+          onPress={() => toast.info('Las notificaciones estarán disponibles próximamente')}
+          accessibilityLabel="Notificaciones"
+        >
           <Icon name="Bell" size={20} color={colors.ink2} />
         </Pressable>
       </View>
@@ -86,7 +92,13 @@ export default function ClientHomeScreen() {
                   label="WhatsApp"
                   icon="MessageCircle"
                   variant="secondary"
-                  onPress={() => Linking.openURL(`https://wa.me/${agent.phone?.replace(/\D/g, '')}`)}
+                  onPress={() => {
+                    const raw = agent.phone ?? '';
+                    const startsPlus = raw.trimStart().startsWith('+');
+                    const digits = raw.replace(/\D/g, '');
+                    const phone = (startsPlus || digits.length >= 10) ? digits : digits.length === 9 ? '34' + digits : digits;
+                    Linking.openURL(`https://wa.me/${phone}`);
+                  }}
                   style={{ flex: 1 }}
                 />
               )}

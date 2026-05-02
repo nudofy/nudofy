@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import {
   View, ScrollView, Pressable,
-  StyleSheet, Switch, TextInput, Modal,
-  KeyboardAvoidingView, Platform,
+  StyleSheet, Switch, TextInput, Modal, Alert, Linking,
+  KeyboardAvoidingView, Platform, Share,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
@@ -17,14 +17,77 @@ import type { IconName } from '@/components/ui/Icon';
 
 export default function ClientPerfilScreen() {
   const toast = useToast();
-  const { signOut } = useAuth();
+  const { signOut, session } = useAuth();
   const { client, agent, loading } = useClientData();
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [notifPedidos, setNotifPedidos] = useState(true);
   const [notifPromos, setNotifPromos] = useState(false);
   const [pwdModal, setPwdModal] = useState(false);
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [savingPwd, setSavingPwd] = useState(false);
+
+  async function handleExportData() {
+    if (!client) return;
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('id, order_number, created_at, status, total')
+      .eq('client_id', client.id);
+
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      client: {
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        address: client.address,
+        nif: client.nif,
+        fiscal_name: client.fiscal_name,
+        payment_method: client.payment_method,
+      },
+      orders: orders ?? [],
+    };
+
+    const json = JSON.stringify(exportData, null, 2);
+    await Share.share({ message: json, title: 'Mis datos Nudofy' });
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Se borrará permanentemente tu acceso al portal y todos tus datos. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: confirmDeleteAccount },
+      ]
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    if (!session) return;
+    setDeletingAccount(true);
+    try {
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+      const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+          'Content-Type': 'application/json',
+        },
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        toast.error(json.error ?? 'Error al eliminar la cuenta');
+      } else {
+        await signOut();
+      }
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
 
   async function handleChangePassword() {
     if (newPwd.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
@@ -124,6 +187,36 @@ export default function ClientPerfilScreen() {
         {/* Seguridad */}
         <Section title="Seguridad">
           <MenuItem icon="KeyRound" label="Cambiar contraseña" onPress={() => setPwdModal(true)} last />
+        </Section>
+
+        {/* Privacidad y datos */}
+        <Section title="Privacidad y datos">
+          <MenuItem
+            icon="Download"
+            label="Exportar mis datos"
+            onPress={handleExportData}
+          />
+          <MenuItem
+            icon="Shield"
+            label="Política de privacidad"
+            onPress={() => Linking.openURL('https://nudofy.com/privacidad')}
+            last
+          />
+        </Section>
+
+        {/* Zona peligrosa */}
+        <Section title="Zona de peligro">
+          <Pressable
+            style={({ pressed }) => [styles.menuItem, pressed && { opacity: 0.7 }]}
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+          >
+            <Icon name="Trash2" size={18} color={colors.danger ?? '#E73121'} />
+            <Text variant="body" style={{ flex: 1, color: colors.danger ?? '#E73121' }}>
+              {deletingAccount ? 'Eliminando...' : 'Eliminar mi cuenta'}
+            </Text>
+            <Icon name="ChevronRight" size={18} color={colors.ink4} />
+          </Pressable>
         </Section>
 
         {/* Cerrar sesión */}

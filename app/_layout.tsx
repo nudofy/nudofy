@@ -54,7 +54,8 @@ function RootLayoutNav() {
       const parsed = Linking.parse(url);
       const code = parsed.queryParams?.code as string | undefined;
       if (code) {
-        await supabase.auth.exchangeCodeForSession(code);
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) console.warn('[DeepLink] exchangeCodeForSession error:', error.message);
       }
     }
 

@@ -26,7 +26,7 @@ export default function NuevoClienteScreen() {
     contact_name: '',
     client_type: '',
     payment_method: '',
-    iban: '',
+
   });
 
   function set(key: string) {
@@ -72,8 +72,7 @@ export default function NuevoClienteScreen() {
           </Section>
 
           <Section title="Condiciones comerciales">
-            <FormField label="Forma de pago" value={form.payment_method} onChangeText={set('payment_method')} placeholder="30 días factura" />
-            <FormField label="IBAN" value={form.iban} onChangeText={set('iban')} placeholder="ES76 2100 0418 ..." last />
+            <FormField label="Forma de pago" value={form.payment_method} onChangeText={set('payment_method')} placeholder="30 días factura" last />
           </Section>
 
           <Button

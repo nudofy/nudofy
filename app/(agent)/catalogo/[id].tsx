@@ -339,16 +339,14 @@ const styles = StyleSheet.create({
   chipsScroll: {
     backgroundColor: colors.white,
     borderBottomWidth: 1, borderBottomColor: colors.line,
-    maxHeight: 48,
   },
   subChipsScroll: {
     backgroundColor: colors.surface,
     borderBottomWidth: 1, borderBottomColor: colors.line,
-    maxHeight: 44,
   },
   chipsContent: {
     paddingHorizontal: space[4], paddingVertical: space[2],
-    gap: space[2], flexDirection: 'row',
+    gap: space[2], flexDirection: 'row', alignItems: 'center',
   },
   chip: {
     paddingHorizontal: space[3], paddingVertical: 6,

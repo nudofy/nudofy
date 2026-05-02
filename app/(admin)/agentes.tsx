@@ -34,11 +34,11 @@ function ModalAltaAgente({
   const [phone, setPhone] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [nif, setNif] = useState('');
-  const [plan, setPlan] = useState<'basic' | 'pro'>('pro');
+  const [plan, setPlan] = useState<'free' | 'basic' | 'pro' | 'agency' | 'agency_pro'>('pro');
   const [saving, setSaving] = useState(false);
 
   function reset() {
-    setName(''); setEmail(''); setPhone(''); setBusinessName(''); setNif(''); setPlan('pro');
+    setName(''); setEmail(''); setPhone(''); setBusinessName(''); setNif(''); setPlan('pro' as any);
   }
 
   async function handleSave() {
@@ -89,16 +89,20 @@ function ModalAltaAgente({
 
             <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
             <View style={styles.planSelector}>
-              {(['basic', 'pro'] as const).map(p => (
+              {([
+                { key: 'free',       label: 'Free',       desc: 'Gratis · 20 prod · 5 cli' },
+                { key: 'basic',      label: 'Básico',     desc: '15 €/mes · 100 prod · 20 cli' },
+                { key: 'pro',        label: 'Pro',        desc: '25 €/mes · 2.000 prod · 200 cli' },
+                { key: 'agency',     label: 'Agencia',    desc: '45 €/mes · 10 agentes' },
+                { key: 'agency_pro', label: 'Ag. Pro',    desc: '150 €/mes · ilimitado' },
+              ] as const).map(p => (
                 <Pressable
-                  key={p}
-                  style={[styles.planOpt, plan === p && styles.planOptSelected]}
-                  onPress={() => setPlan(p)}
+                  key={p.key}
+                  style={[styles.planOpt, plan === p.key && styles.planOptSelected]}
+                  onPress={() => setPlan(p.key as any)}
                 >
-                  <Text variant="smallMedium">{p === 'basic' ? 'Básico' : 'Pro'}</Text>
-                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>
-                    {p === 'basic' ? '15 €/mes · 100 prod · 20 cli' : '25 €/mes · 2.000 prod · 200 cli'}
-                  </Text>
+                  <Text variant="smallMedium">{p.label}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>{p.desc}</Text>
                 </Pressable>
               ))}
             </View>

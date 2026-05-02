@@ -145,7 +145,7 @@ export function useAdminAgents() {
     return { error: error?.message ?? null };
   }
 
-  // Dar de alta un agente individual
+  // Dar de alta un agente individual — llama a la Edge Function invite-agent
   async function createAgent(data: {
     name: string;
     email: string;
@@ -154,29 +154,23 @@ export function useAdminAgents() {
     nif?: string;
     plan: AdminAgent['plan'];
   }) {
-    // 1. Crear usuario en Supabase Auth (invite)
-    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-      data.email,
-      { data: { role: 'agent' } }
-    );
-    if (authError) return { error: authError.message };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { error: 'No hay sesión activa' };
 
-    const userId = authData.user?.id;
-    if (!userId) return { error: 'No se pudo crear el usuario' };
-
-    // 2. Insertar en agents
-    const { error: agentError } = await supabase.from('agents').insert({
-      user_id: userId,
-      name: `${data.name}`,
-      email: data.email,
-      phone: data.phone ?? null,
-      business_name: data.business_name ?? null,
-      nif: data.nif ?? null,
-      plan: data.plan,
-      active: true,
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const res = await fetch(`${supabaseUrl}/functions/v1/invite-agent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: JSON.stringify(data),
     });
 
-    if (agentError) return { error: agentError.message };
+    const json = await res.json();
+    if (!res.ok || json.error) return { error: json.error ?? 'Error creando agente' };
+    if (json.warning) console.warn(json.warning);
     fetchAgents();
     return { error: null };
   }
@@ -262,24 +256,30 @@ export function useAdminCompanies() {
     if (companyError) return { error: companyError.message };
     const companyId = companyData.id;
 
-    // 2. Crear usuario admin (invite)
-    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-      data.adminEmail,
-      { data: { role: 'company_admin' } }
-    );
-    if (authError) return { error: authError.message };
+    // 2. Crear usuario admin vía Edge Function
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { error: 'No hay sesión activa' };
 
-    const userId = authData.user?.id;
-    if (!userId) return { error: 'No se pudo crear el usuario administrador' };
-
-    // 3. Insertar en company_users como admin
-    const { error: cuError } = await supabase.from('company_users').insert({
-      company_id: companyId,
-      user_id: userId,
-      role: 'admin',
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const res = await fetch(`${supabaseUrl}/functions/v1/invite-agent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: JSON.stringify({
+        name: data.adminName,
+        email: data.adminEmail,
+        plan: data.plan,
+        company_id: companyId,
+        role: 'company_admin',
+      }),
     });
 
-    if (cuError) return { error: cuError.message };
+    const json = await res.json();
+    if (!res.ok || json.error) return { error: json.error ?? 'Error creando administrador' };
+
     fetchCompanies();
     return { error: null };
   }

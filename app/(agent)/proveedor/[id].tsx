@@ -5,6 +5,8 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge, Button } from '@/components/ui';
 import ResourceError from '@/components/ResourceError';
@@ -26,6 +28,9 @@ export default function ProveedorScreen() {
   const [catalogName, setCatalogName] = useState('');
   const [catalogSeason, setCatalogSeason] = useState('');
   const [savingCatalog, setSavingCatalog] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [localOrder, setLocalOrder] = useState<Catalog[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   const fetchSupplier = useCallback(() => {
     if (!id) return;
@@ -69,6 +74,22 @@ export default function ProveedorScreen() {
     toast.success('Catálogo creado');
   }
 
+  function openReorder() {
+    setLocalOrder([...catalogs]);
+    setReordering(true);
+  }
+
+  async function saveOrder() {
+    setSavingOrder(true);
+    const updates = localOrder.map((c, idx) =>
+      supabase.from('catalogs').update({ position: idx }).eq('id', c.id)
+    );
+    await Promise.all(updates);
+    setSavingOrder(false);
+    setReordering(false);
+    toast.success('Orden guardado');
+  }
+
   function handleDeleteSupplier() {
     Alert.alert(
       'Eliminar proveedor',
@@ -89,6 +110,7 @@ export default function ProveedorScreen() {
         title={supplier?.name ?? '...'}
         onBack={() => router.back()}
         actions={[
+          { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: 'Reordenar catálogos' },
           { icon: 'Pencil', onPress: () => router.push(`/(agent)/proveedor/editar?id=${id}` as any), accessibilityLabel: 'Editar proveedor' },
           { icon: 'Trash2', onPress: handleDeleteSupplier, accessibilityLabel: 'Eliminar proveedor' },
           { icon: 'Plus', onPress: () => setShowNewCatalog(true), accessibilityLabel: 'Nuevo catálogo' },
@@ -132,6 +154,51 @@ export default function ProveedorScreen() {
           />
         ))}
       </ScrollView>
+
+      {/* Modal reordenar catálogos */}
+      <Modal visible={reordering} animationType="slide" onRequestClose={() => setReordering(false)}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={styles.reorderHeader}>
+            <Text variant="heading">Reordenar catálogos</Text>
+            <Text variant="small" color="ink3" style={{ marginTop: 4 }}>
+              Mantén pulsado y arrastra para reordenar
+            </Text>
+          </View>
+          <DraggableFlatList
+            data={localOrder}
+            keyExtractor={item => item.id}
+            onDragEnd={({ data }) => setLocalOrder(data)}
+            contentContainerStyle={styles.dragList}
+            renderItem={({ item, drag, isActive }: RenderItemParams<Catalog>) => (
+              <ScaleDecorator>
+                <Pressable
+                  onLongPress={drag}
+                  style={[styles.dragRow, isActive && styles.dragRowActive]}
+                >
+                  <Icon name="GripVertical" size={20} color={colors.ink3} />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyMedium">{item.name}</Text>
+                    {item.season && <Text variant="caption" color="ink3">{item.season}</Text>}
+                  </View>
+                  <Badge label={item.status === 'active' ? 'Activo' : 'Archivado'} variant={item.status === 'active' ? 'success' : 'neutral'} />
+                </Pressable>
+              </ScaleDecorator>
+            )}
+          />
+          <View style={styles.reorderFooter}>
+            <Pressable style={[styles.footerBtn, styles.footerBtnSecondary]} onPress={() => setReordering(false)}>
+              <Text variant="bodyMedium" color="ink2">Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.footerBtn, styles.footerBtnPrimary, savingOrder && { opacity: 0.6 }]}
+              onPress={saveOrder}
+              disabled={savingOrder}
+            >
+              <Text variant="bodyMedium" color="white">{savingOrder ? 'Guardando…' : 'Guardar orden'}</Text>
+            </Pressable>
+          </View>
+        </GestureHandlerRootView>
+      </Modal>
 
       {/* Modal nuevo catálogo */}
       <Modal visible={showNewCatalog} transparent animationType="slide" onRequestClose={() => setShowNewCatalog(false)}>
@@ -240,6 +307,45 @@ const styles = StyleSheet.create({
   catBody: { flex: 1, minWidth: 0 },
   catRight: { alignItems: 'flex-end', gap: 4 },
   emptyText: { paddingVertical: space[8] },
+
+  reorderHeader: {
+    padding: space[4],
+    paddingTop: space[8],
+    borderBottomWidth: 1, borderBottomColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  dragList: { padding: space[3], gap: space[2] },
+  dragRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space[3],
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: space[3],
+    borderWidth: 1, borderColor: colors.line,
+  },
+  dragRowActive: {
+    backgroundColor: colors.brandSoft,
+    borderColor: colors.brand,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12, shadowRadius: 8, elevation: 6,
+  },
+  reorderFooter: {
+    flexDirection: 'row', gap: space[2],
+    padding: space[4],
+    borderTopWidth: 1, borderTopColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  footerBtn: {
+    flex: 1, paddingVertical: space[3],
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  footerBtnSecondary: {
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  footerBtnPrimary: {
+    backgroundColor: colors.brand,
+  },
 
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',

@@ -17,8 +17,8 @@ export interface ClientProfile {
   address?: string;
   client_type?: string;
   payment_method?: string;
-  iban?: string;
   notes?: string;
+  tariff_id?: string | null;
   created_at: string;
 }
 
@@ -151,8 +151,10 @@ export function useClientCatalogs(supplierId?: string, restrictCatalogId?: strin
 
 // ——————————————————————————————
 // Productos de un catálogo (portal cliente)
+// tariffId se pasa desde el llamador (useClientData ya lo tiene via client.tariff_id)
+// para evitar queries redundantes de auth y clients dentro del hook.
 // ——————————————————————————————
-export function useClientProducts(catalogId?: string, search?: string) {
+export function useClientProducts(catalogId?: string, search?: string, tariffId?: string | null) {
   const [products, setProducts] = useState<PortalProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -170,47 +172,37 @@ export function useClientProducts(catalogId?: string, search?: string) {
 
     const list: PortalProduct[] = (data ?? []) as any;
 
-    // 2) ¿Tiene tarifa el cliente actual? Si sí, sustituimos precio por el de la tarifa.
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user && list.length > 0) {
-      const { data: clientRow } = await supabase
-        .from('clients')
-        .select('tariff_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      const tariffId = clientRow?.tariff_id ?? null;
-
-      if (tariffId) {
-        const ids = list.map(p => p.id);
-        const [{ data: pps }, { data: tariff }] = await Promise.all([
-          supabase
-            .from('product_prices')
-            .select('product_id, price')
-            .eq('tariff_id', tariffId)
-            .in('product_id', ids),
-          supabase
-            .from('tariffs')
-            .select('discount_percent')
-            .eq('id', tariffId)
-            .maybeSingle(),
-        ]);
-        const map = new Map<string, number>();
-        for (const pp of pps ?? []) map.set(pp.product_id, pp.price);
-        const disc = (tariff as any)?.discount_percent;
-        for (const p of list) {
-          const tp = map.get(p.id);
-          if (tp != null) {
-            p.price = tp;
-          } else if (disc != null && disc > 0) {
-            p.price = Math.round(p.price * (1 - disc / 100) * 100) / 100;
-          }
+    // 2) Aplicar tarifa si se proporcionó
+    if (tariffId && list.length > 0) {
+      const ids = list.map(p => p.id);
+      const [{ data: pps }, { data: tariff }] = await Promise.all([
+        supabase
+          .from('product_prices')
+          .select('product_id, price')
+          .eq('tariff_id', tariffId)
+          .in('product_id', ids),
+        supabase
+          .from('tariffs')
+          .select('discount_percent')
+          .eq('id', tariffId)
+          .maybeSingle(),
+      ]);
+      const map = new Map<string, number>();
+      for (const pp of pps ?? []) map.set(pp.product_id, pp.price);
+      const disc = (tariff as any)?.discount_percent;
+      for (const p of list) {
+        const tp = map.get(p.id);
+        if (tp != null) {
+          p.price = tp;
+        } else if (disc != null && disc > 0) {
+          p.price = Math.round(p.price * (1 - disc / 100) * 100) / 100;
         }
       }
     }
 
     setProducts(list);
     setLoading(false);
-  }, [catalogId]);
+  }, [catalogId, tariffId]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -262,7 +254,13 @@ export async function confirmClientOrder(params: {
   clientId: string;
   supplierId: string;
   catalogId: string;
-  items: { product_id: string; unit_price: number; quantity: number }[];
+  items: {
+    product_id: string;
+    unit_price: number;
+    quantity: number;
+    attributes?: Record<string, string> | null;
+    variant_id?: string | null;
+  }[];
   notes?: string;
 }) {
   const { agentId, clientId, supplierId, catalogId, items, notes } = params;
@@ -291,6 +289,8 @@ export async function confirmClientOrder(params: {
     product_id: i.product_id,
     unit_price: i.unit_price,
     quantity: i.quantity,
+    attributes: i.attributes ?? null,
+    variant_id: i.variant_id ?? null,
   }));
 
   const { error: itemsError } = await supabase.from('order_items').insert(lines);

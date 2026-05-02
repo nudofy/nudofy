@@ -1,6 +1,20 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { AgentProvider, useAgentContext } from '@/contexts/AgentContext';
 
-export default function AgentLayout() {
+function AgentLayoutNav() {
+  const { agent, loading } = useAgentContext();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (loading || !agent) return;
+    const onDpaScreen = segments[1] === 'dpa-aceptar';
+    if (!agent.accepted_dpa_at && !onDpaScreen) {
+      router.replace('/(agent)/dpa-aceptar');
+    }
+  }, [agent, loading, segments]);
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="home" />
@@ -16,6 +30,15 @@ export default function AgentLayout() {
       <Stack.Screen name="pedido/[id]" />
       <Stack.Screen name="mas" />
       <Stack.Screen name="tarifas" />
+      <Stack.Screen name="dpa-aceptar" options={{ gestureEnabled: false }} />
     </Stack>
+  );
+}
+
+export default function AgentLayout() {
+  return (
+    <AgentProvider>
+      <AgentLayoutNav />
+    </AgentProvider>
   );
 }

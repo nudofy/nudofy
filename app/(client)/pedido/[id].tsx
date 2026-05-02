@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, ScrollView, Pressable,
-  StyleSheet, Linking, Share,
+  StyleSheet, Linking, Share, ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
@@ -10,6 +10,7 @@ import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import StatusBadge from '@/components/StatusBadge';
 import { supabase } from '@/lib/supabase';
 import { useClientData } from '@/hooks/useClient';
+import { useToast } from '@/contexts/ToastContext';
 import type { IconName } from '@/components/ui/Icon';
 
 function formatEur(n: number) {
@@ -46,9 +47,11 @@ export default function ClientPedidoDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { agent } = useClientData();
+  const toast = useToast();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [items, setItems] = useState<OrderItemDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingZip, setGeneratingZip] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +75,37 @@ export default function ClientPedidoDetailScreen() {
       setLoading(false);
     });
   }, [id]);
+
+  async function downloadImages() {
+    if (!order) return;
+    setGeneratingZip(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-order-images-zip`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+          },
+          body: JSON.stringify({ orderId: order.id }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error ?? 'Error generando el ZIP');
+        return;
+      }
+      await Linking.openURL(data.url);
+      toast.success(`ZIP con ${data.count} imágenes listo`);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Error inesperado');
+    } finally {
+      setGeneratingZip(false);
+    }
+  }
 
   if (loading || !order) {
     return (
@@ -160,6 +194,12 @@ export default function ClientPedidoDetailScreen() {
             />
           )}
           <ActionBtn icon="Download" label="Descargar PDF" onPress={() => {}} />
+          <ActionBtn
+            icon="Image"
+            label={generatingZip ? 'Generando…' : 'Imágenes ZIP'}
+            onPress={downloadImages}
+            loading={generatingZip}
+          />
         </View>
       </ScrollView>
     </Screen>
@@ -191,13 +231,16 @@ function DataRow({ label, value, bold, last }: {
   );
 }
 
-function ActionBtn({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+function ActionBtn({ icon, label, onPress, loading }: { icon: IconName; label: string; onPress: () => void; loading?: boolean }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.actBtn, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [styles.actBtn, pressed && { opacity: 0.7 }, loading && { opacity: 0.6 }]}
       onPress={onPress}
+      disabled={loading}
     >
-      <Icon name={icon} size={20} color={colors.ink} />
+      {loading
+        ? <ActivityIndicator size="small" color={colors.ink} />
+        : <Icon name={icon} size={20} color={colors.ink} />}
       <Text variant="caption" align="center" style={{ fontWeight: '500' }}>{label}</Text>
     </Pressable>
   );

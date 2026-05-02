@@ -215,8 +215,7 @@ export default function ClienteScreen() {
               <Field label="Tipo establecimiento" value={form.client_type} onChangeText={v => setForm(f => ({ ...f, client_type: v }))} editing={editing} last />
             </DataBlock>
             <DataBlock title="Condiciones comerciales" icon="CreditCard">
-              <Field label="Forma de pago" value={form.payment_method} onChangeText={v => setForm(f => ({ ...f, payment_method: v }))} editing={editing} />
-              <Field label="IBAN" value={form.iban} onChangeText={v => setForm(f => ({ ...f, iban: v }))} editing={editing} />
+              <Field label="Forma de pago" value={form.payment_method} onChangeText={v => setForm(f => ({ ...f, payment_method: v }))} editing={editing} last />
               <TarifaSelectorRow
                 tariffs={tariffs}
                 value={(form as any).tariff_id ?? null}
@@ -347,7 +346,7 @@ function PortalTab({ client }: { client: Client }) {
             'Authorization': `Bearer ${session?.access_token ?? ''}`,
             'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
           },
-          body: JSON.stringify({ email: client.email, clientName: client.name }),
+          body: JSON.stringify({ email: client.email, clientName: client.name, clientId: client.id }),
         }
       );
       const text = await res.text().catch(() => '');

@@ -68,7 +68,6 @@ export const ClientSchema = z.object({
   contact_name: optionalTrim,
   client_type: optionalTrim,
   payment_method: optionalTrim,
-  iban: optionalTrim,
   notes: optionalTrim,
   tariff_id: z.string().uuid().nullable().optional(),
 });

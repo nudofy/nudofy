@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
+export function makeItemKey(productId: string, attrs?: Record<string, string>): string {
+  if (!attrs || Object.keys(attrs).length === 0) return productId;
+  return productId + '|' + Object.entries(attrs).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join(',');
+}
+
 export interface CartItem {
   product_id: string;
+  item_key: string;
   name: string;
   reference?: string;
   unit_price: number;
   quantity: number;
+  attributes?: Record<string, string>;
+  variant_id?: string;
 }
 
 export interface Cart {
@@ -26,8 +34,8 @@ interface CartContextType {
     catalogName: string,
     item: CartItem
   ) => void;
-  updateQty: (supplierId: string, productId: string, qty: number) => void;
-  removeItem: (supplierId: string, productId: string) => void;
+  updateQty: (supplierId: string, itemKey: string, qty: number) => void;
+  removeItem: (supplierId: string, itemKey: string) => void;
   setCartNotes: (supplierId: string, notes: string) => void;
   clearCart: (supplierId: string) => void;
   getCart: (supplierId: string) => Cart | undefined;
@@ -76,7 +84,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             },
           ];
         }
-        const existingItem = existing.items.find(i => i.product_id === item.product_id);
+        const existingItem = existing.items.find(i => i.item_key === item.item_key);
         return prev.map(c =>
           c.supplier_id !== supplierId
             ? c
@@ -84,7 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 ...c,
                 items: existingItem
                   ? c.items.map(i =>
-                      i.product_id === item.product_id ? { ...i, quantity: item.quantity } : i
+                      i.item_key === item.item_key ? { ...i, quantity: item.quantity } : i
                     )
                   : [...c.items, item],
               }
@@ -94,7 +102,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const updateQty = useCallback((supplierId: string, productId: string, qty: number) => {
+  const updateQty = useCallback((supplierId: string, itemKey: string, qty: number) => {
     setCarts(prev =>
       prev
         .map(c =>
@@ -104,9 +112,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 ...c,
                 items:
                   qty <= 0
-                    ? c.items.filter(i => i.product_id !== productId)
+                    ? c.items.filter(i => i.item_key !== itemKey)
                     : c.items.map(i =>
-                        i.product_id === productId ? { ...i, quantity: qty } : i
+                        i.item_key === itemKey ? { ...i, quantity: qty } : i
                       ),
               }
         )
@@ -114,13 +122,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const removeItem = useCallback((supplierId: string, productId: string) => {
+  const removeItem = useCallback((supplierId: string, itemKey: string) => {
     setCarts(prev =>
       prev
         .map(c =>
           c.supplier_id !== supplierId
             ? c
-            : { ...c, items: c.items.filter(i => i.product_id !== productId) }
+            : { ...c, items: c.items.filter(i => i.item_key !== itemKey) }
         )
         .filter(c => c.items.length > 0)
     );

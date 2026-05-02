@@ -15,11 +15,12 @@ import { useClients, useSuppliers, useCatalogs, useProducts, useAgent, useOrders
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import type { Client, Supplier, Catalog, Product, Order } from '@/hooks/useAgent';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
 type Step = 'inicio' | 'modo' | 'proveedor' | 'productos' | 'carrito';
 type ClientMode = 'existing' | 'new_now' | 'new_later';
 
-interface CartItem { product: Product; quantity: number; }
+interface CartItem { product: Product; quantity: number; attributes?: Record<string, string>; variant_id?: string; itemKey: string; }
 interface NewClientData { name: string; phone: string; email: string; address: string; }
 interface ClientAddress { id: string; label: string; address?: string; city?: string; postal_code?: string; }
 
@@ -68,12 +69,68 @@ export default function NuevoPedidoScreen() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [imageViewer, setImageViewer] = useState<string | null>(null);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerCooldown, setScannerCooldown] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  // Modal de selección de atributos
+  const [attrProduct, setAttrProduct] = useState<Product | null>(null);
+  const [attrSelections, setAttrSelections] = useState<Record<string, string>>({});
+  const [attrVariants, setAttrVariants] = useState<{ id: string; attributes: Record<string, string>; available?: boolean; image_url?: string | null }[]>([]);
+  const [openAttrPicker, setOpenAttrPicker] = useState<string | null>(null);
+  // Cache de atributos y variantes por producto — se precarga en batch cuando llegan los productos
+  const [attrCache, setAttrCache] = useState<Record<string, any[]>>({});
+  const [variantCache, setVariantCache] = useState<Record<string, any[]>>({});
+  const [attrLoading, setAttrLoading] = useState(false);
+  const attrList: any[] = attrProduct ? (attrCache[attrProduct.id] ?? []) : [];
 
   const { clients } = useClients();
   const { orders: drafts, loading: draftsLoading, deleteOrder, refetch: refetchDrafts } = useOrders('draft');
   const { suppliers } = useSuppliers();
   const { catalogs } = useCatalogs(selectedSupplier?.id);
   const { products } = useProducts(selectedCatalog?.id, selectedClient?.tariff_id ?? null);
+
+  // Pre-cargar atributos y variantes de todos los productos del catálogo en batch
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+    const productIds = products.map(p => p.id);
+    Promise.all([
+      supabase.from('product_attributes').select('id, product_id, name, position').in('product_id', productIds).order('position'),
+      supabase.from('product_variants').select('id, product_id, attributes, available, image_url').in('product_id', productIds),
+    ]).then(([{ data: attrs }, { data: variants }]) => {
+      // Agrupar attribute_ids para la query de opciones
+      const attrIds = (attrs ?? []).map((a: any) => a.id);
+      if (attrIds.length === 0) return;
+      supabase.from('product_attribute_options')
+        .select('id, attribute_id, value, position')
+        .in('attribute_id', attrIds)
+        .order('position')
+        .then(({ data: opts }) => {
+          // Construir mapa de opciones por attribute_id
+          const optsMap: Record<string, any[]> = {};
+          for (const o of opts ?? []) {
+            if (!optsMap[o.attribute_id]) optsMap[o.attribute_id] = [];
+            optsMap[o.attribute_id].push(o);
+          }
+          // Construir cache por product_id
+          const cache: Record<string, any[]> = {};
+          for (const attr of attrs ?? []) {
+            if (!cache[attr.product_id]) cache[attr.product_id] = [];
+            cache[attr.product_id].push({
+              ...attr,
+              options: (optsMap[attr.id] ?? []).sort((a: any, b: any) => a.position - b.position),
+            });
+          }
+          setAttrCache(cache);
+          // Cache de variantes por product_id
+          const varCache: Record<string, any[]> = {};
+          for (const v of variants ?? []) {
+            if (!varCache[v.product_id]) varCache[v.product_id] = [];
+            varCache[v.product_id].push(v);
+          }
+          setVariantCache(varCache);
+        });
+    });
+  }, [products]);
 
   // Pre-seleccionar cliente si viene de la ficha
   React.useEffect(() => {
@@ -127,7 +184,17 @@ export default function NuevoPedidoScreen() {
     if (items && items.length > 0) {
       const cartItems: CartItem[] = items
         .filter(i => i.product)
-        .map(i => ({ product: i.product as Product, quantity: i.quantity }));
+        .map(i => {
+          const attrs = i.attributes as Record<string, string> | null | undefined;
+          return {
+            product: i.product as Product,
+            quantity: i.quantity,
+            attributes: attrs ?? undefined,
+            itemKey: attrs && Object.keys(attrs).length > 0
+              ? i.product_id + '|' + Object.entries(attrs).sort(([a],[b]) => a.localeCompare(b)).map(([k,v]) => `${k}:${v}`).join(',')
+              : i.product_id,
+          };
+        });
       setCart(cartItems);
     }
     setStep(params.edit === '1' ? 'productos' : 'carrito');
@@ -195,25 +262,156 @@ export default function NuevoPedidoScreen() {
 
   const cartTotal = baseImponible + totalIva;
 
-  function addToCart(product: Product) {
+  function makeItemKey(productId: string, attrs?: Record<string, string>) {
+    if (!attrs || Object.keys(attrs).length === 0) return productId;
+    return productId + '|' + Object.entries(attrs).sort(([a],[b]) => a.localeCompare(b)).map(([k,v]) => `${k}:${v}`).join(',');
+  }
+
+  function addToCart(product: Product, attrs?: Record<string, string>, variantId?: string) {
+    const key = makeItemKey(product.id, attrs);
     setCart(prev => {
-      const existing = prev.find(i => i.product.id === product.id);
-      if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { product, quantity: 1 }];
+      const existing = prev.find(i => i.itemKey === key);
+      if (existing) return prev.map(i => i.itemKey === key ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { product, quantity: 1, attributes: attrs, variant_id: variantId, itemKey: key }];
     });
   }
 
-  function removeFromCart(productId: string) {
+  function removeFromCart(itemKey: string) {
     setCart(prev => {
-      const existing = prev.find(i => i.product.id === productId);
+      const existing = prev.find(i => i.itemKey === itemKey);
       if (!existing) return prev;
-      if (existing.quantity <= 1) return prev.filter(i => i.product.id !== productId);
-      return prev.map(i => i.product.id === productId ? { ...i, quantity: i.quantity - 1 } : i);
+      if (existing.quantity <= 1) return prev.filter(i => i.itemKey !== itemKey);
+      return prev.map(i => i.itemKey === itemKey ? { ...i, quantity: i.quantity - 1 } : i);
     });
   }
 
   function getQty(productId: string) {
-    return cart.find(i => i.product.id === productId)?.quantity ?? 0;
+    return cart.filter(i => i.product.id === productId).reduce((s, i) => s + i.quantity, 0);
+  }
+
+  function removeOneOfProduct(productId: string) {
+    const item = cart.find(i => i.product.id === productId);
+    if (item) removeFromCart(item.itemKey);
+  }
+
+  // Abre el modal de atributos o añade directamente si no tiene — usa cache, sin network
+  async function handleAddProduct(product: Product) {
+    const cachedAttrs = attrCache[product.id];
+    const cachedVariants = variantCache[product.id] ?? [];
+
+    if (cachedAttrs && cachedAttrs.length > 0) {
+      // Datos ya en cache → modal instantáneo
+      setAttrVariants(cachedVariants);
+      setAttrSelections({});
+      setOpenAttrPicker(null);
+      setAttrProduct(product);
+    } else if (cachedAttrs && cachedAttrs.length === 0) {
+      // Sin atributos → añadir directo
+      addToCart(product);
+    } else {
+      // Cache aún no disponible (catálogo cargando) → fetch puntual
+      setAttrLoading(true);
+      const { data: attrsData } = await supabase
+        .from('product_attributes').select('id').eq('product_id', product.id).limit(1);
+      if (attrsData && attrsData.length > 0) {
+        const { data: varData } = await supabase
+          .from('product_variants').select('id, attributes, available, image_url').eq('product_id', product.id);
+        setAttrVariants((varData ?? []) as any[]);
+        setAttrSelections({});
+        setOpenAttrPicker(null);
+        setAttrProduct(product);
+      } else {
+        addToCart(product);
+      }
+      setAttrLoading(false);
+    }
+  }
+
+  // Comprueba si una opción tiene al menos una variante disponible dado lo ya seleccionado
+  function isOptionAvailable(attrName: string, optValue: string): boolean {
+    if (attrVariants.length === 0) return true;
+    return attrVariants.some(v => {
+      if (v.available === false) return false;
+      if (v.attributes[attrName] !== optValue) return false;
+      for (const [k, val] of Object.entries(attrSelections)) {
+        if (k !== attrName && v.attributes[k] !== val) return false;
+      }
+      return true;
+    });
+  }
+
+  function confirmAttrSelection() {
+    if (!attrProduct) return;
+    if (attrList.some((a: any) => !attrSelections[a.name])) return;
+
+    const selectedKey = makeItemKey('', attrSelections).slice(1);
+    const match = attrVariants.find(v => {
+      const vKey = makeItemKey('', v.attributes).slice(1);
+      return vKey === selectedKey;
+    });
+
+    addToCart(attrProduct, { ...attrSelections }, match?.id);
+    setAttrProduct(null);
+    setAttrSelections({});
+    setAttrVariants([]);
+    setOpenAttrPicker(null);
+  }
+
+  async function openScanner() {
+    if (!cameraPermission?.granted) {
+      const { granted } = await requestCameraPermission();
+      if (!granted) { toast.error('Se necesita permiso de cámara para escanear'); return; }
+    }
+    setScannerOpen(true);
+  }
+
+  async function handleBarcodeScan({ data }: { data: string }) {
+    if (scannerCooldown) return;
+    setScannerCooldown(true);
+
+    // 1. Buscar en variantes del catálogo actual (barcode por SKU)
+    const productIds = products.map(p => p.id);
+    let foundProduct: Product | undefined;
+    let foundVariantId: string | undefined;
+    let foundAttrs: Record<string, string> | undefined;
+
+    if (productIds.length > 0) {
+      const { data: variantMatch } = await supabase
+        .from('product_variants')
+        .select('id, product_id, attributes, barcode')
+        .eq('barcode', data)
+        .in('product_id', productIds)
+        .limit(1)
+        .single();
+
+      if (variantMatch) {
+        foundProduct = products.find(p => p.id === variantMatch.product_id);
+        foundVariantId = variantMatch.id;
+        foundAttrs = variantMatch.attributes as Record<string, string>;
+      }
+    }
+
+    // 2. Si no hay variante, buscar por barcode en productos
+    if (!foundProduct) {
+      foundProduct = products.find(p => p.barcode === data);
+    }
+
+    if (foundProduct) {
+      setScannerOpen(false);
+      if (foundAttrs && foundVariantId) {
+        // Variante identificada directamente por barcode — añadir sin modal
+        addToCart(foundProduct, foundAttrs, foundVariantId);
+        toast.success(`${foundProduct.name} (${Object.values(foundAttrs).join(' · ')}) añadido`);
+      } else {
+        handleAddProduct(foundProduct);
+        toast.success(`${foundProduct.name} añadido al carrito`);
+      }
+    } else {
+      toast.error(`Código ${data} no encontrado en este catálogo`);
+    }
+
+    // Cooldown de 2s para evitar lecturas múltiples
+    setTimeout(() => setScannerCooldown(false), 2000);
   }
 
   async function confirmNewClientNow() {
@@ -260,6 +458,8 @@ export default function NuevoPedidoScreen() {
           product_id: i.product.id,
           quantity: i.quantity,
           unit_price: i.product.price,
+          attributes: i.attributes ?? null,
+          variant_id: i.variant_id ?? null,
         }))
       );
     }
@@ -298,9 +498,9 @@ export default function NuevoPedidoScreen() {
       if (!dId) return;
       const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current;
       if (!hasMeaningfulContent) {
-        supabase.from('order_items').delete().eq('order_id', dId).then(() => {
-          supabase.from('orders').delete().eq('id', dId);
-        });
+        supabase.from('order_items').delete().eq('order_id', dId)
+          .then(() => supabase.from('orders').delete().eq('id', dId))
+          .catch((err) => console.warn('[NuevoPedido] cleanup draft error:', err));
       }
     };
   }, []);
@@ -359,13 +559,25 @@ export default function NuevoPedidoScreen() {
       orderId = order.id;
     }
 
-    await supabase.from('order_items').insert(
+    const { error: itemsError } = await supabase.from('order_items').insert(
       cart.map(i => ({
         order_id: orderId,
         product_id: i.product.id,
         quantity: i.quantity,
-        unit_price: i.product.price }))
+        unit_price: i.product.price,
+        total: Math.round(i.product.price * i.quantity * 100) / 100,
+        attributes: i.attributes ?? null,
+        variant_id: i.variant_id ?? null,
+      }))
     );
+
+    if (itemsError) {
+      // Rollback: volver el pedido a borrador para no dejarlo confirmado sin líneas
+      await supabase.from('orders').update({ status: 'draft' }).eq('id', orderId);
+      toast.error('Error guardando las líneas del pedido. Inténtalo de nuevo.');
+      setSaving(false);
+      return;
+    }
 
     setSaving(false);
     router.replace(`/(agent)/pedido/${orderId}` as any);
@@ -612,7 +824,18 @@ export default function NuevoPedidoScreen() {
       {/* PASO 2: Productos */}
       {step === 'productos' && (
         <>
-          <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar por nombre o referencia..." />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2], paddingHorizontal: space[3], paddingTop: space[2] }}>
+            <View style={{ flex: 1 }}>
+              <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar por nombre o referencia..." />
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.7 }]}
+              onPress={openScanner}
+              accessibilityLabel="Escanear código de barras"
+            >
+              <Icon name="ScanBarcode" size={22} color={colors.white} />
+            </Pressable>
+          </View>
           <FlatList
             data={filteredProducts}
             keyExtractor={p => p.id}
@@ -660,18 +883,18 @@ export default function NuevoPedidoScreen() {
                   <View style={styles.productCardQty}>
                     {inCart ? (
                       <View style={styles.qtyRow}>
-                        <Pressable style={styles.qtyBtn} onPress={() => removeFromCart(p.id)}>
+                        <Pressable style={styles.qtyBtn} onPress={() => removeOneOfProduct(p.id)}>
                           <Icon name="Minus" size={16} color={colors.ink} />
                         </Pressable>
                         <Text variant="smallMedium" align="center" style={{ flex: 1 }}>{qty}</Text>
-                        <Pressable style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => addToCart(p)}>
+                        <Pressable style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => handleAddProduct(p)}>
                           <Icon name="Plus" size={16} color={colors.white} />
                         </Pressable>
                       </View>
                     ) : (
                       <Pressable
                         style={({ pressed }) => [styles.addBtn, pressed && { backgroundColor: colors.brandHover }]}
-                        onPress={() => addToCart(p)}
+                        onPress={() => handleAddProduct(p)}
                       >
                         <Icon name="Plus" size={16} color={colors.white} />
                         <Text variant="smallMedium" color="white">Añadir</Text>
@@ -743,9 +966,14 @@ export default function NuevoPedidoScreen() {
             {/* Líneas */}
             <View style={{ gap: space[1] }}>
               {cart.map(item => (
-                <View key={item.product.id} style={styles.cartLine}>
+                <View key={item.itemKey} style={styles.cartLine}>
                   <View style={{ flex: 1 }}>
                     <Text variant="smallMedium" numberOfLines={2}>{item.product.name}</Text>
+                    {item.attributes && Object.keys(item.attributes).length > 0 && (
+                      <Text variant="caption" color="brand" style={{ marginTop: 1 }}>
+                        {Object.entries(item.attributes).map(([k,v]) => `${k}: ${v}`).join(' · ')}
+                      </Text>
+                    )}
                     <Text variant="caption" color="ink3">{item.product.reference} · {formatEur(item.product.price)}/ud</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
@@ -756,19 +984,18 @@ export default function NuevoPedidoScreen() {
               ))}
             </View>
 
-            {/* Código descuento */}
+            {/* Código descuento — campo informativo, se registra en el pedido pero sin validación automática */}
             <View style={styles.discRow}>
               <View style={[styles.inputWithIcon, { flex: 1 }]}>
                 <Icon name="Tag" size={16} color={colors.ink4} />
                 <TextInput
                   style={styles.inputEl}
-                  placeholder="Código descuento"
+                  placeholder="Código descuento (opcional)"
                   placeholderTextColor={colors.ink4}
                   value={discountCode}
                   onChangeText={setDiscountCode}
                 />
               </View>
-              <Button label="Aplicar" variant="secondary" size="sm" onPress={() => {}} />
             </View>
 
             {/* Observaciones */}
@@ -805,6 +1032,29 @@ export default function NuevoPedidoScreen() {
           </View>
         </>
       )}
+
+      {/* Escáner de código de barras */}
+      <Modal visible={scannerOpen} animationType="slide" onRequestClose={() => setScannerOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <CameraView
+            style={{ flex: 1 }}
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr'] }}
+            onBarcodeScanned={handleBarcodeScan}
+          />
+          {/* Guía visual */}
+          <View style={styles.scanOverlay}>
+            <View style={styles.scanFrame} />
+            <Text variant="small" color="white" align="center" style={{ marginTop: space[4] }}>
+              Apunta al código de barras del producto
+            </Text>
+          </View>
+          {/* Botón cerrar */}
+          <Pressable style={styles.scanClose} onPress={() => setScannerOpen(false)}>
+            <Icon name="X" size={24} color={colors.white} />
+          </Pressable>
+        </View>
+      </Modal>
 
       {/* Visor de imagen */}
       <Modal visible={!!imageViewer} transparent animationType="fade" onRequestClose={() => setImageViewer(null)}>
@@ -847,6 +1097,115 @@ export default function NuevoPedidoScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal selección de atributos */}
+      <Modal visible={!!attrProduct} transparent animationType="slide" onRequestClose={() => { setAttrProduct(null); setAttrVariants([]); setOpenAttrPicker(null); }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              {/* Foto de la variante seleccionada (o genérica del producto) */}
+              {(() => {
+                // Buscar variante que coincida con la selección actual
+                const selKeys = Object.keys(attrSelections);
+                const matchedVariant = selKeys.length > 0
+                  ? attrVariants.find(v => selKeys.every(k => v.attributes[k] === attrSelections[k]))
+                  : null;
+                const imgUrl = (matchedVariant as any)?.image_url || attrProduct?.image_url;
+                return imgUrl ? (
+                  <Image
+                    source={{ uri: imgUrl }}
+                    style={styles.attrModalImg}
+                    resizeMode="cover"
+                  />
+                ) : null;
+              })()}
+              <Text variant="heading" style={{ marginBottom: space[1] }}>{attrProduct?.name}</Text>
+              <Text variant="caption" color="ink3" style={{ marginBottom: space[3] }}>
+                Selecciona las opciones para añadir al pedido
+              </Text>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 300 }}>
+                {attrLoading ? (
+                  <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[4] }}>Cargando opciones…</Text>
+                ) : (
+                  attrList.map(attr => {
+                    const selectedVal = attrSelections[attr.name];
+                    const isOpen = openAttrPicker === attr.name;
+                    return (
+                      <View key={attr.id} style={styles.attrPickerBlock}>
+                        <Text variant="caption" color="ink3" style={{ marginBottom: space[1] }}>{attr.name}</Text>
+                        {/* Selector row */}
+                        <Pressable
+                          style={[styles.attrPickerRow, isOpen && styles.attrPickerRowOpen]}
+                          onPress={() => setOpenAttrPicker(isOpen ? null : attr.name)}
+                        >
+                          <Text variant="smallMedium" color={selectedVal ? 'ink' : 'ink4'} style={{ flex: 1 }}>
+                            {selectedVal ?? `Elige ${attr.name}…`}
+                          </Text>
+                          <Icon name={isOpen ? 'ChevronUp' : 'ChevronDown'} size={16} color={colors.ink3} />
+                        </Pressable>
+                        {/* Lista de opciones desplegada */}
+                        {isOpen && (
+                          <View style={styles.attrPickerList}>
+                            {attr.options.map((opt, oi) => {
+                              const avail = isOptionAvailable(attr.name, opt.value);
+                              const selected = selectedVal === opt.value;
+                              return (
+                                <Pressable
+                                  key={opt.id}
+                                  style={[
+                                    styles.attrPickerOption,
+                                    oi < attr.options.length - 1 && styles.attrPickerOptionBorder,
+                                    selected && styles.attrPickerOptionSelected,
+                                    !avail && styles.attrPickerOptionUnavail,
+                                  ]}
+                                  onPress={() => {
+                                    if (!avail) return;
+                                    setAttrSelections(prev => ({ ...prev, [attr.name]: opt.value }));
+                                    setOpenAttrPicker(null);
+                                  }}
+                                  disabled={!avail}
+                                >
+                                  <Text
+                                    variant="smallMedium"
+                                    color={!avail ? 'ink4' : selected ? 'brand' : 'ink'}
+                                    style={{ flex: 1 }}
+                                  >
+                                    {opt.value}
+                                  </Text>
+                                  {!avail && (
+                                    <Text variant="caption" color="ink4">No disponible</Text>
+                                  )}
+                                  {selected && avail && (
+                                    <Icon name="Check" size={14} color={colors.brand} />
+                                  )}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })
+                )}
+              </ScrollView>
+              <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[3] }}>
+                <Pressable style={[styles.modalCancel, { flex: 1 }]} onPress={() => { setAttrProduct(null); setAttrVariants([]); setOpenAttrPicker(null); }}>
+                  <Text variant="smallMedium" color="ink2">Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.attrConfirmBtn, { flex: 2 },
+                    attrList.some(a => !attrSelections[a.name]) && { opacity: 0.4 }]}
+                  onPress={confirmAttrSelection}
+                  disabled={attrList.some(a => !attrSelections[a.name])}
+                >
+                  <Text variant="smallMedium" color="white">Añadir al pedido</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -1055,6 +1414,29 @@ const styles = StyleSheet.create({
   },
 
   // Visor imagen
+  scanBtn: {
+    width: 44, height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  scanOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  scanFrame: {
+    width: 240, height: 160,
+    borderWidth: 2, borderColor: colors.white,
+    borderRadius: radius.md,
+    backgroundColor: 'transparent',
+  },
+  scanClose: {
+    position: 'absolute', top: 56, right: 20,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+  },
   imgViewerOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.92)',
     alignItems: 'center', justifyContent: 'center',
@@ -1153,5 +1535,60 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: space[3],
     marginTop: space[2],
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+  },
+  attrOptionChip: {
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  attrOptionChipSelected: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
+  },
+
+  // Desplegable de atributos
+  attrModalImg: {
+    width: '100%', height: 160,
+    borderRadius: radius.md,
+    marginBottom: space[3],
+    backgroundColor: colors.surface2,
+  },
+  attrPickerBlock: { marginBottom: space[3] },
+  attrPickerRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+  },
+  attrPickerRowOpen: {
+    borderColor: colors.brand,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  attrPickerList: {
+    borderWidth: 1, borderTopWidth: 0,
+    borderColor: colors.brand,
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+  },
+  attrPickerOption: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space[3], paddingVertical: space[3],
+    gap: space[2],
+  },
+  attrPickerOptionBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  attrPickerOptionSelected: { backgroundColor: colors.brandSoft },
+  attrPickerOptionUnavail: { backgroundColor: colors.surface },
+  attrConfirmBtn: {
+    paddingVertical: space[3],
+    borderRadius: radius.md,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
   },
 });

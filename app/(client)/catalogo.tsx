@@ -2,14 +2,16 @@
 import React, { useState } from 'react';
 import {
   View, ScrollView, Pressable,
-  StyleSheet, TextInput, FlatList, Image,
+  StyleSheet, TextInput, FlatList, Image, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import { useClientData, useClientPortalSuppliers, useClientCatalogs, useClientProducts } from '@/hooks/useClient';
-import { useCart } from '@/contexts/CartContext';
+import { useCart, makeItemKey } from '@/contexts/CartContext';
+import { useProductAttributes } from '@/hooks/useAgent';
+import { supabase } from '@/lib/supabase';
 import type { PortalSupplier, PortalCatalog, PortalProduct } from '@/hooks/useClient';
 
 type View3 = 'suppliers' | 'catalogs' | 'products';
@@ -33,7 +35,7 @@ export default function ClientCatalogoScreen() {
     selectedSupplier?.id,
     selectedSupplier?.catalog_id,
   );
-  const { products } = useClientProducts(selectedCatalog?.id, search);
+  const { products } = useClientProducts(selectedCatalog?.id, search, client?.tariff_id ?? null);
 
   function selectSupplier(supplier: PortalSupplier) {
     setSelectedSupplier(supplier);
@@ -190,25 +192,74 @@ function ProductGrid({
   const cartTotal = cart?.items.reduce((s, i) => s + i.unit_price * i.quantity, 0) ?? 0;
   const cartCount = cart?.items.reduce((s, i) => s + i.quantity, 0) ?? 0;
 
-  function handleAdd(product: PortalProduct) {
-    const qty = getItemQty(supplierId, product.id);
-    addToCart(supplierId, supplierName, catalogId, catalogName, {
-      product_id: product.id,
-      name: product.name,
-      reference: product.reference,
-      unit_price: product.price,
-      quantity: qty + 1,
-    });
+  // Modal de selección de atributos
+  const [attrProduct, setAttrProduct] = useState<PortalProduct | null>(null);
+  const [attrSelections, setAttrSelections] = useState<Record<string, string>>({});
+  const { attributes: attrList } = useProductAttributes(attrProduct?.id);
+
+  async function handleAdd(product: PortalProduct) {
+    // Comprobar si el producto tiene atributos
+    const { data } = await supabase
+      .from('product_attributes')
+      .select('id')
+      .eq('product_id', product.id)
+      .limit(1);
+    if (data && data.length > 0) {
+      setAttrSelections({});
+      setAttrProduct(product);
+    } else {
+      const qty = getItemQty(supplierId, product.id);
+      const key = makeItemKey(product.id);
+      addToCart(supplierId, supplierName, catalogId, catalogName, {
+        product_id: product.id,
+        item_key: key,
+        name: product.name,
+        reference: product.reference,
+        unit_price: product.price,
+        quantity: qty + 1,
+      });
+    }
   }
 
-  function handleIncrement(product: PortalProduct) {
-    const qty = getItemQty(supplierId, product.id);
-    updateQty(supplierId, product.id, qty + 1);
+  async function confirmAttrSelection() {
+    if (!attrProduct) return;
+    if (attrList.some(a => !attrSelections[a.name])) return;
+
+    // Buscar la variante coincidente
+    let variantId: string | undefined;
+    const { data: variants } = await supabase
+      .from('product_variants')
+      .select('id, attributes')
+      .eq('product_id', attrProduct.id);
+    if (variants && variants.length > 0) {
+      const selectedKey = makeItemKey('x', attrSelections).slice(1);
+      const match = variants.find(v => {
+        const vKey = makeItemKey('x', v.attributes as Record<string, string>).slice(1);
+        return vKey === selectedKey;
+      });
+      variantId = match?.id;
+    }
+
+    const key = makeItemKey(attrProduct.id, attrSelections);
+    const existing = cart?.items.find(i => i.item_key === key);
+    addToCart(supplierId, supplierName, catalogId, catalogName, {
+      product_id: attrProduct.id,
+      item_key: key,
+      name: attrProduct.name,
+      reference: attrProduct.reference,
+      unit_price: attrProduct.price,
+      quantity: (existing?.quantity ?? 0) + 1,
+      attributes: { ...attrSelections },
+      variant_id: variantId,
+    });
+    setAttrProduct(null);
+    setAttrSelections({});
   }
 
   function handleDecrement(product: PortalProduct) {
-    const qty = getItemQty(supplierId, product.id);
-    updateQty(supplierId, product.id, qty - 1);
+    // Si el producto tiene variantes, quitar la primera línea encontrada
+    const item = cart?.items.find(i => i.product_id === product.id);
+    if (item) updateQty(supplierId, item.item_key, item.quantity - 1);
   }
 
   return (
@@ -279,7 +330,7 @@ function ProductGrid({
                   <Text variant="bodyMedium" align="center" style={{ flex: 1 }}>{qty}</Text>
                   <Pressable
                     style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
-                    onPress={() => handleIncrement(product)}
+                    onPress={() => handleAdd(product)}
                   >
                     <Icon name="Plus" size={16} color={colors.ink} />
                   </Pressable>
@@ -303,6 +354,54 @@ function ProductGrid({
           <Text variant="title" style={{ color: colors.white }}>{formatEur(cartTotal)}</Text>
         </Pressable>
       )}
+
+      {/* Modal selector de atributos */}
+      <Modal visible={!!attrProduct} transparent animationType="slide" onRequestClose={() => setAttrProduct(null)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Text variant="heading" style={{ marginBottom: space[1] }}>{attrProduct?.name}</Text>
+              <Text variant="caption" color="ink3" style={{ marginBottom: space[3] }}>
+                Selecciona las opciones para añadir al carrito
+              </Text>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
+                {attrList.map(attr => (
+                  <View key={attr.id} style={{ marginBottom: space[3] }}>
+                    <Text variant="smallMedium" style={{ marginBottom: space[2] }}>{attr.name}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space[1] }}>
+                      {attr.options.map(opt => {
+                        const selected = attrSelections[attr.name] === opt.value;
+                        return (
+                          <Pressable
+                            key={opt.id}
+                            style={[styles.attrChip, selected && styles.attrChipSelected]}
+                            onPress={() => setAttrSelections(prev => ({ ...prev, [attr.name]: opt.value }))}
+                          >
+                            <Text variant="smallMedium" color={selected ? 'white' : 'ink2'}>{opt.value}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[3] }}>
+                <Pressable style={[styles.modalCancelBtn, { flex: 1 }]} onPress={() => setAttrProduct(null)}>
+                  <Text variant="smallMedium" color="ink2">Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalConfirmBtn, { flex: 2 },
+                    attrList.some(a => !attrSelections[a.name]) && { opacity: 0.4 }]}
+                  onPress={confirmAttrSelection}
+                  disabled={attrList.some(a => !attrSelections[a.name])}
+                >
+                  <Text variant="smallMedium" color="white">Añadir al carrito</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -405,4 +504,31 @@ const styles = StyleSheet.create({
   },
 
   emptyText: { paddingVertical: space[8] },
+
+  // Modal atributos
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalBox: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    padding: space[5], gap: space[1],
+  },
+  attrChip: {
+    paddingHorizontal: space[3], paddingVertical: space[2],
+    borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  attrChipSelected: { backgroundColor: colors.brand, borderColor: colors.brand },
+  modalCancelBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: space[3],
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+  },
+  modalConfirmBtn: {
+    paddingVertical: space[3],
+    borderRadius: radius.md,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+  },
 });

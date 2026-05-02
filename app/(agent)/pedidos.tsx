@@ -14,7 +14,7 @@ type TabKey = 'realizados' | 'pendientes' | 'cancelados';
 
 const TAB_STATUS: Record<TabKey, Order['status'][]> = {
   realizados: ['sent_to_supplier'],
-  pendientes: ['draft', 'confirmed'],
+  pendientes: ['draft', 'confirmed', 'proposal_sent'],
   cancelados: ['cancelled'],
 };
 
@@ -49,7 +49,7 @@ export default function PedidosScreen() {
     });
   }, [orders, tab, search]);
 
-  const pendingCount = orders.filter(o => o.status === 'confirmed' || o.status === 'draft').length;
+  const pendingCount = orders.filter(o => o.status === 'confirmed' || o.status === 'draft' || o.status === 'proposal_sent').length;
   const doneCount = orders.filter(o => o.status === 'sent_to_supplier').length;
 
   function handleDeleteDraft(id: string) {

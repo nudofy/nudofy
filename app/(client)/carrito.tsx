@@ -130,6 +130,8 @@ function CartDetail({
         product_id: i.product_id,
         unit_price: i.unit_price,
         quantity: i.quantity,
+        attributes: i.attributes ?? null,
+        variant_id: i.variant_id ?? null,
       })),
       notes: cart.notes,
     });
@@ -157,11 +159,16 @@ function CartDetail({
             <View style={styles.sectionBody}>
               {cart.items.map((item, i) => (
                 <View
-                  key={item.product_id}
+                  key={item.item_key}
                   style={[styles.lineRow, i < cart.items.length - 1 && styles.lineRowBorder]}
                 >
                   <View style={{ flex: 1 }}>
                     <Text variant="bodyMedium" numberOfLines={2}>{item.name}</Text>
+                    {item.attributes && Object.keys(item.attributes).length > 0 && (
+                      <Text variant="caption" color="brand" style={{ marginTop: 2 }}>
+                        {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                      </Text>
+                    )}
                     {item.reference && (
                       <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
                         Ref: {item.reference}
@@ -175,7 +182,7 @@ function CartDetail({
                     <View style={styles.qtyRow}>
                       <Pressable
                         style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
-                        onPress={() => updateQty(cart.supplier_id, item.product_id, item.quantity - 1)}
+                        onPress={() => updateQty(cart.supplier_id, item.item_key, item.quantity - 1)}
                       >
                         <Icon name="Minus" size={16} color={colors.ink} />
                       </Pressable>
@@ -184,7 +191,7 @@ function CartDetail({
                       </Text>
                       <Pressable
                         style={({ pressed }) => [styles.qtyBtn, pressed && { opacity: 0.7 }]}
-                        onPress={() => updateQty(cart.supplier_id, item.product_id, item.quantity + 1)}
+                        onPress={() => updateQty(cart.supplier_id, item.item_key, item.quantity + 1)}
                       >
                         <Icon name="Plus" size={16} color={colors.ink} />
                       </Pressable>
@@ -192,7 +199,7 @@ function CartDetail({
                     <Text variant="bodyMedium">{formatEur(item.unit_price * item.quantity)}</Text>
                     <Pressable
                       hitSlop={8}
-                      onPress={() => removeItem(cart.supplier_id, item.product_id)}
+                      onPress={() => removeItem(cart.supplier_id, item.item_key)}
                     >
                       <Icon name="X" size={16} color={colors.ink4} />
                     </Pressable>
