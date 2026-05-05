@@ -80,7 +80,7 @@ export default function HomeScreen() {
         actions={[
           {
             icon: 'Bell',
-            onPress: () => router.push('/(agent)/pedidos'),
+            onPress: () => router.push('/(agent)/notificaciones'),
             accessibilityLabel: 'Notificaciones',
           },
         ]}

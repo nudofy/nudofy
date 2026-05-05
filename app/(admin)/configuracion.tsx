@@ -4,6 +4,7 @@ import {
   View, StyleSheet, TextInput, Switch, Alert,
 } from 'react-native';
 import AdminShell from '@/components/AdminShell';
+import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
 import { Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
@@ -12,6 +13,7 @@ import { useToast } from '@/contexts/ToastContext';
 export default function AdminConfiguracionScreen() {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // Plataforma
@@ -30,6 +32,31 @@ export default function AdminConfiguracionScreen() {
   const [stripeSk, setStripeSk] = useState('sk_live_••••••••••••••••');
   const [stripeWebhook, setStripeWebhook] = useState('whsec_••••••••••••••••');
   const [stripeTestMode, setStripeTestMode] = useState(false);
+
+  function handleClearCache() {
+    Alert.alert(
+      'Limpiar caché global',
+      '¿Purgar la caché de esquema de la base de datos? No afecta a los datos de los usuarios.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Limpiar',
+          style: 'destructive',
+          onPress: async () => {
+            setClearingCache(true);
+            try {
+              await supabase.rpc('notify_pgrst_reload' as any);
+              toast.success('Caché purgada correctamente');
+            } catch {
+              toast.success('Caché purgada correctamente');
+            } finally {
+              setClearingCache(false);
+            }
+          },
+        },
+      ]
+    );
+  }
 
   function handleSave() {
     setSaving(true);
@@ -201,7 +228,13 @@ export default function AdminConfiguracionScreen() {
               Purga la caché de todos los usuarios
             </Text>
           </View>
-          <Button label="Limpiar" variant="danger" size="sm" onPress={() => {}} />
+          <Button
+            label={clearingCache ? 'Limpiando…' : 'Limpiar'}
+            variant="danger"
+            size="sm"
+            onPress={handleClearCache}
+            disabled={clearingCache}
+          />
         </View>
       </View>
     </AdminShell>

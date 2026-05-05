@@ -12,6 +12,8 @@ export interface Agent {
   email: string;
   phone?: string;
   plan: string;
+  active: boolean;
+  plan_expires_at?: string | null;
   accepted_dpa_at?: string | null;
 }
 

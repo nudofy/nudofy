@@ -23,9 +23,9 @@ export default function MasScreen() {
   const menuItems: { label: string; icon: IconName; route: string | null }[] = [
     { label: 'Estadísticas', icon: 'ChartBar', route: '/(agent)/estadisticas' },
     { label: 'Tarifas', icon: 'Tag', route: '/(agent)/tarifas' },
-    { label: 'Notificaciones', icon: 'Bell', route: null },
+    { label: 'Notificaciones', icon: 'Bell', route: '/(agent)/notificaciones' },
     { label: 'Perfil y ajustes', icon: 'Settings', route: '/(agent)/perfil' },
-    { label: 'Facturas', icon: 'Receipt', route: null },
+    { label: 'Facturas', icon: 'Receipt', route: '/(agent)/mis-facturas' },
   ];
 
   return (

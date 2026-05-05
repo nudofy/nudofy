@@ -10,6 +10,7 @@ import type { Agent } from '@/hooks/useAgent';
 interface AgentContextType {
   agent: Agent | null;
   loading: boolean;
+  trialExpired: boolean;
   refreshAgent: () => void;
 }
 
@@ -24,7 +25,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     const { data } = await supabase
       .from('agents')
-      .select('id, name, email, phone, plan, accepted_dpa_at')
+      .select('id, name, email, phone, plan, active, plan_expires_at, accepted_dpa_at')
       .eq('user_id', userId)
       .single();
     setAgent(data ?? null);
@@ -40,8 +41,19 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     if (user) fetchAgent(user.id);
   }
 
+  // El trial está vencido si: el agente tiene plan free/free_pro,
+  // tiene plan_expires_at en el pasado, o su cuenta está desactivada.
+  const trialExpired = !loading && agent != null && (
+    agent.active === false ||
+    (
+      ['free', 'free_pro'].includes(agent.plan) &&
+      agent.plan_expires_at != null &&
+      new Date(agent.plan_expires_at) < new Date()
+    )
+  );
+
   return (
-    <AgentContext.Provider value={{ agent, loading, refreshAgent }}>
+    <AgentContext.Provider value={{ agent, loading, trialExpired, refreshAgent }}>
       {children}
     </AgentContext.Provider>
   );

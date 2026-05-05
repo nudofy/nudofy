@@ -1,7 +1,7 @@
 // ADM-07 · Ficha de empresa
 import React, { useState } from 'react';
 import {
-  View, StyleSheet, Pressable, ScrollView, TextInput, Alert,
+  View, StyleSheet, Pressable, ScrollView, TextInput, Alert, Linking,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
@@ -116,6 +116,40 @@ export default function AdminEmpresaDetailScreen() {
     );
   }
 
+  async function handleProposeUpgrade() {
+    // Buscar el email del admin de la empresa
+    const adminAgent = agents.find(a => a.role === 'admin');
+    const email = adminAgent?.email ?? '';
+    if (!email) { toast.error('No se encontró un admin con email en esta empresa'); return; }
+
+    const subject = `Nudofy · Propuesta de upgrade a Agencia Pro — ${company!.name}`;
+    const body =
+`Hola,
+
+Hemos revisado el uso de tu cuenta en Nudofy y queremos proponerte una mejora de plan.
+
+Tu empresa ${company!.name} está utilizando actualmente el plan Agencia y se está acercando a los límites:
+• Agentes activos: ${activeAgentCount} / ${plan.maxAgents}
+• Clientes: ${clientCount} / ${plan.maxClients}
+• Productos: ${productCount} / ${plan.maxProducts}
+
+El plan Agencia Pro (79 €/mes) te ofrece:
+• Agentes ilimitados
+• Clientes ilimitados
+• Productos ilimitados
+• Soporte prioritario
+
+Si quieres saber más o hacer el cambio, responde a este email y te ayudamos en el proceso.
+
+Un saludo,
+Equipo Nudofy`;
+
+    const url = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) { toast.error('No se pudo abrir el cliente de correo'); return; }
+    await Linking.openURL(url);
+  }
+
   return (
     <AdminShell activeSection="agentes" title="Ficha de empresa">
       {/* Breadcrumb + acciones */}
@@ -199,7 +233,7 @@ export default function AdminEmpresaDetailScreen() {
               Esta empresa se acerca a los límites del plan Agencia. Agencia Pro ofrece todo ilimitado.
             </Text>
             <View style={{ alignSelf: 'flex-start', marginTop: space[1] }}>
-              <Button label="Proponer upgrade" variant="secondary" size="sm" onPress={() => {}} />
+              <Button label="Proponer upgrade" variant="secondary" size="sm" onPress={handleProposeUpgrade} />
             </View>
           </View>
         </View>
