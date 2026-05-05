@@ -274,7 +274,7 @@ export default function AdminAgenteDetailScreen() {
             variant="secondary"
             onPress={handleToggleActive}
           />
-          <Button label="Ver pedidos" variant="secondary" onPress={() => {}} />
+          <Button label="Ver pedidos" variant="secondary" onPress={() => router.push(`/(admin)/agente/${agent.id}/pedidos` as any)} />
         </View>
       </View>
     </AdminShell>

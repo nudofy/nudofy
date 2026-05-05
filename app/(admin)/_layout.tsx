@@ -6,6 +6,7 @@ export default function AdminLayout() {
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="agentes" />
       <Stack.Screen name="agente/[id]" />
+      <Stack.Screen name="agente/[id]/pedidos" />
       <Stack.Screen name="empresa/[id]" />
       <Stack.Screen name="planes" />
       <Stack.Screen name="facturacion" />

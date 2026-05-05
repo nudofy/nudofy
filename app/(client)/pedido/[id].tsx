@@ -4,6 +4,8 @@ import {
   View, ScrollView, Pressable,
   StyleSheet, Linking, Share, ActivityIndicator,
 } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
@@ -52,6 +54,7 @@ export default function ClientPedidoDetailScreen() {
   const [items, setItems] = useState<OrderItemDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingZip, setGeneratingZip] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +78,106 @@ export default function ClientPedidoDetailScreen() {
       setLoading(false);
     });
   }, [id]);
+
+  async function generatePdf() {
+    if (!order) return;
+    setGeneratingPdf(true);
+    try {
+      const fmt = (n: number) =>
+        n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+      const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
+      const subtotal = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+
+      const itemsHtml = items.map(item => {
+        const ref = item.product?.reference
+          ? `<span style="color:#9ca3af;font-size:11px;"> · ${item.product.reference}</span>` : '';
+        return `
+          <tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle;">
+              <span style="font-weight:500;">${item.product?.name ?? '—'}</span>${ref}
+            </td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:center;vertical-align:middle;">${item.quantity}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:right;vertical-align:middle;">${fmt(item.unit_price)}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:right;vertical-align:middle;font-weight:500;">${fmt(item.total)}</td>
+          </tr>`;
+      }).join('');
+
+      const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,Helvetica,Arial,sans-serif; color:#111827; background:#fff; padding:32px; font-size:13px; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; padding-bottom:18px; border-bottom:2px solid #111827; }
+    .logo { font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+    .logo span { color:#ef4444; }
+    .order-num { font-size:13px; color:#6b7280; text-align:right; }
+    .order-num strong { display:block; font-size:18px; color:#111827; margin-bottom:2px; }
+    .meta { background:#f9fafb; border-radius:8px; padding:14px 16px; margin-bottom:24px; }
+    .meta h3 { font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:#9ca3af; margin-bottom:8px; }
+    table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+    thead th { background:#f3f4f6; padding:10px 12px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; }
+    thead th:nth-child(2) { text-align:center; }
+    thead th:nth-child(3), thead th:nth-child(4) { text-align:right; }
+    .totals { display:flex; justify-content:flex-end; margin-bottom:24px; }
+    .totals-box { background:#f9fafb; border-radius:8px; padding:16px 20px; min-width:220px; }
+    .totals-row { display:flex; justify-content:space-between; gap:32px; padding:4px 0; font-size:13px; }
+    .totals-row.total { border-top:1px solid #e5e7eb; margin-top:8px; padding-top:10px; font-weight:700; font-size:15px; color:#ef4444; }
+    .notes { background:#fff7ed; border-left:3px solid #f97316; border-radius:4px; padding:12px 16px; margin-bottom:24px; font-size:12px; }
+    .footer { text-align:center; font-size:11px; color:#9ca3af; border-top:1px solid #f3f4f6; padding-top:16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">nudo<span>fy</span></div>
+    <div class="order-num">
+      <strong>${order.order_number ?? '—'}</strong>
+      ${new Date(order.created_at).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })}
+    </div>
+  </div>
+  <div class="meta">
+    <h3>Proveedor</h3>
+    <p style="font-weight:600;">${(order as any).supplier?.name ?? '—'}</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:4px;">Catálogo: ${(order as any).catalog?.name ?? '—'}</p>
+    ${(order as any).supplier?.conditions ? `<p style="color:#6b7280;font-size:12px;">Condiciones: ${(order as any).supplier.conditions}</p>` : ''}
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th style="width:60px;">Uds.</th>
+        <th style="width:90px;">P. unit.</th>
+        <th style="width:90px;">Total</th>
+      </tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  <div class="totals">
+    <div class="totals-box">
+      <div class="totals-row"><span>Subtotal (${totalUnits} uds.)</span><span>${fmt(subtotal)}</span></div>
+      <div class="totals-row total"><span>Total pedido</span><span>${fmt(order.total)}</span></div>
+    </div>
+  </div>
+  ${order.notes ? `<div class="notes"><strong>Observaciones:</strong> ${order.notes}</div>` : ''}
+  <div class="footer">Generado con Nudofy · ${new Date().toLocaleDateString('es-ES')}</div>
+</body>
+</html>`;
+
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Pedido ${order.order_number ?? ''}` });
+      } else {
+        toast.error('No se puede compartir en este dispositivo');
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Error generando el PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }
 
   async function downloadImages() {
     if (!order) return;
@@ -193,7 +296,12 @@ export default function ClientPedidoDetailScreen() {
               onPress={() => Linking.openURL(`mailto:${agent.email}?subject=Pedido ${order.order_number}`)}
             />
           )}
-          <ActionBtn icon="Download" label="Descargar PDF" onPress={() => {}} />
+          <ActionBtn
+            icon="Download"
+            label={generatingPdf ? 'Generando…' : 'Descargar PDF'}
+            onPress={generatePdf}
+            loading={generatingPdf}
+          />
           <ActionBtn
             icon="Image"
             label={generatingZip ? 'Generando…' : 'Imágenes ZIP'}
