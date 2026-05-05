@@ -25,10 +25,11 @@ interface Props {
   activeSection: AdminSection;
   title?: string;
   rightElement?: React.ReactNode;
+  onBack?: () => void;
   children: React.ReactNode;
 }
 
-export default function AdminShell({ activeSection, title, rightElement, children }: Props) {
+export default function AdminShell({ activeSection, title, rightElement, onBack, children }: Props) {
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const { width } = useWindowDimensions();
@@ -135,7 +136,18 @@ export default function AdminShell({ activeSection, title, rightElement, childre
         <View style={styles.sidebar}>{sidebarContent}</View>
         <View style={styles.desktopMain}>
           <View style={styles.desktopTopbar}>
-            <Text variant="title">{title ?? sectionLabel}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
+              {onBack && (
+                <Pressable
+                  onPress={onBack}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <Icon name="ChevronLeft" size={20} color={colors.ink2} />
+                </Pressable>
+              )}
+              <Text variant="title">{title ?? sectionLabel}</Text>
+            </View>
             <View style={styles.topbarRight}>
               {rightElement}
               <View style={styles.userAv}>
@@ -159,13 +171,23 @@ export default function AdminShell({ activeSection, title, rightElement, childre
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.topbar}>
-        <Pressable
-          style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
-          onPress={openDrawer}
-          hitSlop={8}
-        >
-          <Icon name="Menu" size={20} color={colors.ink} />
-        </Pressable>
+        {onBack ? (
+          <Pressable
+            style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
+            onPress={onBack}
+            hitSlop={8}
+          >
+            <Icon name="ChevronLeft" size={22} color={colors.ink} />
+          </Pressable>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.hamburger, pressed && { opacity: 0.6 }]}
+            onPress={openDrawer}
+            hitSlop={8}
+          >
+            <Icon name="Menu" size={20} color={colors.ink} />
+          </Pressable>
+        )}
         <Text variant="title" style={{ flex: 1, textAlign: 'center' }} numberOfLines={1}>
           {title ?? sectionLabel}
         </Text>
@@ -212,6 +234,11 @@ const styles = StyleSheet.create({
   hamburger: {
     width: 36, height: 36,
     alignItems: 'center', justifyContent: 'center',
+  },
+  backBtn: {
+    width: 32, height: 32, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface2,
   },
   topbarRight: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   content: { flex: 1 },

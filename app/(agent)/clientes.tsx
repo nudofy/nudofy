@@ -62,7 +62,7 @@ export default function ClientesScreen() {
       )}
 
       {/* Lista */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {loading && (
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
         )}

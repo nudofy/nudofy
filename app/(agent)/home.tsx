@@ -87,6 +87,7 @@ export default function HomeScreen() {
       />
 
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: space[6] }}
         refreshControl={

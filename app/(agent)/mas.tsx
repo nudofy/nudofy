@@ -32,7 +32,7 @@ export default function MasScreen() {
     <Screen>
       <TopBar title="Más" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Perfil del agente */}
         <Pressable
           style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.7 }]}

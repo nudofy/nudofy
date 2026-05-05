@@ -1,12 +1,13 @@
 // ADM-03 · Ficha de agente
-import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Pressable, Alert, TextInput } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgentDetail, useAdminAgents } from '@/hooks/useAdmin';
 import { colors, space, radius } from '@/theme';
 import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
+import { useToast } from '@/contexts/ToastContext';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -31,15 +32,44 @@ const DURATIONS = [
 
 export default function AdminAgenteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { agent, clientCount, orderCount, supplierCount, loading } = useAdminAgentDetail(id);
-  const { updateAgentPlan, toggleAgentActive } = useAdminAgents();
+  const router = useRouter();
+  const toast = useToast();
+  const { agent, clientCount, orderCount, supplierCount, loading, refetch } = useAdminAgentDetail(id);
+  const { updateAgentPlan, toggleAgentActive, updateAgentData } = useAdminAgents();
   const [changingPlan, setChangingPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[number] | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(30);
 
+  // Edición de datos
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (agent) {
+      setEditName(agent.name ?? '');
+      setEditPhone(agent.phone ?? '');
+    }
+  }, [agent]);
+
+  async function handleSaveData() {
+    if (!agent) return;
+    setSaving(true);
+    const { error } = await updateAgentData(agent.id, {
+      name: editName.trim(),
+      phone: editPhone.trim() || null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error); return; }
+    toast.success('Agente actualizado');
+    setEditing(false);
+    refetch?.();
+  }
+
   if (loading || !agent) {
     return (
-      <AdminShell activeSection="agentes" title="Cargando...">
+      <AdminShell activeSection="agentes" title="Cargando..." onBack={() => router.back()}>
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
           Cargando agente...
         </Text>
@@ -84,7 +114,7 @@ export default function AdminAgenteDetailScreen() {
   }
 
   return (
-    <AdminShell activeSection="agentes" title={agent.name}>
+    <AdminShell activeSection="agentes" title={agent.name} onBack={() => router.back()}>
       {/* Cabecera */}
       <View style={styles.agentHeader}>
         <Avatar name={agent.name} size={56} fontSize={20} />
@@ -114,12 +144,39 @@ export default function AdminAgenteDetailScreen() {
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
             <Text variant="bodyMedium">Datos del agente</Text>
+            <Pressable
+              onPress={() => editing ? handleSaveData() : setEditing(true)}
+              hitSlop={8}
+              disabled={saving}
+              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+            >
+              <Text variant="smallMedium" color="ink2">
+                {saving ? 'Guardando...' : editing ? 'Guardar' : 'Editar'}
+              </Text>
+            </Pressable>
           </View>
-          <FieldRow label="Nombre" value={agent.name} />
-          <FieldRow label="Email" value={agent.email} />
-          <FieldRow label="Teléfono" value={agent.phone ?? '—'} />
-          <FieldRow label="ID" value={agent.id} mono />
-          <FieldRow label="Usuario ID" value={agent.user_id} mono last />
+          {editing ? (
+            <View>
+              <EditField label="Nombre" value={editName} onChange={setEditName} />
+              <EditField label="Email" value={agent.email} editable={false} />
+              <EditField label="Teléfono" value={editPhone} onChange={setEditPhone} keyboardType="phone-pad" last />
+            </View>
+          ) : (
+            <View>
+              <FieldRow label="Nombre" value={agent.name} />
+              <FieldRow label="Email" value={agent.email} />
+              <FieldRow label="Teléfono" value={agent.phone ?? '—'} />
+              <FieldRow label="ID" value={agent.id} mono />
+              <FieldRow label="Usuario ID" value={agent.user_id} mono last />
+            </View>
+          )}
+          {editing && (
+            <View style={{ padding: space[3], paddingTop: 0 }}>
+              <Pressable onPress={() => setEditing(false)} hitSlop={8}>
+                <Text variant="small" color="ink3" align="center">Cancelar</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         <View style={[styles.card, { flex: 1 }]}>
@@ -251,6 +308,25 @@ function FieldRow({ label, value, mono, last }: {
   );
 }
 
+function EditField({ label, value, onChange, editable = true, keyboardType, last }: {
+  label: string; value: string; onChange?: (v: string) => void;
+  editable?: boolean; keyboardType?: any; last?: boolean;
+}) {
+  return (
+    <View style={[styles.fieldRow, !last && styles.fieldRowBorder]}>
+      <Text variant="small" color="ink3" style={{ minWidth: 72 }}>{label}</Text>
+      <TextInput
+        style={[styles.editInput, !editable && { color: colors.ink3 }]}
+        value={value}
+        onChangeText={onChange}
+        editable={editable}
+        keyboardType={keyboardType}
+        placeholderTextColor={colors.ink4}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   emptyText: { paddingVertical: space[6] },
 
@@ -295,6 +371,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: space[3],
   },
   fieldRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line2 },
+
+  editInput: {
+    flex: 1, textAlign: 'right',
+    fontSize: 13, fontWeight: '500', color: colors.ink,
+    paddingVertical: 2,
+  },
 
   planSelector: {
     flexDirection: 'row', flexWrap: 'wrap', gap: space[2],

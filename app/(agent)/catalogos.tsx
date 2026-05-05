@@ -73,7 +73,7 @@ export default function CatalogosScreen() {
       </View>
 
       {/* Grid de proveedores */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.gridContent}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.gridContent}>
         {loading && <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>Cargando...</Text>}
         {!loading && activeSuppliers.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>

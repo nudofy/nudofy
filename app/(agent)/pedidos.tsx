@@ -117,7 +117,7 @@ export default function PedidosScreen() {
       )}
 
       {/* Lista */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {loading && <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>}
         {!loading && filtered.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Sin pedidos en esta sección</Text>

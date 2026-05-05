@@ -175,7 +175,13 @@ export function useAdminAgents() {
     return { error: null };
   }
 
-  return { agents, loading, updateAgentPlan, toggleAgentActive, createAgent, refetch: fetchAgents };
+  async function updateAgentData(id: string, data: { name: string; phone?: string | null }) {
+    const { error } = await supabase.from('agents').update(data).eq('id', id);
+    if (!error) fetchAgents();
+    return { error: error?.message ?? null };
+  }
+
+  return { agents, loading, updateAgentPlan, toggleAgentActive, updateAgentData, createAgent, refetch: fetchAgents };
 }
 
 // ——————————————————————————————
@@ -187,6 +193,9 @@ export function useAdminAgentDetail(agentId?: string) {
   const [orderCount, setOrderCount] = useState(0);
   const [supplierCount, setSupplierCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const [refetchTick, setRefetchTick] = useState(0);
+  const refetch = () => setRefetchTick(t => t + 1);
 
   useEffect(() => {
     if (!agentId) return;
@@ -206,9 +215,9 @@ export function useAdminAgentDetail(agentId?: string) {
       setSupplierCount(suppliersRes.count ?? 0);
       setLoading(false);
     });
-  }, [agentId]);
+  }, [agentId, refetchTick]);
 
-  return { agent, clientCount, orderCount, supplierCount, loading };
+  return { agent, clientCount, orderCount, supplierCount, loading, refetch };
 }
 
 // ——————————————————————————————
