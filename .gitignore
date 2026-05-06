@@ -1,6 +1,9 @@
 # Dependencias
 node_modules/
 
+# Supabase CLI binary
+supabase.exe
+
 # Expo
 .expo/
 dist/
