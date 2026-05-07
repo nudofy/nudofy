@@ -8,6 +8,14 @@ import {
   Platform, Pressable, ScrollView, StyleSheet,
   TextInput, View, useWindowDimensions,
 } from 'react-native';
+
+function openUrl(url: string, sameTab = false) {
+  if (Platform.OS === 'web' && sameTab) {
+    (window as any).location.href = url;
+  } else {
+    Linking.openURL(url);
+  }
+}
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -162,11 +170,16 @@ export default function LoginScreen() {
   // ── Versión WEB (pantalla ancha): card centrada flotante ──────────────────
   if (isWide) {
     return (
-      <View style={styles.webRoot}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.brand }}
+        contentContainerStyle={styles.webRoot}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Link volver arriba */}
         <Pressable
           style={styles.webBackLink}
-          onPress={() => Linking.openURL('https://nudofy.com')}
+          onPress={() => openUrl('https://nudofy.com', true)}
         >
           <Icon name="ChevronLeft" size={16} color="rgba(255,255,255,0.8)" />
           <Text style={styles.webBackText}>nudofy.com</Text>
@@ -192,7 +205,7 @@ export default function LoginScreen() {
             {form}
           </View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
