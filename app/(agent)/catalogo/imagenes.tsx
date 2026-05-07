@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, ScrollView, Pressable, StyleSheet, Image, ActivityIndicator,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+import { pickFiles as pickFilesUtil } from '@/lib/filePicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
@@ -91,14 +91,10 @@ export default function CatalogoImagenesScreen() {
   const unmatchedCount = picks.length - matchedCount;
 
   async function pickFiles() {
-    const res = await DocumentPicker.getDocumentAsync({
-      type: 'image/*',
-      multiple: true,
-      copyToCacheDirectory: true,
-    });
-    if (res.canceled) return;
+    const assets = await pickFilesUtil({ type: 'image/*', multiple: true });
+    if (!assets) return;
 
-    const newPicks: Pick[] = res.assets.map(a => {
+    const newPicks: Pick[] = assets.map(a => {
       const fname = a.name ?? 'sin_nombre.jpg';
       const matchKey = normalize(nameWithoutExt(fname));
       const matched = productsByKey.get(matchKey) ?? null;

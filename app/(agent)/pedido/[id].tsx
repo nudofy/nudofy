@@ -8,8 +8,7 @@ import type { IconName } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import type { Order, OrderItem, Supplier, Catalog } from '@/hooks/useAgent';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { printAndShare } from '@/lib/pdf';
 
 // Tipos de las relaciones que devuelve el select de este screen
 type OrderClient = { id: string; name: string; address?: string; email?: string };
@@ -306,13 +305,7 @@ Un saludo.`;
 </body>
 </html>`;
 
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Pedido ${order.order_number ?? ''}` });
-      } else {
-        toast.error('No se puede compartir en este dispositivo');
-      }
+      await printAndShare({ html, filename: `pedido-${order.order_number ?? order.id.slice(0, 8)}.pdf`, dialogTitle: `Pedido ${order.order_number ?? ''}` });
     } catch (e: any) {
       toast.error(e?.message ?? 'Error generando el PDF');
     } finally {
@@ -638,7 +631,7 @@ Un saludo.`;
         {order.status === 'proposal_sent' && (
           <Button
             label="Cliente aprobado — Finalizar pedido"
-            icon="CheckCircle"
+            icon="CircleCheck"
             onPress={finalizeFromProposal}
             fullWidth
             style={{ marginTop: space[2] }}

@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView, TextInput, Alert,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+import { pickFile } from '@/lib/filePicker';
 import { supabase } from '@/lib/supabase';
 import AdminShell from '@/components/AdminShell';
 import { useAdminInvoices } from '@/hooks/useAdmin';
@@ -60,15 +60,12 @@ export default function AdminFacturacionScreen() {
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.total, 0);
 
   async function handleUploadPdf(inv: AdminInvoice) {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: 'application/pdf',
-      copyToCacheDirectory: true,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
+    const picked = await pickFile({ type: 'application/pdf' });
+    if (!picked) return;
 
     setUploadingId(inv.id);
     try {
-      const file = result.assets[0];
+      const file = picked;
       const path = `${inv.agent_id}/${inv.id}.pdf`;
 
       // Leer el archivo como ArrayBuffer

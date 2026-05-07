@@ -20,9 +20,9 @@ interface ActivityItem {
 
 const TYPE_META: Record<string, { icon: IconName; color: string }> = {
   order_new:       { icon: 'ShoppingCart', color: colors.ink2     },
-  order_confirmed: { icon: 'CheckCircle',  color: colors.success  },
+  order_confirmed: { icon: 'CircleCheck',  color: colors.success  },
   order_sent:      { icon: 'Send',         color: colors.brand    },
-  order_cancelled: { icon: 'XCircle',      color: colors.danger   },
+  order_cancelled: { icon: 'CircleX',      color: colors.danger   },
   plan_expiry:     { icon: 'Clock',        color: colors.warning  },
 };
 

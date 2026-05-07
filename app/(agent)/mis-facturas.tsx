@@ -1,8 +1,7 @@
 // Mis facturas — historial de suscripción del agente
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { shareFile } from '@/lib/sharing';
 import { supabase } from '@/lib/supabase';
 import { useAgentContext } from '@/contexts/AgentContext';
 import { colors, space, radius } from '@/theme';
@@ -66,20 +65,9 @@ export default function MisFacturasScreen() {
   async function handleDownload(inv: AgentInvoice) {
     if (!inv.pdf_url) return;
     setGeneratingId(inv.id);
-    try {
-      const filename = `factura-${inv.invoice_number ?? inv.id.slice(0, 8)}.pdf`;
-      const localUri = FileSystem.cacheDirectory + filename;
-      const { uri } = await FileSystem.downloadAsync(inv.pdf_url, localUri);
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: filename,
-        UTI: 'com.adobe.pdf',
-      });
-    } catch {
-      // silently ignore share cancellation
-    } finally {
-      setGeneratingId(null);
-    }
+    const filename = `factura-${inv.invoice_number ?? inv.id.slice(0, 8)}.pdf`;
+    await shareFile({ url: inv.pdf_url, filename, dialogTitle: filename });
+    setGeneratingId(null);
   }
 
   return (

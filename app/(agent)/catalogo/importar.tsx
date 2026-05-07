@@ -1,12 +1,8 @@
 // Importar productos desde CSV/Excel
 import React, { useState } from 'react';
-import {
-  View, Pressable, ScrollView, StyleSheet,
-} from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { View, Pressable, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker';
+import { pickFile } from '@/lib/filePicker';
 import Papa from 'papaparse';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -18,19 +14,19 @@ const OPTIONAL_COLS = ['referencia', 'referencia_2', 'ean', 'familia', 'subfamil
 const ALL_COLS = [...REQUIRED_COLS, ...OPTIONAL_COLS];
 
 const COL_DESCRIPTIONS: Record<string, string> = {
-  nombre:            'Nombre del producto (obligatorio)',
-  referencia:        'Referencia interna del proveedor',
-  referencia_2:      'Segunda referencia o código alternativo',
-  ean:               'Código de barras EAN-13',
-  familia:           'Categoría principal del producto',
-  subfamilia:        'Subcategoría del producto',
-  precio:            'Precio de coste (ej: 9.99)',
-  pvpr:              'Precio de venta recomendado (ej: 14.99)',
-  descripcion:       'Descripción del producto',
-  medidas:           'Dimensiones (ej: 15x10x5 cm)',
-  stock:             'Unidades disponibles (número entero)',
-  caja_estandar:     'Unidades por caja estándar (número entero)',
-  unidades_minimas:  'Unidades mínimas de pedido (número entero)',
+  nombre:           'Nombre del producto (obligatorio)',
+  referencia:       'Referencia interna del proveedor',
+  referencia_2:     'Segunda referencia o código alternativo',
+  ean:              'Código de barras EAN-13',
+  familia:          'Categoría principal del producto',
+  subfamilia:       'Subcategoría del producto',
+  precio:           'Precio de coste (ej: 9.99)',
+  pvpr:             'Precio de venta recomendado (ej: 14.99)',
+  descripcion:      'Descripción del producto',
+  medidas:          'Dimensiones (ej: 15x10x5 cm)',
+  stock:            'Unidades disponibles (número entero)',
+  caja_estandar:    'Unidades por caja estándar (número entero)',
+  unidades_minimas: 'Unidades mínimas de pedido (número entero)',
 };
 
 const CSV_TEMPLATE =
@@ -62,48 +58,57 @@ export default function ImportarProductosScreen() {
 
   async function shareTemplate() {
     try {
-      const fileUri = FileSystem.cacheDirectory + 'plantilla_productos.csv';
-      await FileSystem.writeAsStringAsync(fileUri, CSV_TEMPLATE, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'text/csv',
-          dialogTitle: 'Guardar plantilla CSV',
-          UTI: 'public.comma-separated-values-text',
-        });
+      if (Platform.OS === 'web') {
+        const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla_productos.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       } else {
-        toast.error('La función de compartir no está disponible en este dispositivo.');
+        const FileSystem = await import('expo-file-system');
+        const Sharing = await import('expo-sharing');
+        const fileUri = FileSystem.cacheDirectory + 'plantilla_productos.csv';
+        await FileSystem.writeAsStringAsync(fileUri, CSV_TEMPLATE, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Guardar plantilla CSV',
+            UTI: 'public.comma-separated-values-text',
+          });
+        } else {
+          toast.error('La función de compartir no está disponible en este dispositivo.');
+        }
       }
     } catch (e: any) {
       toast.error(e?.message ?? 'No se pudo descargar la plantilla');
     }
   }
 
-  async function pickFile() {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['text/csv', 'text/comma-separated-values', 'application/csv',
-             'application/vnd.ms-excel',
-             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-             '*/*'],
-      copyToCacheDirectory: true });
-    if (result.canceled || !result.assets?.[0]) return;
+  async function handlePickFile() {
+    const picked = await pickFile({ type: 'text/csv' });
+    if (!picked) return;
 
-    const asset = result.assets[0];
-    setFileName(asset.name);
+    setFileName(picked.name);
     setPreview([]);
     setHeaders([]);
     setResults([]);
     setDone(false);
 
     try {
-      const response = await fetch(asset.uri);
+      const response = await fetch(picked.uri);
       const text = await response.text();
       const parsed = Papa.parse<PreviewRow>(text, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: normalizeHeader });
+        transformHeader: normalizeHeader,
+      });
 
       if (parsed.errors.length > 0 && parsed.data.length === 0) {
         toast.error('Asegúrate de que es un CSV válido.');
@@ -125,21 +130,20 @@ export default function ImportarProductosScreen() {
   async function handleImportFromPreview() {
     if (!catalogId || preview.length === 0) return;
 
-    const picked = await DocumentPicker.getDocumentAsync({
-      type: ['text/csv', 'text/comma-separated-values', 'application/csv', '*/*'],
-      copyToCacheDirectory: true });
-    if (picked.canceled || !picked.assets?.[0]) return;
+    const picked2 = await pickFile({ type: 'text/csv' });
+    if (!picked2) return;
 
     setImporting(true);
     setResults([]);
 
     try {
-      const response = await fetch(picked.assets[0].uri);
+      const response = await fetch(picked2.uri);
       const text = await response.text();
       const parsed = Papa.parse<PreviewRow>(text, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: normalizeHeader });
+        transformHeader: normalizeHeader,
+      });
 
       const rows = parsed.data;
       const res: ImportResult[] = [];
@@ -168,7 +172,8 @@ export default function ImportarProductosScreen() {
           measures: row['medidas']?.trim() || null,
           stock: row['stock'] ? parseInt(row['stock']) : null,
           standard_box: row['caja_estandar'] ? parseInt(row['caja_estandar']) : null,
-          min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null });
+          min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
+        });
 
         res.push({ name, ok: !error, error: error?.message });
       }
@@ -224,7 +229,7 @@ export default function ImportarProductosScreen() {
         </View>
 
         {/* Selector de fichero */}
-        <Pressable style={({ pressed }) => [styles.pickBtn, pressed && { opacity: 0.7 }]} onPress={pickFile} disabled={importing}>
+        <Pressable style={({ pressed }) => [styles.pickBtn, pressed && { opacity: 0.7 }]} onPress={handlePickFile} disabled={importing}>
           <Icon name="FileUp" size={20} color={colors.ink2} />
           <Text variant="bodyMedium" color="ink2">{fileName || 'Seleccionar fichero CSV'}</Text>
         </Pressable>
@@ -237,14 +242,7 @@ export default function ImportarProductosScreen() {
               <View>
                 <View style={styles.tableRow}>
                   {headers.map(h => (
-                    <Text
-                      key={h}
-                      variant="caption"
-                      color={ALL_COLS.includes(h) ? 'ink' : 'ink4'}
-                      style={styles.th}
-                    >
-                      {h}
-                    </Text>
+                    <Text key={h} variant="caption" color={ALL_COLS.includes(h) ? 'ink' : 'ink4'} style={styles.th}>{h}</Text>
                   ))}
                 </View>
                 {preview.map((row, i) => (
@@ -296,12 +294,7 @@ export default function ImportarProductosScreen() {
               </>
             )}
 
-            <Button
-              label="Ver catálogo"
-              onPress={() => router.back()}
-              fullWidth
-              style={{ marginTop: space[3] }}
-            />
+            <Button label="Ver catálogo" onPress={() => router.back()} fullWidth style={{ marginTop: space[3] }} />
           </View>
         )}
       </ScrollView>
@@ -316,19 +309,15 @@ const styles = StyleSheet.create({
     padding: space[4], gap: space[2],
     borderWidth: 1, borderColor: colors.line,
   },
-  cardHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: space[2], paddingVertical: 6,
-    borderRadius: radius.sm,
-    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line,
   },
   colTable: {
     borderRadius: radius.md, overflow: 'hidden',
-    borderWidth: 1, borderColor: colors.line,
-    marginTop: space[1],
+    borderWidth: 1, borderColor: colors.line, marginTop: space[1],
   },
   colRow: {
     paddingHorizontal: space[3], paddingVertical: space[2],
@@ -337,37 +326,29 @@ const styles = StyleSheet.create({
   colNameWrap: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   reqBadge: {
     backgroundColor: colors.surface2,
-    paddingHorizontal: 6, paddingVertical: 1,
-    borderRadius: radius.sm,
+    paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.sm,
   },
   reqBadgeText: { textTransform: 'uppercase', letterSpacing: 0.3 },
   pickBtn: {
     backgroundColor: colors.white, borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.ink2, borderStyle: 'dashed',
     paddingVertical: space[4], paddingHorizontal: space[4],
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: space[2],
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space[2],
   },
   tableRow: { flexDirection: 'row' },
   tableRowAlt: { backgroundColor: colors.surface },
   th: {
     paddingHorizontal: space[2], paddingVertical: 6,
-    minWidth: 90,
-    borderBottomWidth: 1, borderBottomColor: colors.line,
-    fontWeight: '600',
+    minWidth: 90, borderBottomWidth: 1, borderBottomColor: colors.line, fontWeight: '600',
   },
   td: {
     paddingHorizontal: space[2], paddingVertical: 6,
-    minWidth: 90, maxWidth: 150,
-    borderBottomWidth: 1, borderBottomColor: colors.line2,
+    minWidth: 90, maxWidth: 150, borderBottomWidth: 1, borderBottomColor: colors.line2,
   },
   resultsHeader: { flexDirection: 'row', gap: space[2] },
   resultStat: {
     flex: 1, alignItems: 'center', paddingVertical: space[3],
     backgroundColor: colors.successSoft, borderRadius: radius.md,
   },
-  errRow: {
-    paddingVertical: 6,
-    borderBottomWidth: 1, borderBottomColor: colors.line2,
-  },
+  errRow: { paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.line2 },
 });

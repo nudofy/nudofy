@@ -4,8 +4,7 @@ import {
   View, ScrollView, Pressable,
   StyleSheet, Linking, Share, ActivityIndicator,
 } from 'react-native';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { printAndShare } from '@/lib/pdf';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
@@ -165,13 +164,7 @@ export default function ClientPedidoDetailScreen() {
 </body>
 </html>`;
 
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Pedido ${order.order_number ?? ''}` });
-      } else {
-        toast.error('No se puede compartir en este dispositivo');
-      }
+      await printAndShare({ html, filename: `pedido-${order.order_number ?? order.id.slice(0, 8)}.pdf`, dialogTitle: `Pedido ${order.order_number ?? ''}` });
     } catch (e: any) {
       toast.error(e?.message ?? 'Error generando el PDF');
     } finally {
