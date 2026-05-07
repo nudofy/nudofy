@@ -3,8 +3,8 @@ import React, { useState, useMemo } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView, TextInput, Alert,
 } from 'react-native';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
+import { supabase } from '@/lib/supabase';
 import AdminShell from '@/components/AdminShell';
 import { useAdminInvoices } from '@/hooks/useAdmin';
 import type { AdminInvoice } from '@/hooks/useAdmin';
@@ -39,128 +39,11 @@ const FLOW_STEPS = [
   { n: '3', title: 'Actualiza BD', sub: 'El webhook de Stripe actualiza el estado en Supabase' },
 ];
 
-const PLAN_PRICES: Record<string, { base: number }> = {
-  basic:      { base: 7.44 },  // 9 € con IVA
-  pro:        { base: 15.70 }, // 19 € con IVA
-  agency:     { base: 32.23 }, // 39 € con IVA
-  agency_pro: { base: 65.29 }, // 79 € con IVA
-};
-
-function buildInvoiceHtml(inv: AdminInvoice): string {
-  const agentName = inv.agent?.name ?? '—';
-  const agentEmail = inv.agent?.email ?? '—';
-  const invNumber = inv.invoice_number ?? inv.id.slice(0, 8).toUpperCase();
-  const planLabel = PLAN_LABELS[inv.plan] ?? inv.plan;
-  const dateStr = new Date(inv.created_at).toLocaleDateString('es-ES', {
-    day: '2-digit', month: 'long', year: 'numeric',
-  });
-  const base = inv.amount ?? (inv.total / 1.21);
-  const iva = inv.iva ?? (inv.total - base);
-
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"/>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 48px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-  .brand { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
-  .brand span { color: #e63946; }
-  .inv-meta { text-align: right; }
-  .inv-meta h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 4px; }
-  .inv-meta p { font-size: 13px; color: #444; }
-  .divider { border: none; border-top: 1px solid #e5e5e5; margin: 24px 0; }
-  .parties { display: flex; gap: 40px; margin-bottom: 32px; }
-  .party { flex: 1; }
-  .party-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #999; margin-bottom: 8px; }
-  .party-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .party-detail { font-size: 13px; color: #666; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  thead th { background: #f5f5f5; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #666; }
-  tbody td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
-  .text-right { text-align: right; }
-  .totals { margin-left: auto; width: 280px; }
-  .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
-  .total-row.final { font-size: 16px; font-weight: 700; border-top: 2px solid #1a1a1a; padding-top: 10px; margin-top: 4px; }
-  .footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 11px; color: #999; text-align: center; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: ${inv.status === 'paid' ? '#dcfce7' : inv.status === 'overdue' ? '#fee2e2' : '#fef9c3'}; color: ${inv.status === 'paid' ? '#166534' : inv.status === 'overdue' ? '#991b1b' : '#713f12'}; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <div class="brand">Nudofy<span>.</span></div>
-    <div class="inv-meta">
-      <h2>Factura</h2>
-      <p><strong>${invNumber}</strong></p>
-      <p>${dateStr}</p>
-      <p style="margin-top:6px"><span class="badge">${inv.status === 'paid' ? 'Pagada' : inv.status === 'overdue' ? 'Vencida' : 'Pendiente'}</span></p>
-    </div>
-  </div>
-
-  <div class="parties">
-    <div class="party">
-      <div class="party-label">Emisor</div>
-      <div class="party-name">Nudofy S.L.</div>
-      <div class="party-detail">nudofyapp@gmail.com</div>
-      <div class="party-detail">Período: ${inv.period}</div>
-    </div>
-    <div class="party">
-      <div class="party-label">Cliente</div>
-      <div class="party-name">${agentName}</div>
-      <div class="party-detail">${agentEmail}</div>
-    </div>
-  </div>
-
-  <hr class="divider"/>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Descripción</th>
-        <th>Plan</th>
-        <th>Período</th>
-        <th class="text-right">Importe</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Suscripción Nudofy — ${planLabel}</td>
-        <td>${planLabel}</td>
-        <td>${inv.period}</td>
-        <td class="text-right">${base.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <div class="total-row">
-      <span>Base imponible</span>
-      <span>${base.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
-    </div>
-    <div class="total-row">
-      <span>IVA (21%)</span>
-      <span>${iva.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
-    </div>
-    <div class="total-row final">
-      <span>Total</span>
-      <span>${inv.total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
-    </div>
-  </div>
-
-  <div class="footer">
-    Nudofy S.L. · nudofyapp@gmail.com · nudofy.app<br/>
-    Este documento es una factura generada electrónicamente.
-  </div>
-</body>
-</html>`;
-}
-
 export default function AdminFacturacionScreen() {
-  const { invoices, loading, markAsPaid } = useAdminInvoices();
+  const { invoices, loading, markAsPaid, refetch } = useAdminInvoices();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return invoices.filter(inv => {
@@ -176,20 +59,49 @@ export default function AdminFacturacionScreen() {
   const totalPending = invoices.filter(i => i.status === 'pending').reduce((s, i) => s + i.total, 0);
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.total, 0);
 
-  async function handleGeneratePdf(inv: AdminInvoice) {
-    setGeneratingPdfId(inv.id);
+  async function handleUploadPdf(inv: AdminInvoice) {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/pdf',
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setUploadingId(inv.id);
     try {
-      const html = buildInvoiceHtml(inv);
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: `Factura ${inv.invoice_number ?? inv.id.slice(0, 8)}`,
-        UTI: 'com.adobe.pdf',
-      });
-    } catch {
-      // silently ignore share cancellation
+      const file = result.assets[0];
+      const path = `${inv.agent_id}/${inv.id}.pdf`;
+
+      // Leer el archivo como ArrayBuffer
+      const response = await fetch(file.uri);
+      const arrayBuffer = await response.arrayBuffer();
+
+      const { error: uploadError } = await supabase.storage
+        .from('invoices')
+        .upload(path, arrayBuffer, {
+          contentType: 'application/pdf',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Obtener URL pública firmada (válida 10 años)
+      const { data: urlData } = await supabase.storage
+        .from('invoices')
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+
+      if (!urlData?.signedUrl) throw new Error('No se pudo generar la URL');
+
+      // Guardar la URL en la factura
+      await supabase
+        .from('invoices')
+        .update({ pdf_url: urlData.signedUrl })
+        .eq('id', inv.id);
+
+      refetch?.();
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'No se pudo subir el PDF');
     } finally {
-      setGeneratingPdfId(null);
+      setUploadingId(null);
     }
   }
 
@@ -325,11 +237,11 @@ export default function AdminFacturacionScreen() {
                   </View>
                   <View style={[styles.td, { width: 180, flexDirection: 'row', gap: space[1] }]}>
                     <Button
-                      label={generatingPdfId === inv.id ? '...' : 'PDF'}
+                      label={uploadingId === inv.id ? '...' : (inv as any).pdf_url ? '✓ PDF' : 'Subir PDF'}
                       variant="secondary"
                       size="sm"
-                      onPress={() => handleGeneratePdf(inv)}
-                      disabled={generatingPdfId === inv.id}
+                      onPress={() => handleUploadPdf(inv)}
+                      disabled={uploadingId === inv.id}
                     />
                     {inv.status !== 'paid' && (
                       <Button

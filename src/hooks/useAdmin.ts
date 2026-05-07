@@ -43,6 +43,7 @@ export interface AdminInvoice {
   status: 'paid' | 'pending' | 'overdue';
   period: string;
   created_at: string;
+  pdf_url?: string | null;
   agent?: { name: string; email: string };
 }
 
