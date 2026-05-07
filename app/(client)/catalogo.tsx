@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   View, ScrollView, Pressable,
   StyleSheet, TextInput, FlatList, Image, Modal, KeyboardAvoidingView, Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
@@ -178,6 +179,14 @@ function SupplierCard({ supplier, onPress }: { supplier: PortalSupplier; onPress
   );
 }
 
+
+function useGridLayout() {
+  const { width } = useWindowDimensions();
+  if (width >= 1024) return { numColumns: 4, imageHeight: 200 };
+  if (width >= 640)  return { numColumns: 3, imageHeight: 180 };
+  return { numColumns: 2, imageHeight: 140 };
+}
+
 // ——— Product grid con carrito ———
 function ProductGrid({
   products, supplierId, supplierName, catalogId, catalogName, onGoCart,
@@ -187,6 +196,7 @@ function ProductGrid({
   catalogId: string; catalogName: string;
   onGoCart: () => void;
 }) {
+  const { numColumns, imageHeight } = useGridLayout();
   const { addToCart, updateQty, getItemQty, carts } = useCart();
   const cart = carts.find(c => c.supplier_id === supplierId);
   const cartTotal = cart?.items.reduce((s, i) => s + i.unit_price * i.quantity, 0) ?? 0;
@@ -265,9 +275,10 @@ function ProductGrid({
   return (
     <View style={{ flex: 1 }}>
       <FlatList
+        key={numColumns}
         data={products}
         keyExtractor={i => i.id}
-        numColumns={2}
+        numColumns={numColumns}
         contentContainerStyle={styles.productGrid}
         columnWrapperStyle={{ gap: space[2] }}
         ListEmptyComponent={
@@ -279,7 +290,7 @@ function ProductGrid({
           const outOfStock = product.stock === 0;
           return (
             <View style={[styles.productCard, outOfStock && { opacity: 0.85 }]}>
-              <View style={styles.productImg}>
+              <View style={[styles.productImg, { height: imageHeight }]}>
                 {product.image_url ? (
                   <Image
                     source={{ uri: product.image_url }}
@@ -462,13 +473,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.line,
   },
   productImg: {
-    height: 140,
     backgroundColor: colors.surface2,
     alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
+    position: 'relative',
   },
   productImage: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%',
   },
   outOfStockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

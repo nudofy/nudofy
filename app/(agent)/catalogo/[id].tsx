@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, TextInput, FlatList, Pressable, ScrollView,
   StyleSheet, Image, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
@@ -16,11 +17,19 @@ function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
 
+function useGridLayout() {
+  const { width } = useWindowDimensions();
+  if (width >= 1024) return { numColumns: 4, imageHeight: 200 };
+  if (width >= 640)  return { numColumns: 3, imageHeight: 180 };
+  return { numColumns: 2, imageHeight: 140 };
+}
+
 export default function CatalogoScreen() {
   const router = useRouter();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { products, loading } = useProducts(id);
+  const { numColumns, imageHeight } = useGridLayout();
   const [catalogName, setCatalogName] = useState('');
   const [catalogSeason, setCatalogSeason] = useState('');
   const [catalogStatus, setCatalogStatus] = useState<'active' | 'archived'>('active');
@@ -119,13 +128,13 @@ export default function CatalogoScreen() {
     }
   }
 
-  function renderProduct({ item }: { item: Product }) {
+  function renderProduct({ item }: { item: Product }, imageHeight = 140) {
     return (
       <Pressable
         style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
         onPress={() => router.push(`/(agent)/producto/${item.id}` as any)}
       >
-        <View style={styles.cardImage}>
+        <View style={[styles.cardImage, { height: imageHeight }]}>
           {item.image_url ? (
             <Image source={{ uri: item.image_url }} style={styles.productImage} resizeMode="contain" />
           ) : (
@@ -249,10 +258,11 @@ export default function CatalogoScreen() {
         </Text>
       ) : (
         <FlatList
+          key={numColumns}
           data={filtered}
           keyExtractor={i => i.id}
-          renderItem={renderProduct}
-          numColumns={2}
+          renderItem={({ item }) => renderProduct({ item }, imageHeight)}
+          numColumns={numColumns}
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
@@ -380,13 +390,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardImage: {
-    height: 140,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    position: 'relative',
   },
-  productImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  productImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   cardInfo: { padding: space[2], gap: 2 },
   outOfStockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
