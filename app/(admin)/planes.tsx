@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, StyleSheet, Pressable, Switch, ScrollView,
-  Modal, TextInput, KeyboardAvoidingView, Platform,
+  Modal, TextInput, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
-import { Text, Button, Badge } from '@/components/ui';
+import { Text, Button, Badge, Icon } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
 
 type Plan = {
@@ -33,6 +33,27 @@ type Plan = {
   sort_order: number;
 };
 
+const EMPTY_PLAN: Omit<Plan, 'id'> = {
+  name: '',
+  tagline: null,
+  price_monthly: null,
+  price_extra_agent: null,
+  currency: 'EUR',
+  trial_days: 15,
+  max_agents: null,
+  max_catalogs: null,
+  max_products: null,
+  max_clients: null,
+  max_orders_month: null,
+  features: [],
+  cta_label: 'Empezar',
+  cta_href: null,
+  highlighted: false,
+  is_public: true,
+  is_active: true,
+  sort_order: 99,
+};
+
 const FREE_KEYS = ['free', 'free_pro'];
 const isFree = (id: string) => FREE_KEYS.includes(id);
 
@@ -41,7 +62,9 @@ export default function AdminPlanesScreen() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Plan | null>(null);
+  const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [newId, setNewId] = useState('');
 
   async function fetchPlans() {
     const { data, error } = await supabase
@@ -60,10 +83,15 @@ export default function AdminPlanesScreen() {
 
   async function savePlan() {
     if (!editing) return;
+    if (!editing.name.trim()) { toast.error('El nombre es obligatorio'); return; }
     setSaving(true);
-    const { error } = await supabase
-      .from('plans')
-      .update({
+
+    if (isNew) {
+      if (!newId.trim()) { toast.error('El ID del plan es obligatorio'); setSaving(false); return; }
+      const { error } = await supabase.from('plans').insert({ ...editing, id: newId.trim().toLowerCase().replace(/\s+/g, '_') });
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    } else {
+      const { error } = await supabase.from('plans').update({
         name: editing.name,
         tagline: editing.tagline,
         price_monthly: editing.price_monthly,
@@ -79,20 +107,57 @@ export default function AdminPlanesScreen() {
         highlighted: editing.highlighted,
         is_public: editing.is_public,
         is_active: editing.is_active,
-      })
-      .eq('id', editing.id);
-    setSaving(false);
-    if (error) {
-      toast.error('No se pudo guardar el plan.');
-    } else {
-      setEditing(null);
-      fetchPlans();
-      toast.success('Plan actualizado');
+        sort_order: editing.sort_order,
+      }).eq('id', editing.id);
+      if (error) { toast.error('No se pudo guardar el plan.'); setSaving(false); return; }
     }
+
+    setSaving(false);
+    setEditing(null);
+    setIsNew(false);
+    setNewId('');
+    fetchPlans();
+    toast.success(isNew ? 'Plan creado' : 'Plan actualizado');
+  }
+
+  async function toggleActive(plan: Plan) {
+    const { error } = await supabase
+      .from('plans')
+      .update({ is_active: !plan.is_active })
+      .eq('id', plan.id);
+    if (error) { toast.error('No se pudo actualizar'); return; }
+    toast.success(plan.is_active ? 'Plan desactivado' : 'Plan activado');
+    fetchPlans();
+  }
+
+  function confirmDelete(plan: Plan) {
+    Alert.alert(
+      'Eliminar plan',
+      `¿Eliminar "${plan.name}"? Los agentes que lo tengan asignado no se verán afectados, pero no se podrá asignar a nuevos agentes.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar', style: 'destructive', onPress: async () => {
+            const { error } = await supabase.from('plans').delete().eq('id', plan.id);
+            if (error) { toast.error(error.message); return; }
+            toast.success('Plan eliminado');
+            fetchPlans();
+          }
+        },
+      ]
+    );
   }
 
   function openEdit(plan: Plan) {
+    setIsNew(false);
+    setNewId('');
     setEditing({ ...plan });
+  }
+
+  function openNew() {
+    setIsNew(true);
+    setNewId('');
+    setEditing({ ...EMPTY_PLAN } as Plan);
   }
 
   function update<K extends keyof Plan>(field: K, value: Plan[K]) {
@@ -114,6 +179,11 @@ export default function AdminPlanesScreen() {
 
   return (
     <AdminShell activeSection="planes" title="Planes">
+      {/* Botón nuevo plan */}
+      <View style={styles.toolbar}>
+        <Button label="+ Nuevo plan" onPress={openNew} size="sm" />
+      </View>
+
       {loading ? (
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
           Cargando planes...
@@ -121,7 +191,7 @@ export default function AdminPlanesScreen() {
       ) : (
         <View style={styles.list}>
           {plans.map(plan => (
-            <View key={plan.id} style={styles.row}>
+            <View key={plan.id} style={[styles.row, !plan.is_active && styles.rowInactive]}>
               <View style={styles.rowLeft}>
                 <View style={styles.rowHeader}>
                   <Badge
@@ -139,7 +209,7 @@ export default function AdminPlanesScreen() {
                   </Text>
                   <Text variant="caption" color="ink4">·</Text>
                   <Text variant="caption" color="ink3">
-                    {plan.max_catalogs != null ? `${plan.max_catalogs} catálogos` : 'Catálogos ilimitados'}
+                    {plan.max_products != null ? `${plan.max_products} productos` : 'Productos ilimitados'}
                   </Text>
                   <Text variant="caption" color="ink4">·</Text>
                   <Text variant="caption" color="ink3">
@@ -147,28 +217,51 @@ export default function AdminPlanesScreen() {
                   </Text>
                 </View>
               </View>
-              <Button
-                label="Editar"
-                variant="secondary"
-                size="sm"
-                onPress={() => openEdit(plan)}
-              />
+
+              {/* Acciones */}
+              <View style={styles.rowActions}>
+                <Pressable
+                  onPress={() => toggleActive(plan)}
+                  hitSlop={6}
+                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <Icon
+                    name={plan.is_active ? 'ToggleRight' : 'ToggleLeft'}
+                    size={22}
+                    color={plan.is_active ? colors.success : colors.ink4}
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={() => openEdit(plan)}
+                  hitSlop={6}
+                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <Icon name="Pencil" size={18} color={colors.ink2} />
+                </Pressable>
+                <Pressable
+                  onPress={() => confirmDelete(plan)}
+                  hitSlop={6}
+                  style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <Icon name="Trash2" size={18} color={colors.danger} />
+                </Pressable>
+              </View>
             </View>
           ))}
         </View>
       )}
 
-      {/* Modal de edición */}
-      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
+      {/* Modal de edición / creación */}
+      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => { setEditing(null); setIsNew(false); }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
           <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
-              <Text variant="bodyMedium">Editar plan — {editing?.name}</Text>
+              <Text variant="bodyMedium">{isNew ? 'Nuevo plan' : `Editar — ${editing?.name}`}</Text>
               <Pressable
-                onPress={() => setEditing(null)}
+                onPress={() => { setEditing(null); setIsNew(false); }}
                 hitSlop={8}
                 style={({ pressed }) => [pressed && { opacity: 0.6 }]}
               >
@@ -177,6 +270,19 @@ export default function AdminPlanesScreen() {
             </View>
 
             <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalBody}>
+              {isNew && (
+                <FormGroup label="ID del plan" hint="Único, sin espacios (ej: basic, pro_plus)">
+                  <TextInput
+                    style={styles.input}
+                    value={newId}
+                    onChangeText={v => setNewId(v.toLowerCase().replace(/\s+/g, '_'))}
+                    placeholder="ej: pro_plus"
+                    placeholderTextColor={colors.ink4}
+                    autoCapitalize="none"
+                  />
+                </FormGroup>
+              )}
+
               <FormGroup label="Nombre">
                 <TextInput
                   style={styles.input}
@@ -229,13 +335,13 @@ export default function AdminPlanesScreen() {
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
-                <FormGroup label="Máx. catálogos" hint="Vacío = ilimitado">
+                <FormGroup label="Máx. productos" hint="Vacío = ilimitado">
                   <TextInput
                     style={styles.input}
-                    value={editing?.max_catalogs?.toString() ?? ''}
+                    value={editing?.max_products?.toString() ?? ''}
                     keyboardType="numeric"
                     placeholder="Ilimitado"
-                    onChangeText={v => updateNum('max_catalogs', v)}
+                    onChangeText={v => updateNum('max_products', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
@@ -264,7 +370,39 @@ export default function AdminPlanesScreen() {
                 </FormGroup>
               </View>
 
-              <FormGroup label="Características" hint="Una por línea — se mostrarán como bullets en la web">
+              <View style={styles.formRow}>
+                <FormGroup label="Máx. catálogos" hint="Vacío = ilimitado">
+                  <TextInput
+                    style={styles.input}
+                    value={editing?.max_catalogs?.toString() ?? ''}
+                    keyboardType="numeric"
+                    placeholder="Ilimitado"
+                    onChangeText={v => updateNum('max_catalogs', v)}
+                    placeholderTextColor={colors.ink4}
+                  />
+                </FormGroup>
+                <FormGroup label="Días de trial">
+                  <TextInput
+                    style={styles.input}
+                    value={editing?.trial_days?.toString() ?? '15'}
+                    keyboardType="numeric"
+                    onChangeText={v => updateNum('trial_days', v)}
+                    placeholderTextColor={colors.ink4}
+                  />
+                </FormGroup>
+              </View>
+
+              <FormGroup label="Orden (sort)" hint="Número menor = aparece antes">
+                <TextInput
+                  style={styles.input}
+                  value={editing?.sort_order?.toString() ?? '99'}
+                  keyboardType="numeric"
+                  onChangeText={v => updateNum('sort_order', v)}
+                  placeholderTextColor={colors.ink4}
+                />
+              </FormGroup>
+
+              <FormGroup label="Características" hint="Una por línea — bullets en la web">
                 <TextInput
                   style={[styles.input, styles.textarea]}
                   value={(editing?.features ?? []).join('\n')}
@@ -299,10 +437,10 @@ export default function AdminPlanesScreen() {
 
               <View style={styles.toggleGroup}>
                 <ToggleRow
-                  label="Destacado"
-                  hint="Marca el plan como 'Más popular' en la web"
-                  value={!!editing?.highlighted}
-                  onChange={v => update('highlighted', v)}
+                  label="Activo"
+                  hint="Si está apagado, no se puede asignar a nuevos agentes"
+                  value={!!editing?.is_active}
+                  onChange={v => update('is_active', v)}
                 />
                 <ToggleRow
                   label="Visible en /precios"
@@ -311,10 +449,10 @@ export default function AdminPlanesScreen() {
                   onChange={v => update('is_public', v)}
                 />
                 <ToggleRow
-                  label="Activo"
-                  hint="Si está apagado, no se puede asignar a nuevos agentes"
-                  value={!!editing?.is_active}
-                  onChange={v => update('is_active', v)}
+                  label="Destacado"
+                  hint="Marca el plan como 'Más popular' en la web"
+                  value={!!editing?.highlighted}
+                  onChange={v => update('highlighted', v)}
                 />
               </View>
             </ScrollView>
@@ -323,11 +461,11 @@ export default function AdminPlanesScreen() {
               <Button
                 label="Cancelar"
                 variant="secondary"
-                onPress={() => setEditing(null)}
+                onPress={() => { setEditing(null); setIsNew(false); }}
                 fullWidth
               />
               <Button
-                label={saving ? 'Guardando...' : 'Guardar'}
+                label={saving ? 'Guardando...' : isNew ? 'Crear plan' : 'Guardar'}
                 onPress={savePlan}
                 disabled={saving}
                 fullWidth
@@ -374,6 +512,7 @@ function ToggleRow({ label, hint, value, onChange }: {
 }
 
 const styles = StyleSheet.create({
+  toolbar: { marginBottom: space[3], alignItems: 'flex-end' },
   emptyText: { paddingVertical: space[6] },
 
   list: { gap: space[2] },
@@ -386,9 +525,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space[3],
   },
+  rowInactive: { opacity: 0.55 },
   rowLeft: { flex: 1, gap: space[2] },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: space[2], flexWrap: 'wrap' },
   rowMeta: { flexDirection: 'row', gap: space[1] + 2, flexWrap: 'wrap', alignItems: 'center' },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  iconBtn: { padding: 6 },
 
   // Modal
   modalOverlay: {
