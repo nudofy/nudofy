@@ -67,9 +67,9 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
             accessibilityRole="button"
             accessibilityLabel="Ir al inicio"
             hitSlop={8}
-            style={({ pressed }) => [styles.homeBtn, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}
           >
-            <Icon name="Home" size={18} color={colors.white} />
+            <Icon name="Home" size={20} color={colors.ink} />
           </Pressable>
         )}
         {actions && actions.map((a, i) => (
@@ -113,7 +113,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: colors.ink,
     alignItems: 'center', justifyContent: 'center',
-    marginRight: space[1],
   },
   actionBtn: {
     width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
