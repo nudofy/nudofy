@@ -1,5 +1,5 @@
 // ADM-02 · Agentes y empresas
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, StyleSheet, Pressable,
   TextInput, ScrollView, Alert, Modal,
@@ -12,6 +12,37 @@ import { colors, space, radius } from '@/theme';
 import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 import { useToast } from '@/contexts/ToastContext';
+import { supabase } from '@/lib/supabase';
+
+type PlanOption = {
+  id: string;
+  name: string;
+  price_monthly: number | null;
+  max_products: number | null;
+  max_clients: number | null;
+  max_agents: number | null;
+};
+
+function usePlans() {
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  useEffect(() => {
+    supabase
+      .from('plans')
+      .select('id, name, price_monthly, max_products, max_clients, max_agents')
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => { if (data) setPlans(data as PlanOption[]); });
+  }, []);
+  return plans;
+}
+
+function planDesc(p: PlanOption): string {
+  const price = p.price_monthly == null ? 'A medida' : p.price_monthly === 0 ? 'Gratis' : `${p.price_monthly} €/mes`;
+  const prods = p.max_products != null ? `${p.max_products} prod` : 'prod ilimitados';
+  const clients = p.max_clients != null ? `${p.max_clients} cli` : 'cli ilimitados';
+  const agents = p.max_agents != null ? ` · ${p.max_agents} agentes` : '';
+  return `${price} · ${prods} · ${clients}${agents}`;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -29,16 +60,24 @@ function ModalAltaAgente({
   visible, onClose, onCreate,
 }: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<void> }) {
   const toast = useToast();
+  const plans = usePlans();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [nif, setNif] = useState('');
-  const [plan, setPlan] = useState<'free' | 'basic' | 'pro' | 'agency' | 'agency_pro'>('pro');
+  const [plan, setPlan] = useState('pro');
   const [saving, setSaving] = useState(false);
 
+  // Seleccionar 'pro' por defecto cuando carguen los planes
+  useEffect(() => {
+    if (plans.length > 0 && !plans.find(p => p.id === plan)) {
+      setPlan(plans[0].id);
+    }
+  }, [plans]);
+
   function reset() {
-    setName(''); setEmail(''); setPhone(''); setBusinessName(''); setNif(''); setPlan('pro' as any);
+    setName(''); setEmail(''); setPhone(''); setBusinessName(''); setNif(''); setPlan('pro');
   }
 
   async function handleSave() {
@@ -89,20 +128,16 @@ function ModalAltaAgente({
 
             <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
             <View style={styles.planSelector}>
-              {([
-                { key: 'free',       label: 'Free',       desc: 'Gratis · 20 prod · 5 cli' },
-                { key: 'basic',      label: 'Básico',     desc: '15 €/mes · 100 prod · 20 cli' },
-                { key: 'pro',        label: 'Pro',        desc: '25 €/mes · 2.000 prod · 200 cli' },
-                { key: 'agency',     label: 'Agencia',    desc: '45 €/mes · 10 agentes' },
-                { key: 'agency_pro', label: 'Ag. Pro',    desc: '150 €/mes · ilimitado' },
-              ] as const).map(p => (
+              {plans.length === 0 ? (
+                <Text variant="caption" color="ink3">Cargando planes...</Text>
+              ) : plans.map(p => (
                 <Pressable
-                  key={p.key}
-                  style={[styles.planOpt, plan === p.key && styles.planOptSelected]}
-                  onPress={() => setPlan(p.key as any)}
+                  key={p.id}
+                  style={[styles.planOpt, plan === p.id && styles.planOptSelected]}
+                  onPress={() => setPlan(p.id)}
                 >
-                  <Text variant="smallMedium">{p.label}</Text>
-                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>{p.desc}</Text>
+                  <Text variant="smallMedium">{p.name}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>{planDesc(p)}</Text>
                 </Pressable>
               ))}
             </View>
