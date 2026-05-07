@@ -1,9 +1,8 @@
 // ─── Nudofy Design System v2 · Screen ───────────────────────────────────────
 // Contenedor base: SafeAreaView + fondo del sistema + status bar consistente.
-// En web: centra el contenido con max-width para que no se vea estirado.
 
 import React from 'react';
-import { Platform, StatusBar, StyleSheet, View, ViewStyle } from 'react-native';
+import { Platform, StatusBar, StyleSheet, ViewStyle } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { colors } from '@/theme';
 
@@ -26,7 +25,7 @@ export default function Screen({
     colors.surface;
   const barStyle = background === 'brand' ? 'light-content' : 'dark-content';
 
-  const inner = (
+  return (
     <>
       {Platform.OS !== 'web' && (
         <StatusBar barStyle={barStyle} backgroundColor="transparent" translucent />
@@ -39,30 +38,8 @@ export default function Screen({
       </SafeAreaView>
     </>
   );
-
-  if (Platform.OS === 'web') {
-    return (
-      <View style={styles.webRoot}>
-        <View style={[styles.webContainer, { backgroundColor: bg }]}>
-          {inner}
-        </View>
-      </View>
-    );
-  }
-
-  return inner;
 }
 
 const styles = StyleSheet.create({
   base: { flex: 1 },
-  webRoot: {
-    flex: 1,
-    backgroundColor: colors.surface2,
-    alignItems: 'center',
-  },
-  webContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 480,
-  },
 });
