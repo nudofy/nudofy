@@ -1,5 +1,5 @@
 // ADM-06 · Configuración de la plataforma
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, StyleSheet, TextInput, Switch, Alert,
 } from 'react-native';
@@ -10,28 +10,64 @@ import { Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
 
+// Clave de configuración → valor en la tabla app_config { key, value }
+const CFG_KEYS = [
+  'app_name', 'app_url', 'support_email',
+  'email_from', 'resend_api_key', 'email_activation', 'email_invoice',
+  'stripe_pk', 'stripe_sk', 'stripe_webhook', 'stripe_test_mode',
+  'maintenance_mode',
+] as const;
+
+type CfgKey = typeof CFG_KEYS[number];
+
 export default function AdminConfiguracionScreen() {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
+  const [loadingConfig, setLoadingConfig] = useState(true);
   const [clearingCache, setClearingCache] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // Plataforma
   const [appName, setAppName] = useState('Nudofy');
-  const [appUrl, setAppUrl] = useState('nudofy.app');
-  const [supportEmail, setSupportEmail] = useState('info@nudofy.app');
+  const [appUrl, setAppUrl] = useState('nudofy.com');
+  const [supportEmail, setSupportEmail] = useState('info@nudofy.com');
 
   // Email
-  const [emailFrom, setEmailFrom] = useState('facturas@nudofy.app');
-  const [resendKey, setResendKey] = useState('re_••••••••••••••••');
+  const [emailFrom, setEmailFrom] = useState('facturas@nudofy.com');
+  const [resendKey, setResendKey] = useState('');
   const [emailActivation, setEmailActivation] = useState(true);
   const [emailInvoice, setEmailInvoice] = useState(true);
 
   // Stripe
-  const [stripePk, setStripePk] = useState('pk_live_••••••••••••••••');
-  const [stripeSk, setStripeSk] = useState('sk_live_••••••••••••••••');
-  const [stripeWebhook, setStripeWebhook] = useState('whsec_••••••••••••••••');
+  const [stripePk, setStripePk] = useState('');
+  const [stripeSk, setStripeSk] = useState('');
+  const [stripeWebhook, setStripeWebhook] = useState('');
   const [stripeTestMode, setStripeTestMode] = useState(false);
+
+  // Carga inicial desde Supabase
+  useEffect(() => {
+    supabase
+      .from('app_config')
+      .select('key, value')
+      .in('key', CFG_KEYS as unknown as string[])
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        for (const row of data ?? []) map[row.key] = row.value;
+        if (map.app_name)        setAppName(map.app_name);
+        if (map.app_url)         setAppUrl(map.app_url);
+        if (map.support_email)   setSupportEmail(map.support_email);
+        if (map.email_from)      setEmailFrom(map.email_from);
+        if (map.resend_api_key)  setResendKey(map.resend_api_key);
+        if (map.email_activation !== undefined) setEmailActivation(map.email_activation === 'true');
+        if (map.email_invoice    !== undefined) setEmailInvoice(map.email_invoice === 'true');
+        if (map.stripe_pk)       setStripePk(map.stripe_pk);
+        if (map.stripe_sk)       setStripeSk(map.stripe_sk);
+        if (map.stripe_webhook)  setStripeWebhook(map.stripe_webhook);
+        if (map.stripe_test_mode !== undefined) setStripeTestMode(map.stripe_test_mode === 'true');
+        if (map.maintenance_mode !== undefined) setMaintenanceMode(map.maintenance_mode === 'true');
+        setLoadingConfig(false);
+      });
+  }, []);
 
   function handleClearCache() {
     Alert.alert(
@@ -58,12 +94,31 @@ export default function AdminConfiguracionScreen() {
     );
   }
 
-  function handleSave() {
+  async function handleSave() {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    const rows: { key: CfgKey; value: string }[] = [
+      { key: 'app_name',        value: appName },
+      { key: 'app_url',         value: appUrl },
+      { key: 'support_email',   value: supportEmail },
+      { key: 'email_from',      value: emailFrom },
+      { key: 'resend_api_key',  value: resendKey },
+      { key: 'email_activation',value: String(emailActivation) },
+      { key: 'email_invoice',   value: String(emailInvoice) },
+      { key: 'stripe_pk',       value: stripePk },
+      { key: 'stripe_sk',       value: stripeSk },
+      { key: 'stripe_webhook',  value: stripeWebhook },
+      { key: 'stripe_test_mode',value: String(stripeTestMode) },
+      { key: 'maintenance_mode',value: String(maintenanceMode) },
+    ];
+    const { error } = await supabase
+      .from('app_config')
+      .upsert(rows, { onConflict: 'key' });
+    setSaving(false);
+    if (error) {
+      toast.error('Error al guardar: ' + error.message);
+    } else {
       toast.success('Configuración actualizada correctamente');
-    }, 800);
+    }
   }
 
   return (
@@ -72,9 +127,9 @@ export default function AdminConfiguracionScreen() {
       title="Configuración"
       rightElement={
         <Button
-          label={saving ? 'Guardando...' : 'Guardar cambios'}
+          label={saving ? 'Guardando...' : loadingConfig ? 'Cargando...' : 'Guardar cambios'}
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || loadingConfig}
           size="sm"
         />
       }

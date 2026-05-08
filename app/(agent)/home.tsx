@@ -11,7 +11,8 @@ import {
 import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import StatusBadge from '@/components/StatusBadge';
-import { useDashboardKPIs, useAgent } from '@/hooks/useAgent';
+import { useDashboardKPIs } from '@/hooks/useAgent';
+import { useAgentContext } from '@/contexts/AgentContext';
 import type { Order } from '@/hooks/useAgent';
 import type { IconName } from '@/components/ui/Icon';
 
@@ -39,7 +40,7 @@ type QuickAction = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { agent } = useAgent();
+  const { agent } = useAgentContext();
   const { kpis, recentOrders, loading } = useDashboardKPIs();
   const [refreshing, setRefreshing] = React.useState(false);
 

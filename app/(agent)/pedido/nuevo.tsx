@@ -11,7 +11,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
-import { useClients, useSuppliers, useCatalogs, useProducts, useAgent, useOrders } from '@/hooks/useAgent';
+import { useClients, useSuppliers, useCatalogs, useProducts, useOrders } from '@/hooks/useAgent';
+import { useAgentContext } from '@/contexts/AgentContext';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import type { Client, Supplier, Catalog, Product, Order } from '@/hooks/useAgent';
@@ -45,7 +46,7 @@ function formatRelativeTime(iso: string): string {
 export default function NuevoPedidoScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ clientId?: string; draftId?: string; edit?: string }>();
-  const { agent } = useAgent();
+  const { agent } = useAgentContext();
   const toast = useToast();
 
   const [step, setStep] = useState<Step>(params.clientId ? 'proveedor' : 'inicio');

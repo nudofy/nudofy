@@ -13,7 +13,7 @@ import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAgent } from '@/hooks/useAgent';
+import { useAgentContext } from '@/contexts/AgentContext';
 import { useToast } from '@/contexts/ToastContext';
 
 type Tariff = {
@@ -27,7 +27,7 @@ export default function TarifasScreen() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useAuth();
-  const { agent } = useAgent();
+  const { agent } = useAgentContext();
 
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [loading, setLoading] = useState(true);

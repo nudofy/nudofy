@@ -6,7 +6,8 @@ import {
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text } from '@/components/ui';
-import { useStats, useAgent } from '@/hooks/useAgent';
+import { useStats } from '@/hooks/useAgent';
+import { useAgentContext } from '@/contexts/AgentContext';
 import { supabase } from '@/lib/supabase';
 import type { MonthStat, YearStat } from '@/hooks/useAgent';
 
@@ -22,7 +23,7 @@ export default function EstadisticasScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('mensual');
   const { monthStats, yearStats, totalOrders, totalRevenue, loading } = useStats();
-  const { agent } = useAgent();
+  const { agent } = useAgentContext();
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [monthOrders, setMonthOrders] = useState<MonthOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);

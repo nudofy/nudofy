@@ -7,14 +7,15 @@ import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAgent, useSuppliers } from '@/hooks/useAgent';
+import { useSuppliers } from '@/hooks/useAgent';
+import { useAgentContext } from '@/contexts/AgentContext';
 import type { Supplier } from '@/hooks/useAgent';
 import type { IconName } from '@/components/ui/Icon';
 
 export default function MasScreen() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
-  const { agent } = useAgent();
+  const { agent } = useAgentContext();
   const { suppliers } = useSuppliers();
 
   const active = suppliers.filter(s => s.active).length;

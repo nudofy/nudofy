@@ -26,12 +26,9 @@ const STATUS_META: Record<string, { variant: 'success' | 'warning' | 'danger' | 
   overdue: { variant: 'danger',   label: 'Vencida'   },
 };
 
-const PLAN_LABELS: Record<string, string> = {
-  basic:      'Básico',
-  pro:        'Pro',
-  agency:     'Agencia',
-  agency_pro: 'Ag. Pro',
-};
+function formatPlanLabel(plan: string): string {
+  return plan.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 const FLOW_STEPS = [
   { n: '1', title: 'Stripe genera cobro', sub: 'El 1 de cada mes Stripe intenta el cargo automático' },
@@ -221,7 +218,7 @@ export default function AdminFacturacionScreen() {
                     </Text>
                   </View>
                   <View style={[styles.td, { width: 100 }]}>
-                    <Badge label={PLAN_LABELS[inv.plan] ?? 'Básico'} variant="neutral" />
+                    <Badge label={formatPlanLabel(inv.plan)} variant="neutral" />
                   </View>
                   <View style={[styles.td, { width: 100 }]}>
                     <Text variant="small" color="ink2">{inv.period}</Text>

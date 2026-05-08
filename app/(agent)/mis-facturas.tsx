@@ -27,12 +27,13 @@ const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning
   overdue: { label: 'Vencida',   variant: 'danger'  },
 };
 
-const PLAN_LABELS: Record<string, string> = {
-  basic:      'Básico',
-  pro:        'Pro',
-  agency:     'Agencia',
-  agency_pro: 'Agencia Pro',
-};
+/** Formatea el slug/id de plan con el nombre almacenado en Supabase si está disponible.
+ *  Como fallback, humaniza el slug (basic → Basic) para no mostrar IDs crudos. */
+function formatPlanLabel(plan: string, planNames: Record<string, string>): string {
+  if (planNames[plan]) return planNames[plan];
+  // fallback: capitaliza y reemplaza guiones/guiones bajos por espacios
+  return plan.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -48,6 +49,16 @@ export default function MisFacturasScreen() {
   const [invoices, setInvoices] = useState<AgentInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [planNames, setPlanNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Carga los nombres reales de planes desde Supabase
+    supabase.from('plans').select('id, name').then(({ data }) => {
+      const map: Record<string, string> = {};
+      for (const p of data ?? []) map[p.id] = p.name;
+      setPlanNames(map);
+    });
+  }, []);
 
   useEffect(() => {
     if (!agent) return;
@@ -88,7 +99,7 @@ export default function MisFacturasScreen() {
           <View style={styles.list}>
             {invoices.map((inv, i) => {
               const status = STATUS_META[inv.status] ?? STATUS_META.pending;
-              const planLabel = PLAN_LABELS[inv.plan] ?? inv.plan;
+              const planLabel = formatPlanLabel(inv.plan, planNames);
               return (
                 <View
                   key={inv.id}

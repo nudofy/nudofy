@@ -1,3 +1,6 @@
+// ⚠️  ARCHIVO DEPRECATED — no está siendo usado en ningún lugar del proyecto.
+// La pantalla de login activa es src/screens/LoginScreen.tsx (importada desde app/index.tsx).
+// Este archivo puede eliminarse con: git rm src/screens/SplashScreen.tsx
 import React, { useState } from 'react';
 import {
   Image,

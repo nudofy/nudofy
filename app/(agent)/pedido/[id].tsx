@@ -547,7 +547,19 @@ Un saludo.`;
         {/* Cliente y entrega */}
         <DataBlock title="Cliente y entrega" icon="User">
           <DataRow label="Cliente" value={order.client?.name ?? 'Sin cliente'} />
-          <DataRow label="Envío a" value={order.client?.address ?? '—'} last />
+          <DataRow
+            label="Envío a"
+            value={
+              order.shipping_address
+                ? [
+                    order.shipping_address.label,
+                    order.shipping_address.address,
+                    [order.shipping_address.postal_code, order.shipping_address.city].filter(Boolean).join(' '),
+                  ].filter(Boolean).join(', ')
+                : (order.client?.address ?? '—')
+            }
+            last
+          />
         </DataBlock>
 
         {/* Proveedor */}
