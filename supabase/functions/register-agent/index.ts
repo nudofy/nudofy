@@ -6,6 +6,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const ALLOWED_ORIGINS = [
+  'https://nudofy.com',
+  'https://www.nudofy.com',
   'https://nudofy.app',
   'https://www.nudofy.app',
   'http://localhost:3000', // development

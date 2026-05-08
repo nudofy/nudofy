@@ -8,7 +8,7 @@ import {
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
-import { useAgent } from '@/hooks/useAgent';
+import { useAgentContext } from '@/contexts/AgentContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function PerfilScreen() {
   const router = useRouter();
   const toast = useToast();
-  const { agent } = useAgent();
+  const { agent } = useAgentContext();
   const { signOut, session } = useAuth();
   const [editing, setEditing] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
