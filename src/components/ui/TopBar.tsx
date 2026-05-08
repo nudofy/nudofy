@@ -66,10 +66,11 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
             onPress={goHome}
             accessibilityRole="button"
             accessibilityLabel="Ir al inicio"
-            hitSlop={8}
-            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}
+            hitSlop={4}
+            style={({ pressed }) => [styles.homeBtn, pressed && { opacity: 0.75 }]}
           >
-            <Icon name="Home" size={20} color={colors.ink} />
+            <Icon name="ChevronLeft" size={14} color={colors.white} />
+            <Text variant="caption" style={styles.homeBtnText}>Inicio</Text>
           </Pressable>
         )}
         {actions && actions.map((a, i) => (
@@ -109,10 +110,18 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
   homeBtn: {
-    width: 32, height: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.ink,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.brand,
+  },
+  homeBtnText: {
+    color: colors.white,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   actionBtn: {
     width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
