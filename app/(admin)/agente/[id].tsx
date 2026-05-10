@@ -93,9 +93,15 @@ export default function AdminAgenteDetailScreen() {
       d.setDate(d.getDate() + selectedDuration);
       expiresAt = d.toISOString();
     }
-    await updateAgentPlan(agent!.id, selectedPlan, expiresAt);
+    const { error } = await updateAgentPlan(agent!.id, selectedPlan, expiresAt);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    toast.success('Plan actualizado');
     setChangingPlan(false);
     setSelectedPlan(null);
+    refetch?.();
   }
 
   function handleToggleActive() {
