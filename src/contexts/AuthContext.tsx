@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function resetPassword(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'nudofy://reset-password',
+      redirectTo: 'nudofy:///reset-password',
     });
     if (error) return { error: 'No se pudo enviar el email de recuperación' };
     return { error: null };
