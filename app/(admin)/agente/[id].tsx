@@ -35,7 +35,7 @@ export default function AdminAgenteDetailScreen() {
   const router = useRouter();
   const toast = useToast();
   const { agent, clientCount, orderCount, supplierCount, loading, refetch } = useAdminAgentDetail(id);
-  const { updateAgentPlan, toggleAgentActive, updateAgentData } = useAdminAgents();
+  const { updateAgentPlan, toggleAgentActive, updateAgentData, deleteAgent } = useAdminAgents();
   const [changingPlan, setChangingPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[number] | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(30);
@@ -281,6 +281,27 @@ export default function AdminAgenteDetailScreen() {
             onPress={handleToggleActive}
           />
           <Button label="Ver pedidos" variant="secondary" onPress={() => router.push(`/(admin)/agente/${agent.id}/pedidos` as any)} />
+          <Button
+            label="Eliminar agente"
+            variant="secondary"
+            onPress={() => Alert.alert(
+              'Eliminar agente',
+              `¿Eliminar definitivamente la cuenta de ${agent.name}? Esta acción no se puede deshacer.`,
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Eliminar',
+                  style: 'destructive',
+                  onPress: async () => {
+                    const { error } = await deleteAgent(agent!.id);
+                    if (error) { toast.error(error); return; }
+                    toast.success('Agente eliminado');
+                    router.back();
+                  },
+                },
+              ]
+            )}
+          />
         </View>
       </View>
     </AdminShell>

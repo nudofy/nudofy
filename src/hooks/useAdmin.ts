@@ -182,7 +182,13 @@ export function useAdminAgents() {
     return { error: error?.message ?? null };
   }
 
-  return { agents, loading, updateAgentPlan, toggleAgentActive, updateAgentData, createAgent, refetch: fetchAgents };
+  async function deleteAgent(id: string) {
+    const { error } = await supabase.from('agents').delete().eq('id', id);
+    if (!error) fetchAgents();
+    return { error: error?.message ?? null };
+  }
+
+  return { agents, loading, updateAgentPlan, toggleAgentActive, updateAgentData, createAgent, deleteAgent, refetch: fetchAgents };
 }
 
 // ——————————————————————————————
