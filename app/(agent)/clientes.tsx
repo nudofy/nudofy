@@ -8,10 +8,12 @@ import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import { useClients } from '@/hooks/useAgent';
 import type { Client } from '@/hooks/useAgent';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function ClientesScreen() {
   const router = useRouter();
   const { clients, loading } = useClients();
+  const { clientLimit, usageLabel } = usePlanLimits();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -34,6 +36,7 @@ export default function ClientesScreen() {
     <Screen>
       <TopBar
         title="Mis clientes"
+        subtitle={clientLimit !== null ? `${usageLabel} clientes` : undefined}
         actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: 'Nuevo cliente' }]}
       />
 

@@ -10,11 +10,13 @@ import { Screen, TopBar, Text, Button } from '@/components/ui';
 import { useClients } from '@/hooks/useAgent';
 import { useToast } from '@/contexts/ToastContext';
 import { ClientSchema, validate } from '@/lib/validation';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function NuevoClienteScreen() {
   const router = useRouter();
   const { createClient } = useClients();
   const toast = useToast();
+  const { canAddClient, clientCount, clientLimit } = usePlanLimits();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -34,6 +36,10 @@ export default function NuevoClienteScreen() {
   }
 
   async function handleCreate() {
+    if (!canAddClient) {
+      toast.error(`Has alcanzado el límite de ${clientLimit} clientes de tu plan. Actualiza tu plan para añadir más.`);
+      return;
+    }
     const v = validate(ClientSchema, form);
     if (!v.ok) { toast.error(v.firstError); return; }
     setLoading(true);
