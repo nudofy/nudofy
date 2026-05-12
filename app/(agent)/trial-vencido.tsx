@@ -1,13 +1,26 @@
 // Trial vencido — pantalla bloqueante cuando el período de prueba ha expirado
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { getPlanConfigs } from '@/lib/planConfig';
 import { colors, space, radius } from '@/theme';
 import { Text, Button, Icon } from '@/components/ui';
 
+const PAID_PLANS = ['basic', 'pro', 'agency'];
+
 export default function TrialVencidoScreen() {
   const router = useRouter();
+  const [plans, setPlans] = useState<{ id: string; name: string; price_monthly: number }[]>([]);
+
+  useEffect(() => {
+    getPlanConfigs().then(all => {
+      const visible = all
+        .filter(p => PAID_PLANS.includes(p.id))
+        .sort((a, b) => a.price_monthly - b.price_monthly);
+      setPlans(visible);
+    });
+  }, []);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -37,9 +50,14 @@ export default function TrialVencidoScreen() {
 
         {/* Planes resumen */}
         <View style={styles.plansRow}>
-          <PlanChip name="Básico" price="9 €/mes" />
-          <PlanChip name="Pro" price="19 €/mes" highlighted />
-          <PlanChip name="Agencia" price="39 €/mes" />
+          {plans.map((p, i) => (
+            <PlanChip
+              key={p.id}
+              name={p.name}
+              price={`${p.price_monthly} €/mes`}
+              highlighted={i === 1}
+            />
+          ))}
         </View>
 
         {/* CTAs */}
