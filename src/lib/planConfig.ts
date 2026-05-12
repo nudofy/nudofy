@@ -10,17 +10,18 @@ export interface PlanConfig {
   price_monthly: number;
   max_clients: number | null;    // null = ilimitado
   max_suppliers: number | null;  // null = ilimitado
+  max_catalogs: number | null;   // null = ilimitado
   max_agents: number | null;
 }
 
 // Fallback por si la BD falla
 export const PLAN_FALLBACK: PlanConfig[] = [
-  { id: 'free',       name: 'Free',        price_monthly: 0,  max_clients: null, max_suppliers: null, max_agents: null },
-  { id: 'free_pro',   name: 'Free Pro',    price_monthly: 0,  max_clients: null, max_suppliers: null, max_agents: null },
-  { id: 'basic',      name: 'Básico',      price_monthly: 9,  max_clients: 50,   max_suppliers: 3,    max_agents: 1    },
-  { id: 'pro',        name: 'Pro',         price_monthly: 19, max_clients: 150,  max_suppliers: 10,   max_agents: 1    },
-  { id: 'agency',     name: 'Agencia',     price_monthly: 39, max_clients: null, max_suppliers: null, max_agents: 5    },
-  { id: 'agency_pro', name: 'Agencia Pro', price_monthly: 79, max_clients: null, max_suppliers: null, max_agents: null },
+  { id: 'free',       name: 'Free',        price_monthly: 0,  max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: null },
+  { id: 'free_pro',   name: 'Free Pro',    price_monthly: 0,  max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: null },
+  { id: 'basic',      name: 'Básico',      price_monthly: 9,  max_clients: 50,   max_suppliers: 3,    max_catalogs: 5,    max_agents: 1    },
+  { id: 'pro',        name: 'Pro',         price_monthly: 19, max_clients: 150,  max_suppliers: 10,   max_catalogs: 20,   max_agents: 1    },
+  { id: 'agency',     name: 'Agencia',     price_monthly: 39, max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: 5    },
+  { id: 'agency_pro', name: 'Agencia Pro', price_monthly: 79, max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: null },
 ];
 
 let _cache: PlanConfig[] | null = null;
@@ -33,7 +34,7 @@ export async function getPlanConfigs(): Promise<PlanConfig[]> {
 
   _promise = supabase
     .from('plans')
-    .select('id, name, price_monthly, max_clients, max_suppliers, max_agents')
+    .select('id, name, price_monthly, max_clients, max_suppliers, max_catalogs, max_agents')
     .eq('is_active', true)
     .order('sort_order')
     .then(({ data, error }) => {

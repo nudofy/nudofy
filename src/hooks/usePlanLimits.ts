@@ -18,14 +18,21 @@ interface PlanLimitsResult {
   supplierLimit: number | null;
   canAddSupplier: boolean;
   supplierUsageLabel: string;
+  // Catálogos
+  catalogCount: number;
+  catalogLimit: number | null;
+  canAddCatalog: boolean;
+  catalogUsageLabel: string;
 }
 
 export function usePlanLimits(): PlanLimitsResult {
   const { agent, loading: agentLoading } = useAgentContext();
   const [clientCount, setClientCount] = useState(0);
   const [supplierCount, setSupplierCount] = useState(0);
+  const [catalogCount, setCatalogCount] = useState(0);
   const [clientLimit, setClientLimit] = useState<number | null>(null);
   const [supplierLimit, setSupplierLimit] = useState<number | null>(null);
+  const [catalogLimit, setCatalogLimit] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,15 +45,29 @@ export function usePlanLimits(): PlanLimitsResult {
         .eq('agent_id', agent.id),
       supabase
         .from('suppliers')
-        .select('id', { count: 'exact', head: true })
+        .select('id')
         .eq('agent_id', agent.id),
       getPlanConfigs(),
-    ]).then(([clientsRes, suppliersRes, plans]) => {
+    ]).then(async ([clientsRes, suppliersRes, plans]) => {
       setClientCount(clientsRes.count ?? 0);
-      setSupplierCount(suppliersRes.count ?? 0);
+      const supplierIds = (suppliersRes.data ?? []).map((s: any) => s.id as string);
+      setSupplierCount(supplierIds.length);
+
+      // Catálogos: contar vía supplier_id IN (suppliers del agente)
+      let catCount = 0;
+      if (supplierIds.length > 0) {
+        const { count } = await supabase
+          .from('catalogs')
+          .select('id', { count: 'exact', head: true })
+          .in('supplier_id', supplierIds);
+        catCount = count ?? 0;
+      }
+      setCatalogCount(catCount);
+
       const plan = plans.find(p => p.id === agent.plan);
       setClientLimit(plan?.max_clients ?? null);
       setSupplierLimit(plan?.max_suppliers ?? null);
+      setCatalogLimit(plan?.max_catalogs ?? null);
       setLoading(false);
     }).catch(() => {
       setLoading(false);
@@ -55,12 +76,15 @@ export function usePlanLimits(): PlanLimitsResult {
 
   const canAddClient = clientLimit === null || clientCount < clientLimit;
   const canAddSupplier = supplierLimit === null || supplierCount < supplierLimit;
+  const canAddCatalog = catalogLimit === null || catalogCount < catalogLimit;
   const clientUsageLabel = `${clientCount} / ${clientLimit ?? '∞'}`;
   const supplierUsageLabel = `${supplierCount} / ${supplierLimit ?? '∞'}`;
+  const catalogUsageLabel = `${catalogCount} / ${catalogLimit ?? '∞'}`;
 
   return {
     loading: agentLoading || loading,
     clientCount, clientLimit, canAddClient, clientUsageLabel,
     supplierCount, supplierLimit, canAddSupplier, supplierUsageLabel,
+    catalogCount, catalogLimit, canAddCatalog, catalogUsageLabel,
   };
 }

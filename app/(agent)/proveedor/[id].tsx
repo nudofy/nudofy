@@ -12,6 +12,7 @@ import { Screen, TopBar, Text, Icon, Badge, Button } from '@/components/ui';
 import ResourceError from '@/components/ResourceError';
 import { supabase } from '@/lib/supabase';
 import { useCatalogs } from '@/hooks/useAgent';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { useToast } from '@/contexts/ToastContext';
 import type { Supplier, Catalog } from '@/hooks/useAgent';
 
@@ -23,6 +24,7 @@ export default function ProveedorScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const { catalogs, loading, createCatalog } = useCatalogs(id);
+  const { canAddCatalog, catalogUsageLabel, catalogLimit } = usePlanLimits();
 
   const [showNewCatalog, setShowNewCatalog] = useState(false);
   const [catalogName, setCatalogName] = useState('');
@@ -56,6 +58,18 @@ export default function ProveedorScreen() {
         onRetry={fetchSupplier}
       />
     );
+  }
+
+  function handleOpenNewCatalog() {
+    if (!canAddCatalog) {
+      Alert.alert(
+        'Límite alcanzado',
+        `Tu plan permite un máximo de ${catalogLimit} catálogos (${catalogUsageLabel}). Actualiza tu plan para crear más.`,
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
+    setShowNewCatalog(true);
   }
 
   async function handleCreateCatalog() {
@@ -113,7 +127,7 @@ export default function ProveedorScreen() {
           { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: 'Reordenar catálogos' },
           { icon: 'Pencil', onPress: () => router.push(`/(agent)/proveedor/editar?id=${id}` as any), accessibilityLabel: 'Editar proveedor' },
           { icon: 'Trash2', onPress: handleDeleteSupplier, accessibilityLabel: 'Eliminar proveedor' },
-          { icon: 'Plus', onPress: () => setShowNewCatalog(true), accessibilityLabel: 'Nuevo catálogo' },
+          { icon: 'Plus', onPress: handleOpenNewCatalog, accessibilityLabel: 'Nuevo catálogo' },
         ]}
       />
 
