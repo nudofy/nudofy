@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const CART_STORAGE_KEY = '@nudofy_carts';
 
 export function makeItemKey(productId: string, attrs?: Record<string, string>): string {
   if (!attrs || Object.keys(attrs).length === 0) return productId;
@@ -47,6 +50,20 @@ const CartContext = createContext<CartContextType>({} as CartContextType);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [carts, setCarts] = useState<Cart[]>([]);
+
+  // Cargar carrito guardado al montar
+  useEffect(() => {
+    AsyncStorage.getItem(CART_STORAGE_KEY).then(raw => {
+      if (raw) {
+        try { setCarts(JSON.parse(raw)); } catch {}
+      }
+    });
+  }, []);
+
+  // Guardar carrito en disco cada vez que cambia
+  useEffect(() => {
+    AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(carts));
+  }, [carts]);
 
   const getCart = useCallback(
     (supplierId: string) => carts.find(c => c.supplier_id === supplierId),

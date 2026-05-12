@@ -1,6 +1,9 @@
 # Dependencias
 node_modules/
 
+# Archivos temporales de Claude
+.gitmsg
+
 # Supabase CLI binary
 supabase.exe
 
