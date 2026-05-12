@@ -35,13 +35,20 @@ const MAX_REV = Math.max(...PLAN_REVENUE.map(p => p.rev));
 
 export default function AdminDashboardScreen() {
   const router = useRouter();
-  const { kpis } = useAdminKPIs();
+  const { kpis, error: kpisError } = useAdminKPIs();
   const { agents, loading: agentsLoading } = useAdminAgents();
 
   const recentAgents = agents.slice(0, 5);
 
   return (
     <AdminShell activeSection="dashboard">
+      {/* Error de conexión */}
+      {kpisError && (
+        <View style={styles.errorBanner}>
+          <Icon name="WifiOff" size={16} color={colors.danger} />
+          <Text variant="small" color="danger" style={{ flex: 1 }}>{kpisError}</Text>
+        </View>
+      )}
       {/* KPIs */}
       <View style={styles.kpiGrid}>
         <KpiCard
@@ -316,4 +323,11 @@ const styles = StyleSheet.create({
   agentCell: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
 
   emptyText: { paddingVertical: space[6] },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    backgroundColor: colors.dangerSoft,
+    borderLeftWidth: 3, borderLeftColor: colors.danger,
+    borderRadius: radius.sm,
+    padding: space[3],
+  },
 });

@@ -13,7 +13,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 export default function ClientesScreen() {
   const router = useRouter();
   const { clients, loading } = useClients();
-  const { clientLimit, usageLabel } = usePlanLimits();
+  const { clientLimit, clientUsageLabel } = usePlanLimits();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -36,7 +36,7 @@ export default function ClientesScreen() {
     <Screen>
       <TopBar
         title="Mis clientes"
-        subtitle={clientLimit !== null ? `${usageLabel} clientes` : undefined}
+        subtitle={clientLimit !== null ? `${clientUsageLabel} clientes` : undefined}
         actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: 'Nuevo cliente' }]}
       />
 

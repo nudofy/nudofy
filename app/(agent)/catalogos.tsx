@@ -10,6 +10,7 @@ import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
 import { useSuppliers } from '@/hooks/useAgent';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import type { Supplier } from '@/hooks/useAgent';
@@ -18,6 +19,7 @@ export default function CatalogosScreen() {
   const router = useRouter();
   const toast = useToast();
   const { suppliers, loading, refetch } = useSuppliers();
+  const { supplierLimit, supplierUsageLabel } = usePlanLimits();
   const [search, setSearch] = useState('');
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<Supplier[]>([]);
@@ -52,6 +54,7 @@ export default function CatalogosScreen() {
     <Screen>
       <TopBar
         title="Proveedores"
+        subtitle={supplierLimit !== null ? `${supplierUsageLabel} proveedores` : undefined}
         actions={[
           { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: 'Reordenar proveedores' },
           { icon: 'Plus', onPress: () => router.push('/(agent)/proveedor/nuevo' as any), accessibilityLabel: 'Nuevo proveedor' },

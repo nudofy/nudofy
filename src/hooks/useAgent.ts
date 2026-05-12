@@ -186,11 +186,12 @@ export function useClients() {
 
   const fetchClients = useCallback(async () => {
     if (!agent) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('clients')
       .select('*')
       .eq('agent_id', agent.id)
       .order('name');
+    if (error) console.warn('[useClients]', error.message);
     setClients(data ?? []);
     setLoading(false);
   }, [agent]);
@@ -225,13 +226,14 @@ export function useSuppliers() {
 
   const fetchSuppliers = useCallback(async () => {
     if (!agent) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('suppliers')
       .select('id, name, contact, conditions, logo_url, active, position, catalogs(count)')
       .eq('agent_id', agent.id)
       .order('position', { ascending: true })
       .order('name', { ascending: true });
 
+    if (error) console.warn('[useSuppliers]', error.message);
     const mapped = (data ?? []).map((s: any) => ({
       ...s,
       catalog_count: s.catalogs?.[0]?.count ?? 0,

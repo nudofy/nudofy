@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getPlanConfigs } from '@/lib/planConfig';
 import { supabase } from '@/lib/supabase';
 
 // ——————————————————————————————
@@ -65,6 +66,7 @@ export function useAdminKPIs() {
     pendingPayments: 0, mrrDelta: 0, agentsDelta: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -75,14 +77,19 @@ export function useAdminKPIs() {
       supabase.from('agents').select('id, plan, active, created_at'),
       supabase.from('orders').select('id, created_at').gte('created_at', startOfMonth),
       supabase.from('invoices').select('total, status, period, created_at, agent_id'),
-    ]).then(([agentsRes, ordersRes, invoicesRes]) => {
+      getPlanConfigs(),
+    ]).then(([agentsRes, ordersRes, invoicesRes, plans]) => {
+      if (agentsRes.error) throw new Error(agentsRes.error.message);
+
       const agents = agentsRes.data ?? [];
       const orders = ordersRes.data ?? [];
       const invoices = invoicesRes.data ?? [];
 
-      const PLAN_PRICE: Record<string, number> = { basic: 9, pro: 19, agency: 39, agency_pro: 79 };
+      const planPrice: Record<string, number> = {};
+      plans.forEach(p => { planPrice[p.id] = p.price_monthly; });
+
       const activeAgents = agents.filter(a => a.active);
-      const mrr = activeAgents.reduce((s, a) => s + (PLAN_PRICE[a.plan] ?? 0), 0);
+      const mrr = activeAgents.reduce((s, a) => s + (planPrice[a.plan] ?? 0), 0);
 
       const lastMonthInvoices = invoices.filter(
         i => i.created_at >= startOfLastMonth && i.created_at < startOfMonth
@@ -91,7 +98,6 @@ export function useAdminKPIs() {
       const mrrDelta = mrrLast > 0 ? ((mrr - mrrLast) / mrrLast) * 100 : 0;
 
       const agentsThisMonth = agents.filter(a => a.created_at >= startOfMonth).length;
-      const agentsDelta = agentsThisMonth;
 
       const pendingPayments = agents.filter(a => {
         const inv = invoices.find(i => i.agent_id === a.id && i.status !== 'paid');
@@ -104,13 +110,17 @@ export function useAdminKPIs() {
         ordersThisMonth: orders.length,
         pendingPayments,
         mrrDelta,
-        agentsDelta,
+        agentsDelta: agentsThisMonth,
       });
       setLoading(false);
+    }).catch(err => {
+      setError('Error cargando el dashboard. Comprueba tu conexión.');
+      setLoading(false);
+      console.warn('[useAdminKPIs]', err?.message);
     });
   }, []);
 
-  return { kpis, loading };
+  return { kpis, loading, error };
 }
 
 // ——————————————————————————————
@@ -121,11 +131,12 @@ export function useAdminAgents() {
   const [loading, setLoading] = useState(true);
 
   const fetchAgents = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('agents')
       .select('id, user_id, name, email, phone, plan, active, created_at, company_id')
       .order('created_at', { ascending: false });
 
+    if (error) console.warn('[useAdminAgents]', error.message);
     setAgents(data ?? []);
     setLoading(false);
   }, []);
@@ -216,10 +227,14 @@ export function useAdminAgentDetail(agentId?: string) {
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('agent_id', agentId),
       supabase.from('suppliers').select('id', { count: 'exact', head: true }).eq('agent_id', agentId),
     ]).then(([agentRes, clientsRes, ordersRes, suppliersRes]) => {
+      if (agentRes.error) throw new Error(agentRes.error.message);
       setAgent(agentRes.data as any);
       setClientCount(clientsRes.count ?? 0);
       setOrderCount(ordersRes.count ?? 0);
       setSupplierCount(suppliersRes.count ?? 0);
+      setLoading(false);
+    }).catch(err => {
+      console.warn('[useAdminAgentDetail]', err?.message);
       setLoading(false);
     });
   }, [agentId, refetchTick]);
@@ -235,11 +250,12 @@ export function useAdminCompanies() {
   const [loading, setLoading] = useState(true);
 
   const fetchCompanies = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('companies')
       .select('id, name, nif, address, plan, active, created_at')
       .order('created_at', { ascending: false });
 
+    if (error) console.warn('[useAdminCompanies]', error.message);
     setCompanies(data ?? []);
     setLoading(false);
   }, []);
@@ -330,6 +346,7 @@ export function useAdminCompanyDetail(companyId?: string) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
+    try {
     const [companyRes, agentsRes, cuRes, invoicesRes] = await Promise.all([
       supabase.from('companies').select('*').eq('id', companyId).single(),
       supabase.from('agents').select('id, user_id, name, email, active').eq('company_id', companyId),
@@ -393,6 +410,10 @@ export function useAdminCompanyDetail(companyId?: string) {
     }
 
     setLoading(false);
+    } catch (err: any) {
+      console.warn('[useAdminCompanyDetail]', err?.message);
+      setLoading(false);
+    }
   }, [companyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -422,12 +443,13 @@ export function useAdminInvoices() {
   const [loading, setLoading] = useState(true);
 
   const fetchInvoices = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('invoices')
       .select('*, agent:agents(name, email)')
       .order('created_at', { ascending: false })
       .limit(100);
 
+    if (error) console.warn('[useAdminInvoices]', error.message);
     setInvoices((data as any[]) ?? []);
     setLoading(false);
   }, []);

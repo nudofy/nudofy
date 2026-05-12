@@ -11,6 +11,7 @@ import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { useSuppliers } from '@/hooks/useAgent';
 import { useToast } from '@/contexts/ToastContext';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { supabase } from '@/lib/supabase';
 import { SupplierSchema, validate } from '@/lib/validation';
 
@@ -18,6 +19,7 @@ export default function NuevoProveedorScreen() {
   const router = useRouter();
   const { createSupplier } = useSuppliers();
   const toast = useToast();
+  const { canAddSupplier, supplierLimit } = usePlanLimits();
 
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
@@ -68,6 +70,10 @@ export default function NuevoProveedorScreen() {
 
   async function handleSave() {
     if (!canSave) return;
+    if (!canAddSupplier) {
+      toast.error(`Has alcanzado el límite de ${supplierLimit} proveedores de tu plan. Actualiza tu plan para añadir más.`);
+      return;
+    }
     const v = validate(SupplierSchema, { name, contact, phone, email, address, description });
     if (!v.ok) { toast.error(v.firstError); return; }
     setSaving(true);
