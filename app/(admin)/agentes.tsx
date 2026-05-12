@@ -18,7 +18,7 @@ type PlanOption = {
   id: string;
   name: string;
   price_monthly: number | null;
-  max_products: number | null;
+  max_suppliers: number | null;
   max_clients: number | null;
   max_agents: number | null;
 };
@@ -28,7 +28,7 @@ function usePlans() {
   useEffect(() => {
     supabase
       .from('plans')
-      .select('id, name, price_monthly, max_products, max_clients, max_agents')
+      .select('id, name, price_monthly, max_suppliers, max_clients, max_agents')
       .eq('is_active', true)
       .order('sort_order')
       .then(({ data }) => { if (data) setPlans(data as PlanOption[]); });
@@ -38,10 +38,10 @@ function usePlans() {
 
 function planDesc(p: PlanOption): string {
   const price = p.price_monthly == null ? 'A medida' : p.price_monthly === 0 ? 'Gratis' : `${p.price_monthly} €/mes`;
-  const prods = p.max_products != null ? `${p.max_products} prod` : 'prod ilimitados';
+  const suppliers = p.max_suppliers != null ? `${p.max_suppliers} prov` : 'prov ilimitados';
   const clients = p.max_clients != null ? `${p.max_clients} cli` : 'cli ilimitados';
   const agents = p.max_agents != null ? ` · ${p.max_agents} agentes` : '';
-  return `${price} · ${prods} · ${clients}${agents}`;
+  return `${price} · ${suppliers} · ${clients}${agents}`;
 }
 
 function formatDate(iso: string) {

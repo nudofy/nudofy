@@ -9,6 +9,7 @@ import Avatar from '@/components/Avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSuppliers } from '@/hooks/useAgent';
 import { useAgentContext } from '@/contexts/AgentContext';
+import { getPlan } from '@/lib/planConfig';
 import type { Supplier } from '@/hooks/useAgent';
 import type { IconName } from '@/components/ui/Icon';
 
@@ -43,7 +44,7 @@ export default function MasScreen() {
           <View style={styles.profileInfo}>
             <Text variant="bodyMedium">{agent?.name ?? profile?.email}</Text>
             <Text variant="caption" color="ink3" style={{ marginTop: 2, textTransform: 'capitalize' }}>
-              Plan {agent?.plan ?? '—'}
+              Plan {agent?.plan ? getPlan(agent.plan).name : '—'}
             </Text>
           </View>
           <Icon name="ChevronRight" size={18} color={colors.ink4} />

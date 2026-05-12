@@ -518,14 +518,14 @@ export function useDashboardKPIs() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchKPIs = useCallback(async () => {
     if (!agent) return;
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-    Promise.all([
+    const [monthRes, recentRes] = await Promise.all([
       supabase
         .from('orders')
         .select('total, created_at')
@@ -542,24 +542,26 @@ export function useDashboardKPIs() {
         .eq('agent_id', agent.id)
         .order('created_at', { ascending: false })
         .limit(5),
-    ]).then(([monthRes, recentRes]) => {
-      const monthOrders = monthRes.data ?? [];
-      const totalMonth = monthOrders.reduce((sum, o) => sum + (o.total ?? 0), 0);
-      const totalToday = monthOrders
-        .filter(o => o.created_at >= startOfDay)
-        .reduce((sum, o) => sum + (o.total ?? 0), 0);
+    ]);
 
-      setKpis({
-        ordersThisMonth: monthOrders.length,
-        totalThisMonth: totalMonth,
-        totalToday,
-      });
-      setRecentOrders((recentRes.data as any[]) ?? []);
-      setLoading(false);
+    const monthOrders = monthRes.data ?? [];
+    const totalMonth = monthOrders.reduce((sum, o) => sum + (o.total ?? 0), 0);
+    const totalToday = monthOrders
+      .filter(o => o.created_at >= startOfDay)
+      .reduce((sum, o) => sum + (o.total ?? 0), 0);
+
+    setKpis({
+      ordersThisMonth: monthOrders.length,
+      totalThisMonth: totalMonth,
+      totalToday,
     });
+    setRecentOrders((recentRes.data as any[]) ?? []);
+    setLoading(false);
   }, [agent]);
 
-  return { kpis, recentOrders, loading };
+  useEffect(() => { fetchKPIs(); }, [fetchKPIs]);
+
+  return { kpis, recentOrders, loading, refetch: fetchKPIs };
 }
 
 // ——————————————————————————————

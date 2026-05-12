@@ -41,7 +41,7 @@ type QuickAction = {
 export default function HomeScreen() {
   const router = useRouter();
   const { agent } = useAgentContext();
-  const { kpis, recentOrders, loading } = useDashboardKPIs();
+  const { kpis, recentOrders, loading, refetch } = useDashboardKPIs();
   const [refreshing, setRefreshing] = React.useState(false);
 
   const firstName = agent?.name?.split(' ')[0] ?? '';
@@ -57,6 +57,7 @@ export default function HomeScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
+    await refetch();
     setRefreshing(false);
   }
 

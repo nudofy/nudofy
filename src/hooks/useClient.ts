@@ -289,6 +289,7 @@ export async function confirmClientOrder(params: {
     product_id: i.product_id,
     unit_price: i.unit_price,
     quantity: i.quantity,
+    total: i.unit_price * i.quantity,
     attributes: i.attributes ?? null,
     variant_id: i.variant_id ?? null,
   }));

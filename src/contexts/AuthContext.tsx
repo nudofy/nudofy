@@ -59,10 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!error && data) {
       setProfile(data as UserProfile);
-    } else {
-      // Perfil no encontrado o error de red: cerrar sesión para evitar limbo
-      console.warn('[AuthContext] fetchProfile falló, cerrando sesión:', error?.message);
+    } else if (error?.code === 'PGRST116') {
+      // Fila no encontrada — usuario sin perfil, cerrar sesión
+      console.warn('[AuthContext] Perfil no encontrado, cerrando sesión');
       await supabase.auth.signOut();
+    } else {
+      // Error de red u otro transitorio — mantener sesión, el usuario reintentará
+      console.warn('[AuthContext] fetchProfile error transitorio:', error?.message);
     }
     setLoading(false);
   }
