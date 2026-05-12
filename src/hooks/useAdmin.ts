@@ -50,6 +50,8 @@ export interface AdminInvoice {
 
 export interface AdminKPIs {
   mrr: number;
+  mrrLastMonth: number;
+  mrrYearTotal: number;
   activeAgents: number;
   ordersThisMonth: number;
   pendingPayments: number;
@@ -57,14 +59,24 @@ export interface AdminKPIs {
   agentsDelta: number;
 }
 
+export interface PlanDistributionItem {
+  plan: string;
+  name: string;
+  agents: number;
+  price: number;
+  rev: number;
+}
+
 // ——————————————————————————————
 // KPIs globales
 // ——————————————————————————————
 export function useAdminKPIs() {
   const [kpis, setKpis] = useState<AdminKPIs>({
-    mrr: 0, activeAgents: 0, ordersThisMonth: 0,
+    mrr: 0, mrrLastMonth: 0, mrrYearTotal: 0,
+    activeAgents: 0, ordersThisMonth: 0,
     pendingPayments: 0, mrrDelta: 0, agentsDelta: 0,
   });
+  const [planDistribution, setPlanDistribution] = useState<PlanDistributionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +84,7 @@ export function useAdminKPIs() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
     Promise.all([
       supabase.from('agents').select('id, plan, active, created_at'),
@@ -86,7 +99,8 @@ export function useAdminKPIs() {
       const invoices = invoicesRes.data ?? [];
 
       const planPrice: Record<string, number> = {};
-      plans.forEach(p => { planPrice[p.id] = p.price_monthly; });
+      const planName: Record<string, string> = {};
+      plans.forEach(p => { planPrice[p.id] = p.price_monthly; planName[p.id] = p.name; });
 
       const activeAgents = agents.filter(a => a.active);
       const mrr = activeAgents.reduce((s, a) => s + (planPrice[a.plan] ?? 0), 0);
@@ -94,8 +108,11 @@ export function useAdminKPIs() {
       const lastMonthInvoices = invoices.filter(
         i => i.created_at >= startOfLastMonth && i.created_at < startOfMonth
       );
-      const mrrLast = lastMonthInvoices.reduce((s, i) => s + i.total, 0);
-      const mrrDelta = mrrLast > 0 ? ((mrr - mrrLast) / mrrLast) * 100 : 0;
+      const mrrLastMonth = lastMonthInvoices.reduce((s, i) => s + i.total, 0);
+      const mrrDelta = mrrLastMonth > 0 ? ((mrr - mrrLastMonth) / mrrLastMonth) * 100 : 0;
+
+      const yearInvoices = invoices.filter(i => i.created_at >= startOfYear);
+      const mrrYearTotal = yearInvoices.reduce((s, i) => s + i.total, 0);
 
       const agentsThisMonth = agents.filter(a => a.created_at >= startOfMonth).length;
 
@@ -104,14 +121,26 @@ export function useAdminKPIs() {
         return !!inv;
       }).length;
 
+      // Distribución real por plan
+      const distMap: Record<string, { agents: number; price: number; name: string }> = {};
+      for (const a of activeAgents) {
+        if (!a.plan || a.plan === 'free' || a.plan === 'free_pro') continue;
+        if (!distMap[a.plan]) distMap[a.plan] = { agents: 0, price: planPrice[a.plan] ?? 0, name: planName[a.plan] ?? a.plan };
+        distMap[a.plan].agents++;
+      }
+      const dist: PlanDistributionItem[] = Object.entries(distMap)
+        .map(([plan, d]) => ({ plan, name: d.name, agents: d.agents, price: d.price, rev: d.agents * d.price }))
+        .sort((a, b) => b.rev - a.rev);
+
       setKpis({
-        mrr,
+        mrr, mrrLastMonth, mrrYearTotal,
         activeAgents: activeAgents.length,
         ordersThisMonth: orders.length,
         pendingPayments,
         mrrDelta,
         agentsDelta: agentsThisMonth,
       });
+      setPlanDistribution(dist);
       setLoading(false);
     }).catch(err => {
       setError('Error cargando el dashboard. Comprueba tu conexión.');
@@ -120,7 +149,7 @@ export function useAdminKPIs() {
     });
   }, []);
 
-  return { kpis, loading, error };
+  return { kpis, planDistribution, loading, error };
 }
 
 // ——————————————————————————————

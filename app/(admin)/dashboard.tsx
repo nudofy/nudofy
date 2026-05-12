@@ -23,20 +23,11 @@ const PLAN_LABELS: Record<string, string> = {
   agency_pro:  'Agencia Pro',
 };
 
-const MONTHS = ['Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar', 'Abr'];
-const BAR_HEIGHTS = [55, 60, 70, 65, 75, 80, 100];
-
-const PLAN_REVENUE = [
-  { plan: 'Pro',      agents: 186, price: 19, rev: 3534 },
-  { plan: 'Básico',  agents: 48,  price: 9,  rev: 432  },
-  { plan: 'Agencia', agents: 14,  price: 39, rev: 546  },
-];
-const MAX_REV = Math.max(...PLAN_REVENUE.map(p => p.rev));
-
 export default function AdminDashboardScreen() {
   const router = useRouter();
-  const { kpis, error: kpisError } = useAdminKPIs();
+  const { kpis, planDistribution, error: kpisError } = useAdminKPIs();
   const { agents, loading: agentsLoading } = useAdminAgents();
+  const maxRev = Math.max(...planDistribution.map(p => p.rev), 1);
 
   const recentAgents = agents.slice(0, 5);
 
@@ -103,8 +94,8 @@ export default function AdminDashboardScreen() {
           </View>
           <View style={styles.chartFooter}>
             <ChartStat value={formatEur(kpis.mrr)} label="Este mes" />
-            <ChartStat value="3.990 €" label="Mes anterior" />
-            <ChartStat value="26.480 €" label="Acumulado año" />
+            <ChartStat value={formatEur(kpis.mrrLastMonth)} label="Mes anterior" />
+            <ChartStat value={formatEur(kpis.mrrYearTotal)} label="Acumulado año" />
           </View>
         </View>
 
@@ -113,16 +104,20 @@ export default function AdminDashboardScreen() {
           <View style={styles.cardHeader}>
             <Text variant="bodyMedium">Ingresos por plan</Text>
           </View>
-          {PLAN_REVENUE.map((p, i) => (
-            <View key={p.plan} style={[styles.planRow, i === PLAN_REVENUE.length - 1 && { borderBottomWidth: 0 }]}>
+          {planDistribution.length === 0 ? (
+            <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
+              Sin datos
+            </Text>
+          ) : planDistribution.map((p, i) => (
+            <View key={p.plan} style={[styles.planRow, i === planDistribution.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={{ width: 90 }}>
-                <Text variant="smallMedium">{p.plan}</Text>
+                <Text variant="smallMedium">{p.name}</Text>
                 <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
                   {p.agents} ag · {p.price} €/mes
                 </Text>
               </View>
               <View style={styles.planBarWrap}>
-                <View style={[styles.planBar, { width: `${(p.rev / MAX_REV) * 100}%` as any }]} />
+                <View style={[styles.planBar, { width: `${(p.rev / maxRev) * 100}%` as any }]} />
               </View>
               <Text variant="smallMedium" style={{ width: 60, textAlign: 'right' }}>
                 {formatEur(p.rev)}
