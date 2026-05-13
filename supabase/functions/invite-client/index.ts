@@ -94,6 +94,16 @@ serve(async (req) => {
       if (linkError) {
         return new Response(JSON.stringify({ error: linkError.message }), { status: 400, headers });
       }
+
+      // Enlazar user_id al registro de cliente (si no estaba ya enlazado)
+      if (linkData?.user?.id) {
+        await supabaseAdmin
+          .from('clients')
+          .update({ user_id: linkData.user.id })
+          .eq('id', clientId)
+          .is('user_id', null);
+      }
+
       const recoveryLink = linkData.properties?.action_link ?? '';
       const resendRecovery = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -122,6 +132,14 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: resendError?.message ?? resendError?.name ?? 'Error enviando email de recuperación', detail: resendError }), { status: 500, headers });
       }
       return new Response(JSON.stringify({ success: true, type: 'recovery' }), { headers });
+    }
+
+    // Enlazar user_id al registro de cliente (usuario nuevo)
+    if (userData?.user?.id) {
+      await supabaseAdmin
+        .from('clients')
+        .update({ user_id: userData.user.id })
+        .eq('id', clientId);
     }
 
     // Usuario nuevo → enviar credenciales
