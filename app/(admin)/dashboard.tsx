@@ -16,6 +16,9 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+const MONTHS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+const BAR_HEIGHTS = [30, 45, 40, 55, 50, 60, 58, 65, 70, 75, 80, 100];
+
 const PLAN_LABELS: Record<string, string> = {
   basic:       'Básico',
   pro:         'Pro',
