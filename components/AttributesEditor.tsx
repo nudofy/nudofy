@@ -141,7 +141,7 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
                 <View key={oi} style={styles.optionChip}>
                   <Text variant="smallMedium" color="ink2" style={{ marginRight: 4 }}>{opt}</Text>
                   <Pressable onPress={() => removeOption(idx, oi)} hitSlop={6}>
-                    <Icon name="X" size={11} color={colors.ink3} />
+                    <Icon name="X" size={12} color={colors.ink3} />
                   </Pressable>
                 </View>
               ))}

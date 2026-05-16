@@ -50,7 +50,7 @@ export default function DpaAceptarScreen() {
         {/* Cabecera */}
         <View style={styles.header}>
           <View style={styles.iconWrap}>
-            <Icon name="FileText" size={28} color={colors.ink} />
+            <Icon name="FileText" size={24} color={colors.ink} />
           </View>
           <Text variant="heading" align="center" style={{ marginTop: space[3] }}>
             Antes de empezar

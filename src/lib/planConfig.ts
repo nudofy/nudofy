@@ -32,21 +32,22 @@ export async function getPlanConfigs(): Promise<PlanConfig[]> {
   if (_cache) return _cache;
   if (_promise) return _promise;
 
-  _promise = supabase
-    .from('plans')
-    .select('id, name, price_monthly, max_clients, max_suppliers, max_catalogs, max_agents')
-    .eq('is_active', true)
-    .order('sort_order')
-    .then(({ data, error }) => {
-      if (error || !data?.length) {
-        console.warn('[planConfig] Usando fallback:', error?.message);
-        _cache = PLAN_FALLBACK;
-      } else {
-        _cache = data as PlanConfig[];
-      }
-      _promise = null;
-      return _cache!;
-    });
+  _promise = Promise.resolve(
+    supabase
+      .from('plans')
+      .select('id, name, price_monthly, max_clients, max_suppliers, max_catalogs, max_agents')
+      .eq('is_active', true)
+      .order('sort_order'),
+  ).then(({ data, error }) => {
+    if (error || !data?.length) {
+      console.warn('[planConfig] Usando fallback:', error?.message);
+      _cache = PLAN_FALLBACK;
+    } else {
+      _cache = data as PlanConfig[];
+    }
+    _promise = null;
+    return _cache!;
+  });
 
   return _promise;
 }

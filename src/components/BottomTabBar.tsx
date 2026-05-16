@@ -42,7 +42,7 @@ export default function BottomTabBar({ activeTab }: { activeTab: string }) {
           >
             <Icon
               name={tab.icon}
-              size={22}
+              size={24}
               color={active ? colors.brand : colors.ink4}
               strokeWidth={active ? 2.25 : 1.75}
             />

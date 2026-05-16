@@ -32,10 +32,13 @@ export default function ClientCatalogoScreen() {
   const [selectedCatalog, setSelectedCatalog] = useState<PortalCatalog | null>(null);
   const [search, setSearch] = useState('');
 
-  const { catalogs } = useClientCatalogs(
+  const { catalogs: allCatalogs } = useClientCatalogs(
     selectedSupplier?.id,
     selectedSupplier?.catalog_id,
   );
+  const catalogs = search
+    ? allCatalogs.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    : allCatalogs;
   const { products } = useClientProducts(selectedCatalog?.id, search, client?.tariff_id ?? null);
 
   function selectSupplier(supplier: PortalSupplier) {

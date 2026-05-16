@@ -35,7 +35,7 @@ export default function ClientBottomTabBar({ activeTab }: Props) {
           >
             <Icon
               name={tab.icon}
-              size={22}
+              size={24}
               color={isActive ? colors.brand : colors.ink4}
               strokeWidth={isActive ? 2.25 : 1.75}
             />

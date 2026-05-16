@@ -177,7 +177,7 @@ export default function AdminShell({ activeSection, title, rightElement, onBack,
             onPress={onBack}
             hitSlop={8}
           >
-            <Icon name="ChevronLeft" size={22} color={colors.ink} />
+            <Icon name="ChevronLeft" size={20} color={colors.ink} />
           </Pressable>
         ) : (
           <Pressable

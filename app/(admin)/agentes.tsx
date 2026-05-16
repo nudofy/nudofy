@@ -58,7 +58,7 @@ const PLAN_LABELS: Record<string, string> = {
 // ——— Modal: alta agente individual ———
 function ModalAltaAgente({
   visible, onClose, onCreate,
-}: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<void> }) {
+}: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<{ error?: string } | void> }) {
   const toast = useToast();
   const plans = usePlans();
   const [name, setName] = useState('');
@@ -86,8 +86,9 @@ function ModalAltaAgente({
       return;
     }
     setSaving(true);
-    await onCreate({ name, email, phone, business_name: businessName, nif, plan });
+    const result = await onCreate({ name, email, phone, business_name: businessName, nif, plan });
     setSaving(false);
+    if (result?.error) { toast.error(result.error); return; }
     reset();
     onClose();
   }
@@ -155,7 +156,7 @@ function ModalAltaAgente({
 // ——— Modal: alta empresa ———
 function ModalAltaEmpresa({
   visible, onClose, onCreate,
-}: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<void> }) {
+}: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<{ error?: string } | void> }) {
   const toast = useToast();
   const [name, setName] = useState('');
   const [nif, setNif] = useState('');
@@ -175,8 +176,9 @@ function ModalAltaEmpresa({
       return;
     }
     setSaving(true);
-    await onCreate({ name, nif, address, plan, adminName, adminEmail });
+    const result = await onCreate({ name, nif, address, plan, adminName, adminEmail });
     setSaving(false);
+    if (result?.error) { toast.error(result.error); return; }
     reset();
     onClose();
   }
@@ -323,14 +325,14 @@ export default function AdminAgentesScreen() {
 
   async function handleCreateAgent(data: any) {
     const { error } = await createAgent(data);
-    if (error) toast.error(error);
-    else toast.success('Agente creado · Invitación enviada por email');
+    if (error) return { error };
+    toast.success('Agente creado · Invitación enviada por email');
   }
 
   async function handleCreateCompany(data: any) {
     const { error } = await createCompany(data);
-    if (error) toast.error(error);
-    else toast.success('Empresa creada · Invitación enviada al administrador');
+    if (error) return { error };
+    toast.success('Empresa creada · Invitación enviada al administrador');
   }
 
   const showAgents = tab === 'all' || tab === 'agents';

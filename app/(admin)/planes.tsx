@@ -229,7 +229,7 @@ export default function AdminPlanesScreen() {
                 >
                   <Icon
                     name={plan.is_active ? 'ToggleRight' : 'ToggleLeft'}
-                    size={22}
+                    size={24}
                     color={plan.is_active ? colors.success : colors.ink4}
                   />
                 </Pressable>

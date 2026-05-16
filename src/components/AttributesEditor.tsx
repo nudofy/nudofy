@@ -191,7 +191,7 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
                 <View key={oi} style={styles.optionChip}>
                   <Text variant="smallMedium" color="ink2" style={{ marginRight: 4 }}>{opt}</Text>
                   <Pressable onPress={() => removeOption(idx, oi)} hitSlop={6}>
-                    <Icon name="X" size={11} color={colors.ink3} />
+                    <Icon name="X" size={12} color={colors.ink3} />
                   </Pressable>
                 </View>
               ))}
@@ -269,7 +269,7 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
                         <View style={styles.variantImgWrap}>
                           <Image source={{ uri: variant.image_url }} style={styles.variantImg} resizeMode="cover" />
                           <Pressable style={styles.variantImgRemove} onPress={() => removeVariantImage(idx)}>
-                            <Icon name="X" size={10} color={colors.white} />
+                            <Icon name="X" size={12} color={colors.white} />
                           </Pressable>
                         </View>
                       ) : (

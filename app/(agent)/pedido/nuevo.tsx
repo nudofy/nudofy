@@ -519,6 +519,7 @@ export default function NuevoPedidoScreen() {
 
   async function confirmOrder() {
     if (!agent || !selectedSupplier) return;
+    if (cart.length === 0) { toast.error('El carrito está vacío'); return; }
     setSaving(true);
 
     let clientId: string | null = selectedClient?.id ?? null;
@@ -836,7 +837,7 @@ export default function NuevoPedidoScreen() {
               onPress={openScanner}
               accessibilityLabel="Escanear código de barras"
             >
-              <Icon name="ScanBarcode" size={22} color={colors.white} />
+              <Icon name="ScanBarcode" size={20} color={colors.white} />
             </Pressable>
           </View>
           <FlatList
@@ -1149,7 +1150,7 @@ export default function NuevoPedidoScreen() {
                         {/* Lista de opciones desplegada */}
                         {isOpen && (
                           <View style={styles.attrPickerList}>
-                            {attr.options.map((opt, oi) => {
+                            {attr.options.map((opt: { id?: string; value: string; label?: string }, oi: number) => {
                               const avail = isOptionAvailable(attr.name, opt.value);
                               const selected = selectedVal === opt.value;
                               return (
