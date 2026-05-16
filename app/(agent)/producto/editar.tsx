@@ -241,9 +241,9 @@ export default function EditarProductoScreen() {
         variantDrafts.map((vd, i) => ({
           product_id: id,
           attributes: vd.attributes,
-          reference: vd.reference.trim() || null,
-          barcode: vd.barcode.trim() || null,
-          stock: vd.stock ? parseInt(vd.stock) : null,
+          reference: vd.reference.trim() || undefined,
+          barcode: vd.barcode.trim() || undefined,
+          stock: vd.stock ? parseInt(vd.stock) : undefined,
           available: vd.available !== false,
           image_url: vd.image_url ?? null,
           position: i,

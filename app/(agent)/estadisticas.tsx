@@ -48,7 +48,7 @@ export default function EstadisticasScreen() {
       .lt('created_at', to)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        setMonthOrders((data ?? []) as MonthOrder[]);
+        setMonthOrders((data ?? []) as unknown as MonthOrder[]);
         setLoadingOrders(false);
       });
   }, [selectedMonth, agent]);
@@ -371,6 +371,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   barFillActive: { backgroundColor: colors.ink },
+  barFillSelected: { backgroundColor: colors.brand },
   barLabel: { fontSize: 9, textAlign: 'center' },
 
   tableRow: {

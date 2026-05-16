@@ -5,7 +5,7 @@ import { AgentProvider, useAgentContext } from '@/contexts/AgentContext';
 function AgentLayoutNav() {
   const { agent, loading, trialExpired } = useAgentContext();
   const router = useRouter();
-  const segments = useSegments();
+  const segments = useSegments() as string[];
 
   useEffect(() => {
     if (loading || !agent) return;
