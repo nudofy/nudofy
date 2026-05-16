@@ -162,7 +162,7 @@ export function useAgent() {
     if (!user) { setLoading(false); return; }
     supabase
       .from('agents')
-      .select('id, name, email, phone, plan')
+      .select('id, name, email, phone, plan, active')
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
