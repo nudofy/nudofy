@@ -131,7 +131,7 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
               autoCapitalize="sentences"
             />
             <Pressable onPress={() => removeAttribute(idx)} hitSlop={8}>
-              <Icon name="Trash2" size={16} color={colors.error ?? '#E73121'} />
+              <Icon name="Trash2" size={16} color={colors.danger} />
             </Pressable>
           </View>
 
