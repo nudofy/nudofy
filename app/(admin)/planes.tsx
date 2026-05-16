@@ -96,6 +96,8 @@ export default function AdminPlanesScreen() {
         tagline: editing.tagline,
         price_monthly: editing.price_monthly,
         price_extra_agent: editing.price_extra_agent,
+        currency: editing.currency,
+        trial_days: editing.trial_days,
         max_agents: editing.max_agents,
         max_catalogs: editing.max_catalogs,
         max_products: editing.max_products,
