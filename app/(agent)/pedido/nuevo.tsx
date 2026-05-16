@@ -157,6 +157,8 @@ export default function NuevoPedidoScreen() {
   supplierRef.current = selectedSupplier;
   const draftIdRef = useRef(currentDraftId);
   draftIdRef.current = currentDraftId;
+  const isMountedRef = useRef(true);
+  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
   async function loadDraft(dId: string) {
     const { data: order } = await supabase
@@ -482,9 +484,9 @@ export default function NuevoPedidoScreen() {
     const timer = setTimeout(async () => {
       try {
         await saveDraftSilently();
-        setLastSavedAt(new Date());
+        if (isMountedRef.current) setLastSavedAt(new Date());
       } catch (_) { /* silent */ }
-      setAutoSaving(false);
+      if (isMountedRef.current) setAutoSaving(false);
     }, 1500);
     return () => {
       clearTimeout(timer);
@@ -499,7 +501,7 @@ export default function NuevoPedidoScreen() {
       if (!dId) return;
       const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current;
       if (!hasMeaningfulContent) {
-        supabase.from('order_items').delete().eq('order_id', dId)
+        Promise.resolve(supabase.from('order_items').delete().eq('order_id', dId))
           .then(() => supabase.from('orders').delete().eq('id', dId))
           .catch((err) => console.warn('[NuevoPedido] cleanup draft error:', err));
       }
