@@ -30,11 +30,11 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers });
 
   try {
-    const { name, email, password, dpa_version } = await req.json();
+    const { name, email, phone, password, plan, dpa_version } = await req.json();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       return new Response(
-        JSON.stringify({ error: 'Nombre, email y contraseña son obligatorios' }),
+        JSON.stringify({ error: 'Nombre, email, teléfono y contraseña son obligatorios' }),
         { status: 400, headers }
       );
     }
@@ -93,11 +93,15 @@ Deno.serve(async (req) => {
     trialExpiry.setDate(trialExpiry.getDate() + 15);
 
     // Insertar en agents
+    const validPlans = ['basic', 'pro', 'agency', 'agency_pro'];
+    const agentPlan = plan && validPlans.includes(plan) ? plan : 'pro';
+
     const { error: agentError } = await supabaseAdmin.from('agents').insert({
       user_id: userId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
-      plan: 'free_pro',
+      phone: phone?.trim() || null,
+      plan: agentPlan,
       plan_expires_at: trialExpiry.toISOString(),
       active: true,
       accepted_dpa_at: dpa_version ? new Date().toISOString() : null,
