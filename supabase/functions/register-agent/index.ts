@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Nudofy <nudofyapp@gmail.com>',
+          from: 'Nudofy <hola@nudofy.app>',
           to: email.trim().toLowerCase(),
           subject: '¡Bienvenido a Nudofy! Tu prueba gratuita ha comenzado',
           html: `<!DOCTYPE html>

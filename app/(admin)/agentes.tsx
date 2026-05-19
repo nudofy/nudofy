@@ -323,6 +323,27 @@ export default function AdminAgentesScreen() {
     );
   }
 
+  async function handleDeleteAgent(agent: AdminAgent) {
+    Alert.alert(
+      'Borrar agente',
+      `¿Eliminar permanentemente a ${agent.name}? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.functions.invoke('delete-agent', {
+              body: { agentId: agent.id },
+            });
+            if (error) toast.error(error.message ?? 'Error al borrar el agente');
+            else toast.success(`${agent.name} eliminado`);
+          },
+        },
+      ]
+    );
+  }
+
   async function handleCreateAgent(data: any) {
     const { error } = await createAgent(data);
     if (error) return { error };
@@ -439,7 +460,7 @@ export default function AdminAgentesScreen() {
                     key={h}
                     variant="caption"
                     color="ink3"
-                    style={[styles.th, { width: [220, 120, 120, 110, 200][i] }]}
+                    style={[styles.th, { width: [220, 120, 120, 110, 260][i] }]}
                   >
                     {h.toUpperCase()}
                   </Text>
@@ -477,7 +498,7 @@ export default function AdminAgentesScreen() {
                       variant={agent.active ? 'success' : 'neutral'}
                     />
                   </View>
-                  <View style={[styles.td, { width: 200, flexDirection: 'row', gap: space[1] }]}>
+                  <View style={[styles.td, { width: 260, flexDirection: 'row', gap: space[1] }]}>
                     <Button
                       label="Ver"
                       variant="secondary"
@@ -489,6 +510,12 @@ export default function AdminAgentesScreen() {
                       variant="secondary"
                       size="sm"
                       onPress={() => handleToggleAgent(agent)}
+                    />
+                    <Button
+                      label="Borrar"
+                      variant="danger"
+                      size="sm"
+                      onPress={() => handleDeleteAgent(agent)}
                     />
                   </View>
                 </View>
