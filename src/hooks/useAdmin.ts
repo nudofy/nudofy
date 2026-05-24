@@ -195,23 +195,11 @@ export function useAdminAgents() {
     nif?: string;
     plan: AdminAgent['plan'];
   }) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { error: 'No hay sesión activa' };
-
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-    const res = await fetch(`${supabaseUrl}/functions/v1/invite-agent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
-      },
-      body: JSON.stringify(data),
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('invite-agent', {
+      body: data,
     });
-
-    const json = await res.json();
-    if (!res.ok || json.error) return { error: json.error ?? 'Error creando agente' };
-    if (json.warning) console.warn(json.warning);
+    if (fnError || fnData?.error) return { error: fnData?.error ?? fnError?.message ?? 'Error creando agente' };
+    if (fnData?.warning) console.warn(fnData.warning);
     fetchAgents();
     return { error: null };
   }
@@ -223,9 +211,12 @@ export function useAdminAgents() {
   }
 
   async function deleteAgent(id: string) {
-    const { error } = await supabase.from('agents').delete().eq('id', id);
-    if (!error) fetchAgents();
-    return { error: error?.message ?? null };
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('delete-agent', {
+      body: { agentId: id },
+    });
+    if (fnError || fnData?.error) return { error: fnData?.error ?? fnError?.message ?? 'Error eliminando agente' };
+    fetchAgents();
+    return { error: null };
   }
 
   return { agents, loading, updateAgentPlan, toggleAgentActive, updateAgentData, createAgent, deleteAgent, refetch: fetchAgents };
@@ -306,11 +297,12 @@ export function useAdminCompanies() {
     plan: 'agency' | 'agency_pro';
     adminName: string;
     adminEmail: string;
+    adminPhone?: string;
   }) {
     // 1. Crear empresa
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
-      .insert({ name: data.name, nif: data.nif ?? null, address: data.address ?? null, plan: data.plan, active: true })
+      .insert({ name: data.name, nif: data.nif ?? null, address: data.address ?? null, phone: data.phone ?? null, plan: data.plan, active: true })
       .select()
       .single();
 
@@ -318,34 +310,110 @@ export function useAdminCompanies() {
     const companyId = companyData.id;
 
     // 2. Crear usuario admin vía Edge Function
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { error: 'No hay sesión activa' };
-
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-    const res = await fetch(`${supabaseUrl}/functions/v1/invite-agent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
-      },
-      body: JSON.stringify({
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('invite-agent', {
+      body: {
         name: data.adminName,
         email: data.adminEmail,
+        phone: data.adminPhone ?? null,
         plan: data.plan,
         company_id: companyId,
         role: 'company_admin',
-      }),
+      },
     });
 
-    const json = await res.json();
-    if (!res.ok || json.error) return { error: json.error ?? 'Error creando administrador' };
+    if (fnError || fnData?.error) {
+      // Rollback: borrar la empresa recién creada
+      await supabase.from('companies').delete().eq('id', companyId);
+      return { error: fnData?.error ?? fnError?.message ?? 'Error creando administrador' };
+    }
 
     fetchCompanies();
     return { error: null };
   }
 
   return { companies, loading, toggleCompanyActive, createCompany, refetch: fetchCompanies };
+}
+
+// ——————————————————————————————
+// Agentes de una empresa (para company_admin)
+// ——————————————————————————————
+export function useCompanyAgents() {
+  const [agents, setAgents] = useState<AdminAgent[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [planLimits, setPlanLimits] = useState<{ maxAgents: number | null; priceExtraAgent: number | null } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { data: me } = await supabase
+      .from('agents')
+      .select('company_id')
+      .eq('user_id', user.id)
+      .single();
+
+    const cid = me?.company_id ?? null;
+    setCompanyId(cid);
+    if (!cid) { setLoading(false); return; }
+
+    const { data, error } = await supabase
+      .from('agents')
+      .select('id, user_id, name, email, phone, plan, active, created_at, company_id')
+      .eq('company_id', cid)
+      .neq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) console.warn('[useCompanyAgents]', error.message);
+    setAgents(data ?? []);
+
+    // Cargar límites del plan de la empresa
+    const { data: company } = await supabase
+      .from('companies')
+      .select('plan')
+      .eq('id', cid)
+      .single();
+
+    if (company?.plan) {
+      const { data: plan } = await supabase
+        .from('plans')
+        .select('max_agents, price_extra_agent')
+        .eq('id', company.plan)
+        .single();
+      if (plan) setPlanLimits({ maxAgents: plan.max_agents, priceExtraAgent: plan.price_extra_agent });
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  async function toggleAgentActive(id: string, active: boolean) {
+    const { error } = await supabase.from('agents').update({ active }).eq('id', id);
+    if (!error) fetchAll();
+    return { error: error?.message ?? null };
+  }
+
+  async function inviteAgent(data: { name: string; email: string; phone?: string }) {
+    if (!companyId) return { error: 'Sin empresa asociada' };
+
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('invite-agent', {
+      body: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone ?? null,
+        plan: 'agency',
+        company_id: companyId,
+        role: 'agent',
+      },
+    });
+
+    if (fnError || fnData?.error) return { error: fnData?.error ?? fnError?.message ?? 'Error invitando agente' };
+    fetchAll();
+    return { error: null };
+  }
+
+  return { agents, companyId, planLimits, loading, toggleAgentActive, inviteAgent, refetch: fetchAll };
 }
 
 // ——————————————————————————————

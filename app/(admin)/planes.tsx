@@ -20,6 +20,7 @@ type Plan = {
   currency: string;
   trial_days: number;
   max_agents: number | null;
+  agents_included: number | null;
   max_catalogs: number | null;
   max_products: number | null;
   max_clients: number | null;
@@ -41,6 +42,7 @@ const EMPTY_PLAN: Omit<Plan, 'id'> = {
   currency: 'EUR',
   trial_days: 15,
   max_agents: null,
+  agents_included: 1,
   max_catalogs: null,
   max_products: null,
   max_clients: null,
@@ -99,6 +101,7 @@ export default function AdminPlanesScreen() {
         currency: editing.currency,
         trial_days: editing.trial_days,
         max_agents: editing.max_agents,
+        agents_included: editing.agents_included,
         max_catalogs: editing.max_catalogs,
         max_products: editing.max_products,
         max_clients: editing.max_clients,
@@ -256,7 +259,7 @@ export default function AdminPlanesScreen() {
       {/* Modal de edición / creación */}
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => { setEditing(null); setIsNew(false); }}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
           <View style={styles.modalBox}>
@@ -357,6 +360,16 @@ export default function AdminPlanesScreen() {
                     keyboardType="numeric"
                     placeholder="Ilimitado"
                     onChangeText={v => updateNum('max_orders_month', v)}
+                    placeholderTextColor={colors.ink4}
+                  />
+                </FormGroup>
+                <FormGroup label="Agentes incluidos" hint="De serie en el precio base">
+                  <TextInput
+                    style={styles.input}
+                    value={editing?.agents_included?.toString() ?? ''}
+                    keyboardType="numeric"
+                    placeholder="1"
+                    onChangeText={v => updateNum('agents_included', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>

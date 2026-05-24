@@ -15,6 +15,7 @@ export interface Agent {
   active: boolean;
   plan_expires_at?: string | null;
   accepted_dpa_at?: string | null;
+  company_id?: string | null;
 }
 
 export interface Client {
@@ -226,10 +227,14 @@ export function useSuppliers() {
 
   const fetchSuppliers = useCallback(async () => {
     if (!agent) return;
+    // Si el agente pertenece a una empresa, también ve los suppliers de empresa
+    const filter = agent.company_id
+      ? `agent_id.eq.${agent.id},company_id.eq.${agent.company_id}`
+      : `agent_id.eq.${agent.id}`;
     const { data, error } = await supabase
       .from('suppliers')
-      .select('id, name, contact, conditions, logo_url, active, position, catalogs(count)')
-      .eq('agent_id', agent.id)
+      .select('id, name, contact, conditions, logo_url, active, position, company_id, catalogs(count)')
+      .or(filter)
       .order('position', { ascending: true })
       .order('name', { ascending: true });
 
@@ -246,9 +251,10 @@ export function useSuppliers() {
 
   async function createSupplier(values: Omit<Supplier, 'id' | 'catalog_count'>) {
     if (!agent) return { error: 'No hay agente', data: null };
+    const extra = agent.company_id ? { company_id: agent.company_id } : {};
     const { data, error } = await supabase
       .from('suppliers')
-      .insert({ ...values, agent_id: agent.id })
+      .insert({ ...values, agent_id: agent.id, ...extra })
       .select('id')
       .single();
     if (!error) fetchSuppliers();
@@ -424,7 +430,24 @@ export function useOrders(status?: Order['status'] | Order['status'][]) {
     const update: any = { status: newStatus };
     if (newStatus === 'sent_to_supplier') update.sent_at = new Date().toISOString();
     const { error } = await supabase.from('orders').update(update).eq('id', id);
-    if (!error) fetchOrders();
+    if (!error) {
+      fetchOrders();
+      // Notificar por email al confirmar o enviar al proveedor
+      if (newStatus === 'confirmed' || newStatus === 'sent_to_supplier') {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/notify-order`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+            },
+            body: JSON.stringify({ order_id: id, status: newStatus }),
+          }).catch(e => console.warn('[notify-order]', e));
+        }
+      }
+    }
     return { error: error?.message ?? null };
   }
 

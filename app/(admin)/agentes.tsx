@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, StyleSheet, Pressable,
-  TextInput, ScrollView, Alert, Modal,
+  TextInput, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
@@ -13,6 +13,38 @@ import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
+
+// Validación NIF/NIE/CIF español
+function validarNifEspanol(value: string): boolean {
+  const v = value.trim().toUpperCase();
+
+  // CIF: letra + 7 dígitos + dígito/letra control
+  if (/^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$/.test(v)) {
+    const digits = v.slice(1, 8);
+    let sum = 0;
+    for (let i = 0; i < 7; i++) {
+      let n = parseInt(digits[i]);
+      if (i % 2 === 0) { n *= 2; if (n > 9) n -= 9; }
+      sum += n;
+    }
+    const control = (10 - (sum % 10)) % 10;
+    const lastChar = v[8];
+    return lastChar === String(control) || lastChar === 'JABCDEFGHI'[control];
+  }
+
+  // NIE: X/Y/Z + 7 dígitos + letra control
+  if (/^[XYZ]\d{7}[A-Z]$/.test(v)) {
+    const num = parseInt(v.replace('X','0').replace('Y','1').replace('Z','2').slice(0,8));
+    return v[8] === 'TRWAGMYFPDXBNJZSQVHLCKE'[num % 23];
+  }
+
+  // NIF: 8 dígitos + letra control
+  if (/^\d{8}[A-Z]$/.test(v)) {
+    return v[8] === 'TRWAGMYFPDXBNJZSQVHLCKE'[parseInt(v.slice(0,8)) % 23];
+  }
+
+  return false;
+}
 
 type PlanOption = {
   id: string;
@@ -95,6 +127,7 @@ function ModalAltaAgente({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
@@ -149,6 +182,7 @@ function ModalAltaAgente({
           </View>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -161,30 +195,48 @@ function ModalAltaEmpresa({
   const [name, setName] = useState('');
   const [nif, setNif] = useState('');
   const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
   const [plan, setPlan] = useState<'agency' | 'agency_pro'>('agency');
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
   const [saving, setSaving] = useState(false);
 
   function reset() {
-    setName(''); setNif(''); setAddress(''); setPlan('agency'); setAdminName(''); setAdminEmail('');
+    setName(''); setNif(''); setAddress(''); setPhone(''); setPlan('agency');
+    setAdminName(''); setAdminEmail(''); setAdminPhone('');
   }
 
   async function handleSave() {
-    if (!name.trim() || !adminName.trim() || !adminEmail.trim()) {
-      toast.error('Razón social, nombre y email del administrador son obligatorios.');
-      return;
-    }
+    if (saving) return;
+    if (!name.trim()) { toast.error('La razón social es obligatoria.'); return; }
+    if (!nif.trim()) { toast.error('El NIF / CIF es obligatorio.'); return; }
+    if (!validarNifEspanol(nif)) { Alert.alert('NIF inválido', 'El NIF/CIF introducido no es válido. Revisa el formato y el dígito de control.'); return; }
+    if (!adminName.trim()) { toast.error('El nombre del administrador es obligatorio.'); return; }
+    if (!adminPhone.trim()) { toast.error('El teléfono del administrador es obligatorio.'); return; }
+    if (!adminEmail.trim()) { toast.error('El email del administrador es obligatorio.'); return; }
+
+    // Verificar NIF duplicado
+    const { data: existing } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('nif', nif.trim().toUpperCase())
+      .maybeSingle();
+    if (existing) { toast.error(`Ya existe una empresa con el NIF ${nif.trim().toUpperCase()}.`); return; }
+
     setSaving(true);
-    const result = await onCreate({ name, nif, address, plan, adminName, adminEmail });
+    const result = await onCreate({ name, nif: nif.trim().toUpperCase(), address, phone, plan, adminName, adminEmail, adminPhone });
     setSaving(false);
-    if (result?.error) { toast.error(result.error); return; }
+    if (result?.error) { Alert.alert('Error', result.error); return; }
+
     reset();
     onClose();
+    Alert.alert('✓ Empresa creada', `${name} ha sido dada de alta.\nSe ha enviado la invitación a ${adminEmail}.`);
   }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
@@ -195,26 +247,44 @@ function ModalAltaEmpresa({
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             <Text variant="caption" color="ink3" style={styles.formSection}>DATOS DE LA EMPRESA</Text>
-            <FormGroup label="Razón social">
+            <FormGroup label="Razón social *">
               <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Comercial Rodríguez S.L." placeholderTextColor={colors.ink4} />
             </FormGroup>
-            <FormGroup label="NIF / CIF" sub="(opcional)">
+            <FormGroup label="NIF / CIF *">
               <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="B-12345678" placeholderTextColor={colors.ink4} autoCapitalize="characters" />
             </FormGroup>
-            <FormGroup label="Dirección fiscal" sub="(opcional)">
-              <TextInput style={styles.formInput} value={address} onChangeText={setAddress} placeholder="C/ Mayor 1, Madrid" placeholderTextColor={colors.ink4} />
-            </FormGroup>
+            <View style={styles.formGrid}>
+              <View style={{ flex: 1 }}>
+                <FormGroup label="Teléfono empresa" sub="(opcional)">
+                  <TextInput style={styles.formInput} value={phone} onChangeText={setPhone} placeholder="+34 900 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
+                </FormGroup>
+              </View>
+              <View style={{ flex: 1 }}>
+                <FormGroup label="Dirección fiscal" sub="(opcional)">
+                  <TextInput style={styles.formInput} value={address} onChangeText={setAddress} placeholder="C/ Mayor 1, Madrid" placeholderTextColor={colors.ink4} />
+                </FormGroup>
+              </View>
+            </View>
 
             <Text variant="caption" color="ink3" style={styles.formSection}>ADMINISTRADOR</Text>
             <Text variant="caption" color="ink3" style={{ marginBottom: space[2] }}>
               El administrador gestiona los agentes y tiene acceso completo al panel.
             </Text>
-            <FormGroup label="Nombre">
+            <FormGroup label="Nombre *">
               <TextInput style={styles.formInput} value={adminName} onChangeText={setAdminName} placeholder="María López" placeholderTextColor={colors.ink4} />
             </FormGroup>
-            <FormGroup label="Email del administrador" sub="(acceso a la app)">
-              <TextInput style={styles.formInput} value={adminEmail} onChangeText={setAdminEmail} placeholder="admin@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
-            </FormGroup>
+            <View style={styles.formGrid}>
+              <View style={{ flex: 1 }}>
+                <FormGroup label="Teléfono *">
+                  <TextInput style={styles.formInput} value={adminPhone} onChangeText={setAdminPhone} placeholder="+34 600 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
+                </FormGroup>
+              </View>
+              <View style={{ flex: 1 }}>
+                <FormGroup label="Email *" sub="(acceso a la app)">
+                  <TextInput style={styles.formInput} value={adminEmail} onChangeText={setAdminEmail} placeholder="admin@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
+                </FormGroup>
+              </View>
+            </View>
 
             <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
             <View style={styles.planSelector}>
@@ -238,6 +308,7 @@ function ModalAltaEmpresa({
           </View>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -259,8 +330,8 @@ type Tab = 'all' | 'agents' | 'companies';
 export default function AdminAgentesScreen() {
   const router = useRouter();
   const toast = useToast();
-  const { agents, loading: agentsLoading, toggleAgentActive, createAgent } = useAdminAgents();
-  const { companies, loading: companiesLoading, toggleCompanyActive, createCompany } = useAdminCompanies();
+  const { agents, loading: agentsLoading, toggleAgentActive, createAgent, refetch: refetchAgents } = useAdminAgents();
+  const { companies, loading: companiesLoading, toggleCompanyActive, createCompany, refetch: refetchCompanies } = useAdminCompanies();
 
   const [tab, setTab] = useState<Tab>('all');
   const [search, setSearch] = useState('');
@@ -337,7 +408,28 @@ export default function AdminAgentesScreen() {
               body: { agentId: agent.id },
             });
             if (error) toast.error(error.message ?? 'Error al borrar el agente');
-            else toast.success(`${agent.name} eliminado`);
+            else { toast.success(`${agent.name} eliminado`); refetchAgents(); }
+          },
+        },
+      ]
+    );
+  }
+
+  async function handleDeleteCompany(company: AdminCompany) {
+    Alert.alert(
+      'Borrar empresa',
+      `¿Eliminar permanentemente "${company.name}" y todos sus agentes? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.functions.invoke('delete-company', {
+              body: { companyId: company.id },
+            });
+            if (error) Alert.alert('Error', error.message ?? 'Error al borrar la empresa');
+            else { toast.success(`${company.name} eliminada`); refetchCompanies(); }
           },
         },
       ]
@@ -586,7 +678,7 @@ export default function AdminAgentesScreen() {
                         variant={company.active ? 'success' : 'neutral'}
                       />
                     </View>
-                    <View style={[styles.td, { width: 200, flexDirection: 'row', gap: space[1] }]}>
+                    <View style={[styles.td, { width: 260, flexDirection: 'row', gap: space[1] }]}>
                       <Button
                         label="Ver"
                         variant="secondary"
@@ -598,6 +690,12 @@ export default function AdminAgentesScreen() {
                         variant="secondary"
                         size="sm"
                         onPress={() => handleToggleCompany(company)}
+                      />
+                      <Button
+                        label="Borrar"
+                        variant="danger"
+                        size="sm"
+                        onPress={() => handleDeleteCompany(company)}
                       />
                     </View>
                   </View>

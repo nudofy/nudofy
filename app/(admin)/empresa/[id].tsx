@@ -9,6 +9,7 @@ import { useAdminCompanyDetail } from '@/hooks/useAdmin';
 import { colors, space, radius } from '@/theme';
 import { Text, Icon, Button, Badge } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
+import { supabase } from '@/lib/supabase';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -116,6 +117,27 @@ export default function AdminEmpresaDetailScreen() {
     );
   }
 
+  async function handleDelete() {
+    Alert.alert(
+      'Borrar empresa',
+      `¿Eliminar permanentemente "${company!.name}" y todos sus agentes? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.functions.invoke('delete-company', {
+              body: { companyId: company!.id },
+            });
+            if (error) Alert.alert('Error', error.message ?? 'Error al borrar la empresa');
+            else router.back();
+          },
+        },
+      ]
+    );
+  }
+
   async function handleProposeUpgrade() {
     // Buscar el email del admin de la empresa
     const adminAgent = agents.find(a => a.role === 'admin');
@@ -164,6 +186,12 @@ Equipo Nudofy`;
         </Pressable>
         <View style={{ flex: 1 }} />
         <View style={styles.pageActions}>
+          <Button
+            label="Borrar"
+            variant="danger"
+            size="sm"
+            onPress={handleDelete}
+          />
           <Button
             label={company.active ? 'Suspender' : 'Activar'}
             variant="secondary"

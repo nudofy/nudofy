@@ -22,7 +22,10 @@ export default function MasScreen() {
   const active = suppliers.filter(s => s.active).length;
   const totalRefs = suppliers.reduce((s, sup) => s + (sup.catalog_count ?? 0), 0);
 
+  const isCompanyAdmin = profile?.role === 'company_admin';
+
   const menuItems: { label: string; icon: IconName; route: string | null }[] = [
+    ...(isCompanyAdmin ? [{ label: 'Mi empresa', icon: 'Building2' as IconName, route: '/(agent)/mi-empresa' }] : []),
     { label: 'Estadísticas', icon: 'ChartBar', route: '/(agent)/estadisticas' },
     { label: 'Tarifas', icon: 'Tag', route: '/(agent)/tarifas' },
     { label: 'Notificaciones', icon: 'Bell', route: '/(agent)/notificaciones' },

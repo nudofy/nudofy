@@ -40,6 +40,7 @@ function AgentLayoutNav() {
       <Stack.Screen name="trial-vencido" options={{ gestureEnabled: false }} />
       <Stack.Screen name="notificaciones" />
       <Stack.Screen name="mis-facturas" />
+      <Stack.Screen name="mi-empresa" />
     </Stack>
   );
 }

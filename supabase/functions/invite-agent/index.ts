@@ -22,7 +22,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers });
 
   try {
-    const { name, email, phone, business_name, nif, plan } = await req.json();
+    const { name, email, phone, business_name, nif, plan, company_id, role } = await req.json();
 
     if (!name || !email) {
       return new Response(JSON.stringify({ error: 'Nombre y email son obligatorios' }), { status: 400, headers });
@@ -46,10 +46,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Verificar que el caller es superadmin
+    // Verificar permisos: superadmin o company_admin
     const adminEmail = Deno.env.get('ADMIN_EMAIL');
-    if (adminEmail && callerUser.email !== adminEmail) {
-      return new Response(JSON.stringify({ error: 'Sin permisos de administrador' }), { status: 403, headers });
+    const isSuperAdmin = adminEmail && callerUser.email === adminEmail;
+    if (!isSuperAdmin) {
+      const { data: callerProfile } = await supabaseAdmin
+        .from('users').select('role').eq('id', callerUser.id).single();
+      const allowedRoles = ['nudofy_admin', 'company_admin'];
+      if (!callerProfile || !allowedRoles.includes(callerProfile.role)) {
+        return new Response(JSON.stringify({ error: 'Sin permisos' }), { status: 403, headers });
+      }
     }
 
     // Generar contraseña temporal
@@ -58,10 +64,11 @@ serve(async (req) => {
     for (let i = 0; i < 6; i++) tempPassword += chars[Math.floor(Math.random() * chars.length)];
 
     // Crear usuario Auth
+    const effectiveRole = role ?? 'agent';
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
-      user_metadata: { role: 'agent' },
+      user_metadata: { role: effectiveRole },
       email_confirm: true,
     });
 
@@ -105,6 +112,7 @@ serve(async (req) => {
       business_name: business_name ?? null,
       nif: nif ?? null,
       plan: plan ?? 'pro',
+      company_id: company_id ?? null,
       active: true,
     });
 

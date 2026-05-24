@@ -25,7 +25,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     const { data } = await supabase
       .from('agents')
-      .select('id, name, email, phone, plan, active, plan_expires_at, accepted_dpa_at')
+      .select('id, name, email, phone, plan, active, plan_expires_at, accepted_dpa_at, company_id')
       .eq('user_id', userId)
       .single();
     setAgent(data ?? null);

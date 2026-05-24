@@ -36,21 +36,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Agente no encontrado' }), { status: 404, headers: CORS });
     }
 
-    // Si tiene user_id, borrar de auth (cascada borra todo)
+    // 1. Borrar de auth si tiene user_id
     if (agent.user_id) {
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(agent.user_id);
-      if (deleteError) {
+      if (deleteError && !deleteError.message.includes('not found')) {
         return new Response(JSON.stringify({ error: deleteError.message }), { status: 400, headers: CORS });
       }
-    } else {
-      // Sin user_id: borrar solo de agents
-      const { error: deleteError } = await supabaseAdmin
-        .from('agents')
-        .delete()
-        .eq('id', agentId);
-      if (deleteError) {
-        return new Response(JSON.stringify({ error: deleteError.message }), { status: 400, headers: CORS });
-      }
+    }
+
+    // 2. Borrar fila de agents explícitamente (no depender de cascade)
+    const { error: agentDeleteError } = await supabaseAdmin
+      .from('agents')
+      .delete()
+      .eq('id', agentId);
+    if (agentDeleteError) {
+      return new Response(JSON.stringify({ error: agentDeleteError.message }), { status: 400, headers: CORS });
     }
 
     return new Response(JSON.stringify({ success: true }), { headers: CORS });

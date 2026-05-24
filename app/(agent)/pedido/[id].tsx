@@ -63,6 +63,10 @@ export default function PedidoScreen() {
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [proposalEmail, setProposalEmail] = useState('');
   const [sendingProposal, setSendingProposal] = useState(false);
+  const [showResendModal, setShowResendModal] = useState(false);
+  const [resendEmails, setResendEmails] = useState<string[]>([]);
+  const [resendCustom, setResendCustom] = useState('');
+  const [sendingResend, setSendingResend] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -159,6 +163,51 @@ Un saludo.`;
     await supabase.from('order_items').delete().eq('order_id', order.id);
     await supabase.from('orders').delete().eq('id', order.id);
     router.back();
+  }
+
+  function openResendModal() {
+    // Pre-seleccionar email del agente
+    const { data: { session } } = supabase.auth.getSession() as any;
+    const emails: string[] = [];
+    if (order?.supplier?.email) emails.push(order.supplier.email);
+    if (order?.client?.email) emails.push(order.client.email);
+    setResendEmails(emails);
+    setResendCustom('');
+    setShowResendModal(true);
+  }
+
+  async function handleResend() {
+    if (!order) return;
+    const all = [...resendEmails];
+    if (resendCustom.trim()) all.push(resendCustom.trim());
+    if (all.length === 0) { toast.error('Selecciona al menos un destinatario'); return; }
+    setSendingResend(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/notify-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ order_id: order.id, recipients: all }),
+      });
+      if (res.ok) {
+        toast.success(`Notificación enviada a ${all.length} destinatario${all.length > 1 ? 's' : ''}`);
+        setShowResendModal(false);
+      } else {
+        toast.error('Error al reenviar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSendingResend(false);
+    }
+  }
+
+  function toggleResendEmail(email: string) {
+    setResendEmails(prev => prev.includes(email) ? prev.filter(e => e !== email) : [...prev, email]);
   }
 
   async function sendToSupplier() {
@@ -637,6 +686,9 @@ Un saludo.`;
             onPress={downloadImages}
             loading={generatingZip}
           />
+          {isConfirmed && (
+            <ActionBtn icon="Send" label="Reenviar notif." onPress={openResendModal} />
+          )}
         </View>
 
         {/* Finalizar desde propuesta */}
@@ -672,6 +724,54 @@ Un saludo.`;
           />
         )}
       </ScrollView>
+
+      {/* Modal reenvío */}
+      <Modal visible={showResendModal} transparent animationType="slide" onRequestClose={() => setShowResendModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <Text variant="heading" style={{ marginBottom: space[1] }}>Reenviar notificación</Text>
+              <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
+                Selecciona a quién quieres reenviar el resumen del pedido.
+              </Text>
+
+              {[
+                order?.supplier?.email && { label: `Proveedor · ${order.supplier.email}`, email: order.supplier.email },
+                order?.client?.email   && { label: `Cliente · ${order.client.email}`,     email: order.client.email },
+              ].filter(Boolean).map((item: any) => (
+                <Pressable
+                  key={item.email}
+                  style={styles.resendCheck}
+                  onPress={() => toggleResendEmail(item.email)}
+                >
+                  <View style={[styles.checkbox, resendEmails.includes(item.email) && styles.checkboxOn]}>
+                    {resendEmails.includes(item.email) && <Icon name="Check" size={12} color={colors.white} />}
+                  </View>
+                  <Text variant="small">{item.label}</Text>
+                </Pressable>
+              ))}
+
+              <Text variant="caption" color="ink3" style={[styles.modalLabel, { marginTop: space[3] }]}>
+                Otro email (opcional)
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={resendCustom}
+                onChangeText={setResendCustom}
+                placeholder="otro@email.com"
+                placeholderTextColor={colors.ink4}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <View style={styles.modalActions}>
+                <Button label="Cancelar" variant="secondary" onPress={() => setShowResendModal(false)} style={{ flex: 1 }} />
+                <Button label="Enviar" icon="Send" onPress={handleResend} loading={sendingResend} style={{ flex: 2 }} />
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Modal propuesta */}
       <Modal visible={showProposalModal} transparent animationType="slide" onRequestClose={() => setShowProposalModal(false)}>
@@ -871,6 +971,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3], paddingVertical: space[3],
   },
   dataRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.line },
+  resendCheck: {
+    flexDirection: 'row', alignItems: 'center', gap: space[2],
+    paddingVertical: space[2],
+    borderBottomWidth: 1, borderBottomColor: colors.line2,
+  },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 4,
+    borderWidth: 1.5, borderColor: colors.line,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  checkboxOn: {
+    backgroundColor: colors.brand, borderColor: colors.brand,
+  },
   actBtn: {
     width: '48%',
     flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
