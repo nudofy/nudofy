@@ -21,6 +21,7 @@ type Plan = {
   trial_days: number;
   max_agents: number | null;
   agents_included: number | null;
+  max_suppliers: number | null;
   max_catalogs: number | null;
   max_products: number | null;
   max_clients: number | null;
@@ -43,6 +44,7 @@ const EMPTY_PLAN: Omit<Plan, 'id'> = {
   trial_days: 15,
   max_agents: null,
   agents_included: 1,
+  max_suppliers: null,
   max_catalogs: null,
   max_products: null,
   max_clients: null,
@@ -67,6 +69,7 @@ export default function AdminPlanesScreen() {
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newId, setNewId] = useState('');
+  const [rawInputs, setRawInputs] = useState<Record<string, string>>({});
 
   async function fetchPlans() {
     const { data, error } = await supabase
@@ -102,6 +105,7 @@ export default function AdminPlanesScreen() {
         trial_days: editing.trial_days,
         max_agents: editing.max_agents,
         agents_included: editing.agents_included,
+        max_suppliers: editing.max_suppliers,
         max_catalogs: editing.max_catalogs,
         max_products: editing.max_products,
         max_clients: editing.max_clients,
@@ -156,12 +160,14 @@ export default function AdminPlanesScreen() {
   function openEdit(plan: Plan) {
     setIsNew(false);
     setNewId('');
+    setRawInputs({});
     setEditing({ ...plan });
   }
 
   function openNew() {
     setIsNew(true);
     setNewId('');
+    setRawInputs({});
     setEditing({ ...EMPTY_PLAN } as Plan);
   }
 
@@ -172,8 +178,18 @@ export default function AdminPlanesScreen() {
 
   function updateNum(field: keyof Plan, value: string) {
     if (!editing) return;
-    const v = value.trim();
-    setEditing({ ...editing, [field]: v === '' ? null : Number(v) } as Plan);
+    setRawInputs(prev => ({ ...prev, [field as string]: value }));
+    const normalized = value.replace(',', '.').trim();
+    if (normalized === '') { setEditing({ ...editing, [field]: null } as Plan); return; }
+    if (normalized.endsWith('.')) return; // aún escribiendo decimal
+    const num = parseFloat(normalized);
+    if (!isNaN(num)) setEditing({ ...editing, [field]: num } as Plan);
+  }
+
+  function numVal(field: keyof Plan): string {
+    if (field as string in rawInputs) return rawInputs[field as string];
+    const v = (editing as any)?.[field];
+    return v != null ? String(v).replace('.', ',') : '';
   }
 
   function priceLabel(plan: Plan) {
@@ -310,8 +326,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Precio (€/mes)" hint="Vacío = a medida">
                   <TextInput
                     style={styles.input}
-                    value={editing?.price_monthly?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('price_monthly')}
+                    keyboardType="decimal-pad"
                     placeholder="A medida"
                     onChangeText={v => updateNum('price_monthly', v)}
                     placeholderTextColor={colors.ink4}
@@ -320,8 +336,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Extra/agente (€)" hint="Solo Empresa">
                   <TextInput
                     style={styles.input}
-                    value={editing?.price_extra_agent?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('price_extra_agent')}
+                    keyboardType="decimal-pad"
                     placeholder="—"
                     onChangeText={v => updateNum('price_extra_agent', v)}
                     placeholderTextColor={colors.ink4}
@@ -333,18 +349,31 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Máx. clientes" hint="Vacío = ilimitado">
                   <TextInput
                     style={styles.input}
-                    value={editing?.max_clients?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('max_clients')}
+                    keyboardType="number-pad"
                     placeholder="Ilimitado"
                     onChangeText={v => updateNum('max_clients', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
+                <FormGroup label="Máx. proveedores" hint="Vacío = ilimitado">
+                  <TextInput
+                    style={styles.input}
+                    value={numVal('max_suppliers')}
+                    keyboardType="number-pad"
+                    placeholder="Ilimitado"
+                    onChangeText={v => updateNum('max_suppliers', v)}
+                    placeholderTextColor={colors.ink4}
+                  />
+                </FormGroup>
+              </View>
+
+              <View style={styles.formRow}>
                 <FormGroup label="Máx. productos" hint="Vacío = ilimitado">
                   <TextInput
                     style={styles.input}
-                    value={editing?.max_products?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('max_products')}
+                    keyboardType="number-pad"
                     placeholder="Ilimitado"
                     onChangeText={v => updateNum('max_products', v)}
                     placeholderTextColor={colors.ink4}
@@ -356,8 +385,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Máx. pedidos/mes" hint="Vacío = ilimitado">
                   <TextInput
                     style={styles.input}
-                    value={editing?.max_orders_month?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('max_orders_month')}
+                    keyboardType="number-pad"
                     placeholder="Ilimitado"
                     onChangeText={v => updateNum('max_orders_month', v)}
                     placeholderTextColor={colors.ink4}
@@ -366,8 +395,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Agentes incluidos" hint="De serie en el precio base">
                   <TextInput
                     style={styles.input}
-                    value={editing?.agents_included?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('agents_included')}
+                    keyboardType="number-pad"
                     placeholder="1"
                     onChangeText={v => updateNum('agents_included', v)}
                     placeholderTextColor={colors.ink4}
@@ -376,8 +405,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Máx. agentes" hint="Vacío = ilimitado">
                   <TextInput
                     style={styles.input}
-                    value={editing?.max_agents?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('max_agents')}
+                    keyboardType="number-pad"
                     placeholder="Ilimitado"
                     onChangeText={v => updateNum('max_agents', v)}
                     placeholderTextColor={colors.ink4}
@@ -389,8 +418,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Máx. catálogos" hint="Vacío = ilimitado">
                   <TextInput
                     style={styles.input}
-                    value={editing?.max_catalogs?.toString() ?? ''}
-                    keyboardType="numeric"
+                    value={numVal('max_catalogs')}
+                    keyboardType="number-pad"
                     placeholder="Ilimitado"
                     onChangeText={v => updateNum('max_catalogs', v)}
                     placeholderTextColor={colors.ink4}
@@ -399,8 +428,8 @@ export default function AdminPlanesScreen() {
                 <FormGroup label="Días de trial">
                   <TextInput
                     style={styles.input}
-                    value={editing?.trial_days?.toString() ?? '15'}
-                    keyboardType="numeric"
+                    value={numVal('trial_days') || '15'}
+                    keyboardType="number-pad"
                     onChangeText={v => updateNum('trial_days', v)}
                     placeholderTextColor={colors.ink4}
                   />
@@ -410,8 +439,8 @@ export default function AdminPlanesScreen() {
               <FormGroup label="Orden (sort)" hint="Número menor = aparece antes">
                 <TextInput
                   style={styles.input}
-                  value={editing?.sort_order?.toString() ?? '99'}
-                  keyboardType="numeric"
+                  value={numVal('sort_order') || '99'}
+                  keyboardType="number-pad"
                   onChangeText={v => updateNum('sort_order', v)}
                   placeholderTextColor={colors.ink4}
                 />

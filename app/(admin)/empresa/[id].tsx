@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView, TextInput, Alert, Linking,
+  Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
@@ -60,6 +61,37 @@ export default function AdminEmpresaDetailScreen() {
   const [editNif, setEditNif] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Cambiar contraseña admin
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  async function handleChangePassword() {
+    if (newPassword.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
+    const adminAgent = agents.find(a => a.role === 'admin') ?? agents[0];
+    if (!adminAgent?.user_id) { toast.error('No se encontró usuario admin en esta empresa'); return; }
+    setSavingPassword(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/reset-user-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: JSON.stringify({ user_id: adminAgent.user_id, new_password: newPassword }),
+    });
+    const json = await res.json();
+    setSavingPassword(false);
+    if (!res.ok || json.error) { toast.error(json.error ?? 'Error al cambiar contraseña'); return; }
+    toast.success('Contraseña actualizada');
+    setShowPasswordModal(false);
+    setNewPassword('');
+    setConfirmPassword('');
+  }
 
   if (loading || !company) {
     return (
@@ -186,6 +218,12 @@ Equipo Nudofy`;
         </Pressable>
         <View style={{ flex: 1 }} />
         <View style={styles.pageActions}>
+          <Button
+            label="Cambiar contraseña"
+            variant="secondary"
+            size="sm"
+            onPress={() => setShowPasswordModal(true)}
+          />
           <Button
             label="Borrar"
             variant="danger"
@@ -413,6 +451,51 @@ Equipo Nudofy`;
           </ScrollView>
         </View>
       )}
+      {/* Modal cambiar contraseña */}
+      <Modal visible={showPasswordModal} transparent animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShowPasswordModal(false)}>
+            <Pressable style={styles.modal} onPress={e => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text variant="bodyMedium">Cambiar contraseña</Text>
+                <Pressable onPress={() => setShowPasswordModal(false)} hitSlop={8}>
+                  <Text variant="small" color="ink3">✕</Text>
+                </Pressable>
+              </View>
+              <View style={{ padding: space[4], gap: space[2] }}>
+                <Text variant="small" color="ink3">
+                  Nueva contraseña para el admin de {company.name}
+                </Text>
+                <TextInput
+                  style={styles.pwInput}
+                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  placeholderTextColor={colors.ink4}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={styles.pwInput}
+                  placeholder="Confirmar contraseña"
+                  placeholderTextColor={colors.ink4}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+                <Button
+                  label="Guardar contraseña"
+                  onPress={handleChangePassword}
+                  loading={savingPassword}
+                  fullWidth
+                  style={{ marginTop: space[2] }}
+                />
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </AdminShell>
   );
 }
@@ -576,4 +659,22 @@ const styles = StyleSheet.create({
   td: { paddingVertical: space[2] + 4, paddingHorizontal: space[3], justifyContent: 'center' },
 
   emptyText: { paddingVertical: space[6] },
+
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center', alignItems: 'center', padding: space[4],
+  },
+  modal: {
+    backgroundColor: colors.white, borderRadius: radius.lg,
+    width: '100%', maxWidth: 420, overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: space[4], borderBottomWidth: 1, borderBottomColor: colors.line2,
+  },
+  pwInput: {
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md, padding: space[3],
+    fontSize: 14, color: colors.ink,
+  },
 });

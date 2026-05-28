@@ -1,6 +1,7 @@
 // ADM-03 · Ficha de agente
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable, Alert, TextInput } from 'react-native';
+import { View, StyleSheet, Pressable, Alert, TextInput, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgentDetail, useAdminAgents } from '@/hooks/useAdmin';
@@ -39,6 +40,36 @@ export default function AdminAgenteDetailScreen() {
   const [changingPlan, setChangingPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[number] | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(30);
+
+  // Cambiar contraseña
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  async function handleChangePassword() {
+    if (newPassword.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
+    if (!agent?.user_id) { toast.error('El agente no tiene usuario asociado'); return; }
+    setSavingPassword(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/reset-user-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: JSON.stringify({ user_id: agent.user_id, new_password: newPassword }),
+    });
+    const json = await res.json();
+    setSavingPassword(false);
+    if (!res.ok || json.error) { toast.error(json.error ?? 'Error al cambiar contraseña'); return; }
+    toast.success('Contraseña actualizada');
+    setShowPasswordModal(false);
+    setNewPassword('');
+    setConfirmPassword('');
+  }
 
   // Edición de datos
   const [editing, setEditing] = useState(false);
@@ -280,6 +311,7 @@ export default function AdminAgenteDetailScreen() {
             variant="secondary"
             onPress={handleToggleActive}
           />
+          <Button label="Cambiar contraseña" variant="secondary" onPress={() => setShowPasswordModal(true)} />
           <Button label="Ver pedidos" variant="secondary" onPress={() => router.push(`/(admin)/agente/${agent.id}/pedidos` as any)} />
           <Button
             label="Eliminar agente"
@@ -304,6 +336,52 @@ export default function AdminAgenteDetailScreen() {
           />
         </View>
       </View>
+
+      {/* Modal cambiar contraseña */}
+      <Modal visible={showPasswordModal} transparent animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShowPasswordModal(false)}>
+            <Pressable style={styles.modal} onPress={e => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text variant="bodyMedium">Cambiar contraseña</Text>
+                <Pressable onPress={() => setShowPasswordModal(false)} hitSlop={8}>
+                  <Text variant="small" color="ink3">✕</Text>
+                </Pressable>
+              </View>
+              <ScrollView style={{ padding: space[4] }} showsVerticalScrollIndicator={false}>
+                <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
+                  Nueva contraseña para {agent.name}
+                </Text>
+                <TextInput
+                  style={styles.pwInput}
+                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  placeholderTextColor={colors.ink4}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={[styles.pwInput, { marginTop: space[2] }]}
+                  placeholder="Confirmar contraseña"
+                  placeholderTextColor={colors.ink4}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+                <Button
+                  label="Guardar contraseña"
+                  onPress={handleChangePassword}
+                  loading={savingPassword}
+                  fullWidth
+                  style={{ marginTop: space[4] }}
+                />
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </AdminShell>
   );
 }
@@ -437,4 +515,22 @@ const styles = StyleSheet.create({
   },
   dangerTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
   dangerActions: { flexDirection: 'row', gap: space[2], flexWrap: 'wrap' },
+
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center', alignItems: 'center', padding: space[4],
+  },
+  modal: {
+    backgroundColor: colors.white, borderRadius: radius.lg,
+    width: '100%', maxWidth: 420, overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: space[4], borderBottomWidth: 1, borderBottomColor: colors.line2,
+  },
+  pwInput: {
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md, padding: space[3],
+    fontSize: 14, color: colors.ink,
+  },
 });
