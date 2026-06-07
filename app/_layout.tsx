@@ -8,6 +8,10 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import NetworkBanner from '@/components/NetworkBanner';
 import { supabase } from '@/lib/supabase';
+import { initSentry, setSentryUser, clearSentryUser } from '@/lib/sentry';
+
+// Inicializar Sentry al arrancar la app
+initSentry();
 
 // ─── CSS global (solo web) — mata el amarillo del autofill del navegador ───
 // Se inyecta a nivel de módulo, antes del primer render, para ganarle a Chrome.
@@ -63,6 +67,15 @@ function RootLayoutNav() {
     const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
     return () => sub.remove();
   }, []);
+
+  // Sincronizar usuario con Sentry al cambiar sesión
+  useEffect(() => {
+    if (session?.user) {
+      setSentryUser(session.user.id, session.user.email);
+    } else {
+      clearSentryUser();
+    }
+  }, [session]);
 
   useEffect(() => {
     if (loading) return;
