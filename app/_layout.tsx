@@ -9,6 +9,7 @@ import { NetworkProvider } from '@/contexts/NetworkContext';
 import NetworkBanner from '@/components/NetworkBanner';
 import { supabase } from '@/lib/supabase';
 import { initSentry, setSentryUser, clearSentryUser } from '@/lib/sentry';
+import { registerPushToken, unregisterPushToken } from '@/lib/pushNotifications';
 
 // Inicializar Sentry al arrancar la app
 initSentry();
@@ -68,10 +69,11 @@ function RootLayoutNav() {
     return () => sub.remove();
   }, []);
 
-  // Sincronizar usuario con Sentry al cambiar sesión
+  // Sincronizar usuario con Sentry y registrar push token al cambiar sesión
   useEffect(() => {
     if (session?.user) {
       setSentryUser(session.user.id, session.user.email);
+      registerPushToken(session.user.id);
     } else {
       clearSentryUser();
     }

@@ -25,8 +25,8 @@ serve(async (req) => {
       .from('orders')
       .select(`
         id, order_number, total, status, notes, created_at,
-        agent:agents(id, name, email, company_id),
-        client:clients(name, fiscal_name, email),
+        agent:agents(id, user_id, name, email, company_id),
+        client:clients(name, fiscal_name, email, user_id),
         supplier:suppliers(name, email),
         catalog:catalogs(name),
         items:order_items(quantity, unit_price, total, product:products(name, reference))
@@ -44,16 +44,11 @@ serve(async (req) => {
     const orderStatus = status ?? order.status;
 
     // ── Resolver destinatarios por defecto ─────────────────────────────
-    // Siempre: agente
-    // Si tiene empresa: company_admin (no proveedor)
-    // Si es agente individual: proveedor + cliente
-    let defaultRecipients: { email: string; type: 'agent' | 'company' | 'supplier' | 'client' }[] = [];
+    let defaultRecipients: { email: string; type: 'agent' | 'company' | 'supplier' | 'client'; user_id?: string }[] = [];
 
-    // Agente siempre
-    if (agent?.email) defaultRecipients.push({ email: agent.email, type: 'agent' });
+    if (agent?.email) defaultRecipients.push({ email: agent.email, type: 'agent', user_id: agent.user_id });
 
     if (agent?.company_id) {
-      // Buscar company_admin
       const { data: companyAgents } = await supabase
         .from('agents')
         .select('user_id')
@@ -63,28 +58,25 @@ serve(async (req) => {
         const userIds = companyAgents.map((a: any) => a.user_id);
         const { data: adminUser } = await supabase
           .from('users')
-          .select('email')
+          .select('id, email')
           .eq('role', 'company_admin')
           .in('id', userIds)
           .maybeSingle();
         if (adminUser?.email && adminUser.email !== agent.email) {
-          defaultRecipients.push({ email: adminUser.email, type: 'company' });
+          defaultRecipients.push({ email: adminUser.email, type: 'company', user_id: adminUser.id });
         }
       }
     } else {
-      // Agente individual → proveedor y cliente
       if (supplier?.email) defaultRecipients.push({ email: supplier.email, type: 'supplier' });
-      if (client?.email)   defaultRecipients.push({ email: client.email,   type: 'client' });
+      if (client?.email)   defaultRecipients.push({ email: client.email, type: 'client', user_id: client.user_id });
     }
 
-    // Si vienen recipients manuales (reenvío), usarlos en su lugar
-    const finalRecipients: { email: string; type: string }[] = recipients
+    const finalRecipients: { email: string; type: string; user_id?: string }[] = recipients
       ? (recipients as string[]).map(e => {
           const found = defaultRecipients.find(r => r.email === e);
-          return { email: e, type: found?.type ?? 'custom' };
+          return { email: e, type: found?.type ?? 'custom', user_id: found?.user_id };
         })
       : defaultRecipients;
-
 
     // ── Construir HTML ─────────────────────────────────────────────────
     const clientName = client?.fiscal_name || client?.name || '—';
@@ -133,6 +125,19 @@ serve(async (req) => {
         </div>`;
     }
 
+    // ── Mensajes push por tipo ─────────────────────────────────────────
+    function buildPushMessage(type: string): { title: string; body: string } {
+      const num = order.order_number ?? order.id.slice(0, 8).toUpperCase();
+      const messages: Record<string, { title: string; body: string }> = {
+        agent:    { title: 'Pedido confirmado', body: `Pedido ${num} de ${clientName} confirmado` },
+        company:  { title: 'Nuevo pedido', body: `${agent?.name} confirmó el pedido ${num} de ${clientName}` },
+        supplier: { title: 'Nuevo pedido recibido', body: `${agent?.name} te ha enviado el pedido ${num}` },
+        client:   { title: 'Pedido realizado', body: `Tu agente confirmó el pedido ${num}` },
+        custom:   { title: `Pedido ${num}`, body: `Estado: ${statusLabel}` },
+      };
+      return messages[type] ?? messages.custom;
+    }
+
     // ── Enviar emails ──────────────────────────────────────────────────
     const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
     const FROM = 'Nudofy <no-reply@nudofy.app>';
@@ -146,10 +151,44 @@ serve(async (req) => {
       if (!res.ok) console.warn('[notify-order] Resend error', to, await res.text());
     }
 
+    // ── Enviar push notifications ──────────────────────────────────────
+    async function sendPushToUser(userId: string, type: string) {
+      if (!userId) return;
+
+      const { data: tokens } = await supabase
+        .from('push_tokens')
+        .select('token')
+        .eq('user_id', userId);
+
+      if (!tokens?.length) return;
+
+      const { title, body } = buildPushMessage(type);
+      const messages = tokens.map(({ token }: { token: string }) => ({
+        to: token,
+        title,
+        body,
+        sound: 'default',
+        data: { order_id: order.id, order_number: order.order_number },
+      }));
+
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(messages),
+      });
+      if (!res.ok) console.warn('[notify-order] Expo push error:', await res.text());
+    }
+
     const subject = `Pedido ${order.order_number ?? ''} · ${supplier?.name ?? ''}`;
-    await Promise.allSettled(
-      finalRecipients.map(r => sendEmail(r.email, subject, buildHtml(r.type)))
-    );
+
+    await Promise.allSettled([
+      // Emails
+      ...finalRecipients.map(r => sendEmail(r.email, subject, buildHtml(r.type))),
+      // Push notifications
+      ...finalRecipients
+        .filter(r => r.user_id)
+        .map(r => sendPushToUser(r.user_id!, r.type)),
+    ]);
 
     return new Response(JSON.stringify({ success: true, sent: finalRecipients.length }), { headers: CORS });
 
