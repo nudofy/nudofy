@@ -39,6 +39,7 @@
     },
     "platforms": ["ios", "android", "web"],
     "plugins": [
+      "./plugins/withFmtFix",
       "expo-router",
       "expo-secure-store",
       "expo-font",
