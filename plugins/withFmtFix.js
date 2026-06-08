@@ -1,37 +1,47 @@
-const { withXcodeProject } = require('@expo/config-plugins');
+const { withDangerousMod } = require('@expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Fix para error de compilación iOS con Xcode 16 + react-native-reanimated:
  * "call to consteval function 'fmt::basic_format_string' is not a constant expression"
  *
- * Solución: Deshabilitar FMT_CONSTEVAL para todos los pods añadiendo
- * GCC_PREPROCESSOR_DEFINITIONS = FMT_CONSTEVAL=
+ * Aplica GCC_PREPROCESSOR_DEFINITIONS = FMT_CONSTEVAL= a todos los pods
+ * vía post_install hook en el Podfile.
  */
 const withFmtFix = (config) => {
-  return withXcodeProject(config, async (config) => {
-    const xcodeProject = config.modResults;
-    const configurations = xcodeProject.pbxXCBuildConfigurationSection();
+  return withDangerousMod(config, [
+    'ios',
+    async (config) => {
+      const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
+      let contents = fs.readFileSync(podfilePath, 'utf8');
 
-    for (const key in configurations) {
-      const buildConfig = configurations[key];
-      if (typeof buildConfig === 'object' && buildConfig.buildSettings) {
-        const settings = buildConfig.buildSettings;
-        if (!settings.GCC_PREPROCESSOR_DEFINITIONS) {
-          settings.GCC_PREPROCESSOR_DEFINITIONS = ['$(inherited)', 'FMT_CONSTEVAL='];
-        } else if (Array.isArray(settings.GCC_PREPROCESSOR_DEFINITIONS)) {
-          if (!settings.GCC_PREPROCESSOR_DEFINITIONS.includes('FMT_CONSTEVAL=')) {
-            settings.GCC_PREPROCESSOR_DEFINITIONS.push('FMT_CONSTEVAL=');
-          }
-        } else if (typeof settings.GCC_PREPROCESSOR_DEFINITIONS === 'string') {
-          if (!settings.GCC_PREPROCESSOR_DEFINITIONS.includes('FMT_CONSTEVAL=')) {
-            settings.GCC_PREPROCESSOR_DEFINITIONS = [settings.GCC_PREPROCESSOR_DEFINITIONS, 'FMT_CONSTEVAL='];
-          }
-        }
+      if (contents.includes('FMT_CONSTEVAL')) {
+        return config;
       }
-    }
 
-    return config;
-  });
+      const hook = `
+# Fix: fmt consteval error con Xcode 16 + react-native-reanimated
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+      if defs.nil?
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = ['$(inherited)', 'FMT_CONSTEVAL=']
+      elsif defs.is_a?(Array) && !defs.include?('FMT_CONSTEVAL=')
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_CONSTEVAL='
+      elsif defs.is_a?(String) && !defs.include?('FMT_CONSTEVAL=')
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = [defs, 'FMT_CONSTEVAL=']
+      end
+    end
+  end
+end
+`;
+
+      fs.writeFileSync(podfilePath, contents + hook);
+      return config;
+    },
+  ]);
 };
 
 module.exports = withFmtFix;

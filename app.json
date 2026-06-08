@@ -52,13 +52,6 @@
         "color": "#E73121",
         "sounds": []
       }],
-      ["@sentry/react-native/expo", {
-        "organization": "nudofy",
-        "project": "nudofy-app",
-        "uploadNativeSymbols": false,
-        "uploadSourceMaps": false,
-        "enableAndroid": false
-      }]
     ],
     "scheme": "nudofy",
     "extra": {
