@@ -55,7 +55,8 @@
         "organization": "nudofy",
         "project": "nudofy-app",
         "uploadNativeSymbols": false,
-        "uploadSourceMaps": false
+        "uploadSourceMaps": false,
+        "enableAndroid": false
       }]
     ],
     "scheme": "nudofy",
