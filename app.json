@@ -53,7 +53,9 @@
       }],
       ["@sentry/react-native/expo", {
         "organization": "nudofy",
-        "project": "nudofy-app"
+        "project": "nudofy-app",
+        "uploadNativeSymbols": false,
+        "uploadSourceMaps": false
       }]
     ],
     "scheme": "nudofy",
