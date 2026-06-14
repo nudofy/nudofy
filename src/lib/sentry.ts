@@ -14,13 +14,13 @@ export function initSentry() {
   Sentry.init({
     dsn: DSN,
     environment: __DEV__ ? 'development' : 'production',
-    // Solo capturar errores en producción para no saturar la cuota en dev
     enabled: !__DEV__,
-    // Trazas de rendimiento: 20% de las sesiones en producción
     tracesSampleRate: 0.2,
-    // Replay de sesión: 10% normal, 100% cuando hay un error
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
+    // ExpoUpdates integration crashes en Android cuando el módulo nativo de Sentry
+    // no está enlazado (usamos Sentry en modo JS-only)
+    integrations: (integrations) => integrations.filter((i) => i.name !== 'ExpoUpdates'),
   });
 }
 
