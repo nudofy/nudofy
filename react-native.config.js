@@ -5,6 +5,7 @@ module.exports = {
     '@sentry/react-native': {
       platforms: {
         android: null,
+        ios: null,
       },
     },
   },
