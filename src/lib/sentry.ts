@@ -20,7 +20,7 @@ export function initSentry() {
     replaysOnErrorSampleRate: 1.0,
     // ExpoUpdates integration crashes en Android cuando el módulo nativo de Sentry
     // no está enlazado (usamos Sentry en modo JS-only)
-    integrations: (integrations) => integrations.filter((i) => i.name !== 'ExpoUpdates'),
+    integrations: (integrations) => integrations.filter((i) => i.name !== 'ExpoUpdatesListener'),
   });
 }
 
