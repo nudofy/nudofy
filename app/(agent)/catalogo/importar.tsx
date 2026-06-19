@@ -157,6 +157,14 @@ export default function ImportarProductosScreen() {
       const rows = parsed.data;
       const res: ImportResult[] = [];
 
+      // Cargar referencias existentes de este catálogo
+      const { data: existing } = await supabase
+        .from('products')
+        .select('id, reference')
+        .eq('catalog_id', catalogId)
+        .not('reference', 'is', null);
+      const existingByRef = new Map((existing ?? []).map(p => [p.reference as string, p.id as string]));
+
       for (const row of rows) {
         const name = row['nombre']?.trim();
         if (!name) { res.push({ name: '(sin nombre)', ok: false, error: 'Nombre vacío' }); continue; }
@@ -165,8 +173,8 @@ export default function ImportarProductosScreen() {
         const price = priceRaw ? parseFloat(priceRaw) : 0;
         const pvprRaw = row['pvpr']?.replace(',', '.').trim();
         const pvpr = pvprRaw ? parseFloat(pvprRaw) : undefined;
-
         const reference = row['referencia']?.trim() || null;
+
         const payload = {
           catalog_id: catalogId,
           active: true,
@@ -185,12 +193,9 @@ export default function ImportarProductosScreen() {
           min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
         };
 
-        // Si tiene referencia, upsert (actualiza si ya existe); si no, insert siempre
-        const { error } = reference
-          ? await supabase.from('products').upsert(payload, {
-              onConflict: 'catalog_id,reference',
-              ignoreDuplicates: false,
-            })
+        const existingId = reference ? existingByRef.get(reference) : undefined;
+        const { error } = existingId
+          ? await supabase.from('products').update(payload).eq('id', existingId)
           : await supabase.from('products').insert(payload);
 
         res.push({ name, ok: !error, error: error?.message });
