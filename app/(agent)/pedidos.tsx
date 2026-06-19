@@ -1,7 +1,8 @@
 // A-09 · Historial de pedidos (3 pestañas)
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -53,16 +54,11 @@ export default function PedidosScreen() {
   const doneCount = orders.filter(o => o.status === 'confirmed' || o.status === 'sent_to_supplier').length;
 
   function handleDeleteDraft(id: string) {
-    Alert.alert(
+    confirmDestructive(
       'Descartar pedido',
       '¿Seguro que quieres eliminar este pedido pendiente? No se podrá recuperar.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Descartar', style: 'destructive',
-          onPress: async () => { await deleteOrder(id); refetch(); },
-        },
-      ]
+      async () => { await deleteOrder(id); refetch(); },
+      'Descartar'
     );
   }
 

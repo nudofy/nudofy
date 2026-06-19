@@ -5,9 +5,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, ScrollView, Pressable, StyleSheet, TextInput,
-  Alert, ActivityIndicator,
+  ActivityIndicator,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { confirmDestructive } from '@/lib/confirm';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -100,20 +101,13 @@ export default function TarifasScreen() {
   }
 
   function handleDelete(t: Tariff) {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar tarifa',
       `¿Eliminar la tarifa "${t.name}"? Se borrarán también los precios de cada producto en esa tarifa.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            await supabase.from('tariffs').delete().eq('id', t.id);
-            fetchTariffs();
-          },
-        },
-      ]
+      async () => {
+        await supabase.from('tariffs').delete().eq('id', t.id);
+        fetchTariffs();
+      }
     );
   }
 

@@ -3,8 +3,9 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   View, ScrollView, Pressable,
-  StyleSheet, TextInput, Alert, ActivityIndicator, Modal,
+  StyleSheet, TextInput, ActivityIndicator, Modal,
   KeyboardAvoidingView, Platform, Image, FlatList, Dimensions } from 'react-native';
+import { confirmDestructive } from '@/lib/confirm';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -669,19 +670,11 @@ export default function NuevoPedidoScreen() {
                 style={({ pressed }) => [styles.draftDelete, pressed && { opacity: 0.5 }]}
                 onPress={(e) => {
                   e.stopPropagation?.();
-                  Alert.alert(
+                  confirmDestructive(
                     'Descartar pedido',
                     '¿Seguro que quieres eliminar este pedido pendiente? No se podrá recuperar.',
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Descartar', style: 'destructive',
-                        onPress: async () => {
-                          await deleteOrder(draft.id);
-                          refetchDrafts();
-                        },
-                      },
-                    ]
+                    async () => { await deleteOrder(draft.id); refetchDrafts(); },
+                    'Descartar'
                   );
                 }}
                 accessibilityLabel="Descartar pedido pendiente"

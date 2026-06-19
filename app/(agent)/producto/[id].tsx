@@ -1,9 +1,10 @@
 // A-06 · Ficha de producto
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, ScrollView, StyleSheet, Image, Alert, FlatList, Dimensions,
+  View, ScrollView, StyleSheet, Image, FlatList, Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import ResourceError from '@/components/ResourceError';
@@ -131,16 +132,13 @@ export default function ProductoScreen() {
     : product.image_url ? [product.image_url] : [];
 
   function handleDeleteProduct() {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar producto',
       `¿Eliminar "${product!.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: async () => {
-          await supabase.from('products').delete().eq('id', id);
-          router.back();
-        }},
-      ]
+      async () => {
+        await supabase.from('products').delete().eq('id', id);
+        router.back();
+      }
     );
   }
 

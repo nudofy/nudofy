@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { confirmDestructive } from '@/lib/confirm';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { colors, space, radius } from '@/theme';
@@ -105,16 +106,13 @@ export default function ProveedorScreen() {
   }
 
   function handleDeleteSupplier() {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar proveedor',
       `¿Eliminar a ${supplier?.name}? Se eliminarán también sus catálogos y productos.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: async () => {
-          await supabase.from('suppliers').delete().eq('id', id);
-          router.back();
-        }},
-      ]
+      async () => {
+        await supabase.from('suppliers').delete().eq('id', id);
+        router.back();
+      }
     );
   }
 

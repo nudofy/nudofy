@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
@@ -89,17 +90,11 @@ export default function MiEmpresaScreen() {
   const [showInvite, setShowInvite] = useState(false);
 
   async function handleToggle(agent: AdminAgent) {
-    Alert.alert(
+    confirmDestructive(
       agent.active ? 'Desactivar agente' : 'Activar agente',
       `¿${agent.active ? 'Desactivar' : 'Activar'} a ${agent.name}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: agent.active ? 'Desactivar' : 'Activar',
-          style: agent.active ? 'destructive' : 'default',
-          onPress: () => toggleAgentActive(agent.id, !agent.active),
-        },
-      ]
+      () => toggleAgentActive(agent.id, !agent.active),
+      agent.active ? 'Desactivar' : 'Activar'
     );
   }
 
@@ -109,22 +104,25 @@ export default function MiEmpresaScreen() {
     const isExtra = max !== null && agents.length >= max;
 
     if (isExtra && priceExtra && priceExtra > 0) {
+      const msg = `Tu plan incluye ${max} agente${max === 1 ? '' : 's'}. Este agente extra tendrá un coste de ${priceExtra} €/mes adicionales.`;
+      if (Platform.OS === 'web') {
+        if (!window.confirm(`Agente adicional\n\n${msg}`)) return { error: null };
+        const result = await inviteAgent(data);
+        if (!result.error) toast.success('Invitación enviada por email');
+        return result;
+      }
       return new Promise<{ error?: string | null }>((resolve) => {
-        Alert.alert(
-          'Agente adicional',
-          `Tu plan incluye ${max} agente${max === 1 ? '' : 's'}. Este agente extra tendrá un coste de ${priceExtra} €/mes adicionales.`,
-          [
-            { text: 'Cancelar', style: 'cancel', onPress: () => resolve({ error: null }) },
-            {
-              text: 'Confirmar y invitar',
-              onPress: async () => {
-                const result = await inviteAgent(data);
-                if (!result.error) toast.success('Invitación enviada por email');
-                resolve(result);
-              },
+        Alert.alert('Agente adicional', msg, [
+          { text: 'Cancelar', style: 'cancel', onPress: () => resolve({ error: null }) },
+          {
+            text: 'Confirmar y invitar',
+            onPress: async () => {
+              const result = await inviteAgent(data);
+              if (!result.error) toast.success('Invitación enviada por email');
+              resolve(result);
             },
-          ]
-        );
+          },
+        ]);
       });
     }
 

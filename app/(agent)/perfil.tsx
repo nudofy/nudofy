@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, TextInput, Pressable,
-  ScrollView, StyleSheet, Alert,
+  ScrollView, StyleSheet,
   KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { useAgentContext } from '@/contexts/AgentContext';
@@ -67,17 +68,10 @@ export default function PerfilScreen() {
   }
 
   function handleDeleteAccount() {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar cuenta',
       'Se borrarán permanentemente tu cuenta, todos tus clientes, catálogos, pedidos y datos. Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: confirmDeleteAccount,
-        },
-      ]
+      confirmDeleteAccount
     );
   }
 

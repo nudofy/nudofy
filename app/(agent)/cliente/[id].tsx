@@ -1,8 +1,9 @@
 // A-03 · Ficha de cliente (4 pestañas: Ficha / Pedidos / Notas / Portal)
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, ScrollView, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator,
+  View, ScrollView, Pressable, StyleSheet, TextInput, ActivityIndicator,
   KeyboardAvoidingView, Platform, Switch } from 'react-native';
+import { confirmDestructive } from '@/lib/confirm';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
@@ -96,13 +97,10 @@ export default function ClienteScreen() {
   }
 
   async function deleteAddress(addrId: string) {
-    Alert.alert('Eliminar dirección', '¿Eliminar esta dirección?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: async () => {
-        await supabase.from('client_addresses').delete().eq('id', addrId);
-        setAddresses(prev => prev.filter(a => a.id !== addrId));
-      }},
-    ]);
+    confirmDestructive('Eliminar dirección', '¿Eliminar esta dirección?', async () => {
+      await supabase.from('client_addresses').delete().eq('id', addrId);
+      setAddresses(prev => prev.filter(a => a.id !== addrId));
+    });
   }
 
   async function saveChanges() {
@@ -116,16 +114,13 @@ export default function ClienteScreen() {
   }
 
   function handleDeleteClient() {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar cliente',
       `¿Eliminar a ${client?.name}? Se eliminarán también sus pedidos y direcciones.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: async () => {
-          await supabase.from('clients').delete().eq('id', id);
-          router.back();
-        }},
-      ]
+      async () => {
+        await supabase.from('clients').delete().eq('id', id);
+        router.back();
+      }
     );
   }
 
