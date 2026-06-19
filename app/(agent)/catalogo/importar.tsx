@@ -37,6 +37,17 @@ const CSV_TEMPLATE =
 type PreviewRow = Record<string, string>;
 type ImportResult = { name: string; ok: boolean; error?: string };
 
+async function readFileText(uri: string): Promise<string> {
+  const response = await fetch(uri);
+  const buffer = await response.arrayBuffer();
+  // Intenta UTF-8; si hay caracteres de reemplazo (�), reintenta con Windows-1252
+  const utf8 = new TextDecoder('utf-8').decode(buffer);
+  if (utf8.includes('�')) {
+    return new TextDecoder('windows-1252').decode(buffer);
+  }
+  return utf8;
+}
+
 function normalizeHeader(h: string): string {
   return h.trim().toLowerCase()
     .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i')
@@ -102,8 +113,7 @@ export default function ImportarProductosScreen() {
     setDone(false);
 
     try {
-      const response = await fetch(picked.uri);
-      const text = await response.text();
+      const text = await readFileText(picked.uri);
       const parsed = Papa.parse<PreviewRow>(text, {
         header: true,
         skipEmptyLines: true,
@@ -137,8 +147,7 @@ export default function ImportarProductosScreen() {
     setResults([]);
 
     try {
-      const response = await fetch(picked2.uri);
-      const text = await response.text();
+      const text = await readFileText(picked2.uri);
       const parsed = Papa.parse<PreviewRow>(text, {
         header: true,
         skipEmptyLines: true,
