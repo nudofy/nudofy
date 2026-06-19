@@ -157,11 +157,12 @@ export default function ImportarProductosScreen() {
         const pvprRaw = row['pvpr']?.replace(',', '.').trim();
         const pvpr = pvprRaw ? parseFloat(pvprRaw) : undefined;
 
-        const { error } = await supabase.from('products').insert({
+        const reference = row['referencia']?.trim() || null;
+        const payload = {
           catalog_id: catalogId,
           active: true,
           name,
-          reference: row['referencia']?.trim() || null,
+          reference,
           reference_2: row['referencia_2']?.trim() || null,
           barcode: row['ean']?.trim() || null,
           familia: row['familia']?.trim() || null,
@@ -173,7 +174,15 @@ export default function ImportarProductosScreen() {
           stock: row['stock'] ? parseInt(row['stock']) : null,
           standard_box: row['caja_estandar'] ? parseInt(row['caja_estandar']) : null,
           min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
-        });
+        };
+
+        // Si tiene referencia, upsert (actualiza si ya existe); si no, insert siempre
+        const { error } = reference
+          ? await supabase.from('products').upsert(payload, {
+              onConflict: 'catalog_id,reference',
+              ignoreDuplicates: false,
+            })
+          : await supabase.from('products').insert(payload);
 
         res.push({ name, ok: !error, error: error?.message });
       }
