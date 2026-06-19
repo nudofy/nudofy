@@ -38,9 +38,24 @@ type PreviewRow = Record<string, string>;
 type ImportResult = { name: string; ok: boolean; error?: string };
 
 async function readFileText(uri: string): Promise<string> {
-  const response = await fetch(uri);
-  const buffer = await response.arrayBuffer();
-  // Intenta UTF-8; si hay caracteres de reemplazo (�), reintenta con Windows-1252
+  let buffer: ArrayBuffer;
+
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    buffer = await response.arrayBuffer();
+  } else {
+    const FileSystem = await import('expo-file-system');
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    buffer = bytes.buffer;
+  }
+
   const utf8 = new TextDecoder('utf-8').decode(buffer);
   if (utf8.includes('�')) {
     return new TextDecoder('windows-1252').decode(buffer);
