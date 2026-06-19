@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AgentProvider, useAgentContext } from '@/contexts/AgentContext';
 
@@ -22,7 +23,7 @@ function AgentLayoutNav() {
   }, [agent, loading, trialExpired, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: Platform.OS === 'web' }}>
       <Stack.Screen name="home" />
       <Stack.Screen name="clientes" />
       <Stack.Screen name="cliente/[id]" />
