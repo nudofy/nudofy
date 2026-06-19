@@ -157,13 +157,14 @@ export default function ImportarProductosScreen() {
       const rows = parsed.data;
       const res: ImportResult[] = [];
 
-      // Cargar referencias existentes de este catálogo
-      const { data: existing } = await supabase
-        .from('products')
-        .select('id, reference')
-        .eq('catalog_id', catalogId)
-        .not('reference', 'is', null);
-      const existingByRef = new Map((existing ?? []).map(p => [p.reference as string, p.id as string]));
+      // Borrar primero los productos que tienen referencia del CSV para evitar conflictos
+      const csvRefs = rows.map(r => r['referencia']?.trim()).filter(Boolean) as string[];
+      if (csvRefs.length > 0) {
+        await supabase.from('products')
+          .delete()
+          .eq('catalog_id', catalogId)
+          .in('reference', csvRefs);
+      }
 
       for (const row of rows) {
         const name = row['nombre']?.trim();
@@ -193,11 +194,7 @@ export default function ImportarProductosScreen() {
           min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
         };
 
-        const existingId = reference ? existingByRef.get(reference) : undefined;
-        const { error } = existingId
-          ? await supabase.from('products').update(payload).eq('id', existingId)
-          : await supabase.from('products').insert(payload);
-
+        const { error } = await supabase.from('products').insert(payload);
         res.push({ name, ok: !error, error: error?.message });
       }
 
