@@ -77,17 +77,24 @@ export default function CatalogoScreen() {
   }
 
   function handleDeleteCatalog() {
-    Alert.alert(
-      'Eliminar catálogo',
-      `¿Eliminar "${catalogName}"? Se eliminarán también todos sus productos.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: async () => {
-          await supabase.from('catalogs').delete().eq('id', id);
-          router.back();
-        }},
-      ]
-    );
+    const doDelete = async () => {
+      await supabase.from('catalogs').delete().eq('id', id);
+      router.back();
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm(`¿Eliminar "${catalogName}"? Se eliminarán también todos sus productos.`)) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Eliminar catálogo',
+        `¿Eliminar "${catalogName}"? Se eliminarán también todos sus productos.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Eliminar', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
   }
 
   const familias = useMemo(() => {
