@@ -160,6 +160,10 @@ export default function NuevoPedidoScreen() {
   draftIdRef.current = currentDraftId;
   const isMountedRef = useRef(true);
   useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
+  const saveDraftSilentlyRef = useRef(saveDraftSilently);
+  saveDraftSilentlyRef.current = saveDraftSilently;
+  const agentRef = useRef(agent);
+  agentRef.current = agent;
 
   async function loadDraft(dId: string) {
     const { data: order } = await supabase
@@ -495,13 +499,19 @@ export default function NuevoPedidoScreen() {
     };
   }, [saveDraftSilently, agent, selectedSupplier, cart.length]);
 
-  // Limpieza al desmontar: si el draft quedó vacío (0 items o sin proveedor), se borra.
+  // Limpieza al desmontar: guarda si hay contenido sin draft, o borra si el draft quedó vacío.
   useEffect(() => {
     return () => {
       const dId = draftIdRef.current;
-      if (!dId) return;
-      const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current;
-      if (!hasMeaningfulContent) {
+      const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current && !!agentRef.current;
+
+      if (!dId && hasMeaningfulContent) {
+        // El debounce no llegó a disparar — guardar ahora
+        saveDraftSilentlyRef.current().catch(() => {});
+        return;
+      }
+
+      if (dId && !hasMeaningfulContent) {
         Promise.resolve(supabase.from('order_items').delete().eq('order_id', dId))
           .then(() => supabase.from('orders').delete().eq('id', dId))
           .catch((err) => console.warn('[NuevoPedido] cleanup draft error:', err));
