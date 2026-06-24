@@ -25,9 +25,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para subir el logo del proveedor."
-      },
-      "buildNumber": "69"
-  },
+      }
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
