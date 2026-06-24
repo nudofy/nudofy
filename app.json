@@ -42,8 +42,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro",
-      "output": "single-page-application"
+      "bundler": "metro"
     },
     "platforms": ["ios", "android", "web"],
     "plugins": [
