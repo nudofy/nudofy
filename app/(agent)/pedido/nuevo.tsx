@@ -437,8 +437,10 @@ export default function NuevoPedidoScreen() {
 
   // Guardado silencioso (autosave). No toca `saving` para no interferir con la UI.
   const saveDraftSilently = useCallback(async (): Promise<string | null> => {
-    if (!agent) { toast.error('Sin agente'); return null; }
-    if (!selectedSupplier) { toast.error('Sin proveedor'); return null; }
+    if (!agent || !selectedSupplier) return null;
+    if (isSavingRef.current) return committedDraftIdRef.current;
+    isSavingRef.current = true;
+    try {
     const draftData = {
       agent_id: agent.id,
       client_id: selectedClient?.id ?? null,
@@ -449,15 +451,15 @@ export default function NuevoPedidoScreen() {
       notes: notes || null,
       discount_code: discountCode || null,
     };
-    let orderId = currentDraftId;
+    let orderId = committedDraftIdRef.current ?? currentDraftId;
     if (orderId) {
       await supabase.from('orders').update(draftData).eq('id', orderId);
       await supabase.from('order_items').delete().eq('order_id', orderId);
     } else {
       const { data, error: insertError } = await supabase.from('orders').insert(draftData).select().single();
-      if (insertError) { toast.error('DB: ' + insertError.message); return null; }
+      if (insertError) { isSavingRef.current = false; return null; }
       orderId = (data as any)?.id ?? null;
-      if (orderId) setCurrentDraftId(orderId);
+      if (orderId) { committedDraftIdRef.current = orderId; setCurrentDraftId(orderId); }
     }
     if (orderId && cart.length > 0) {
       await supabase.from('order_items').insert(
@@ -472,10 +474,15 @@ export default function NuevoPedidoScreen() {
       );
     }
     return orderId;
+    } finally {
+      isSavingRef.current = false;
+    }
   }, [agent, selectedSupplier, selectedClient, selectedCatalog, cart, cartTotal, notes, discountCode, currentDraftId]);
 
   const saveDraftSilentlyRef = useRef(saveDraftSilently);
   saveDraftSilentlyRef.current = saveDraftSilently;
+  const isSavingRef = useRef(false);
+  const committedDraftIdRef = useRef<string | null>(null);
 
   // Mantengo `saveDraft` como wrapper para compatibilidad (llamadas explícitas).
   async function saveDraft(): Promise<string | null> {
