@@ -454,7 +454,8 @@ export default function NuevoPedidoScreen() {
       await supabase.from('orders').update(draftData).eq('id', orderId);
       await supabase.from('order_items').delete().eq('order_id', orderId);
     } else {
-      const { data } = await supabase.from('orders').insert(draftData).select().single();
+      const { data, error: insertError } = await supabase.from('orders').insert(draftData).select().single();
+      if (insertError) { toast.error('DB: ' + insertError.message); return null; }
       orderId = (data as any)?.id ?? null;
       if (orderId) setCurrentDraftId(orderId);
     }
