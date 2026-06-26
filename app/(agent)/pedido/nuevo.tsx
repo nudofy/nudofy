@@ -2,7 +2,7 @@
 // 0. Elegir modo cliente  1. Proveedor/catálogo  2. Productos  3. Carrito + confirmar
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
-  View, ScrollView, Pressable,
+  View, ScrollView, Pressable, Alert,
   StyleSheet, TextInput, ActivityIndicator, Modal,
   KeyboardAvoidingView, Platform, Image, FlatList, Dimensions } from 'react-native';
 import { confirmDestructive } from '@/lib/confirm';
@@ -519,19 +519,19 @@ export default function NuevoPedidoScreen() {
     };
   }, []);
 
-  async function handleBack() {
+  function handleBack() {
     if (step === 'inicio') {
       const hasMeaningfulContent = cart.length > 0 && !!selectedSupplier && !!agent;
       if (hasMeaningfulContent && !currentDraftId) {
-        const { Alert } = await import('react-native');
-        await new Promise<void>(resolve => Alert.alert(
+        Alert.alert(
           '¿Guardar borrador?',
           'Tienes productos en el carrito. ¿Quieres guardar el pedido como borrador?',
           [
-            { text: 'Descartar', style: 'destructive', onPress: resolve },
-            { text: 'Guardar', style: 'default', onPress: async () => { await saveDraftSilently(); toast.success('Borrador guardado'); resolve(); } },
+            { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
+            { text: 'Guardar', style: 'default', onPress: () => { saveDraftSilently().then(() => { toast.success('Borrador guardado'); router.back(); }); } },
           ]
-        ));
+        );
+        return;
       }
       router.back();
       return;
@@ -1047,7 +1047,7 @@ export default function NuevoPedidoScreen() {
             <Button
               label="Guardar borrador"
               variant="secondary"
-              onPress={async () => { await saveDraftSilently(); toast.success('Borrador guardado'); router.back(); }}
+              onPress={() => { saveDraftSilently().then(() => { toast.success('Borrador guardado'); router.back(); }); }}
               fullWidth
               style={{ marginBottom: space[2] }}
             />
