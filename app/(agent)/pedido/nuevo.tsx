@@ -529,7 +529,7 @@ export default function NuevoPedidoScreen() {
           'Tienes productos en el carrito. ¿Quieres guardar el pedido como borrador?',
           [
             { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
-            { text: 'Guardar', style: 'default', onPress: () => { saveDraftSilently().then(() => { toast.success('Borrador guardado'); router.back(); }); } },
+            { text: 'Guardar', style: 'default', onPress: () => { saveDraftSilently().then((id) => { if (id) toast.success('Borrador guardado'); else toast.error('Error al guardar: faltan datos'); router.back(); }); } },
           ]
         );
         return;
@@ -1048,7 +1048,7 @@ export default function NuevoPedidoScreen() {
             <Button
               label="Guardar borrador"
               variant="secondary"
-              onPress={() => { saveDraftSilently().then(() => { toast.success('Borrador guardado'); router.back(); }); }}
+              onPress={() => { saveDraftSilently().then((id) => { if (id) { toast.success('Borrador guardado'); router.back(); } else { toast.error('Error al guardar: faltan datos'); } }); }}
               fullWidth
               style={{ marginBottom: space[2] }}
             />
