@@ -437,7 +437,8 @@ export default function NuevoPedidoScreen() {
 
   // Guardado silencioso (autosave). No toca `saving` para no interferir con la UI.
   const saveDraftSilently = useCallback(async (): Promise<string | null> => {
-    if (!agent || !selectedSupplier) return null;
+    if (!agent) { toast.error('Debug: agent null'); return null; }
+    if (!selectedSupplier) { toast.error('Debug: supplier null'); return null; }
     const draftData = {
       agent_id: agent.id,
       client_id: selectedClient?.id ?? null,
