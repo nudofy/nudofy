@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import Constants from 'expo-constants';
-import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
@@ -246,7 +245,7 @@ export default function PerfilScreen() {
           )}
         </ScrollView>
         <Text variant="caption" color="ink4" align="center" style={{ paddingBottom: space[4] }}>
-          v{Constants.expoConfig?.version ?? '—'} · build {Application.nativeBuildVersion ?? '—'}
+          v{Constants.expoConfig?.version ?? '—'}
         </Text>
       </KeyboardAvoidingView>
     </Screen>
