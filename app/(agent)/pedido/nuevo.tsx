@@ -515,7 +515,7 @@ export default function NuevoPedidoScreen() {
       const dId = draftIdRef.current;
       const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current;
       if (dId && !hasMeaningfulContent) {
-        supabase.from('order_items').delete().eq('order_id', dId)
+        Promise.resolve(supabase.from('order_items').delete().eq('order_id', dId))
           .then(() => supabase.from('orders').delete().eq('id', dId))
           .catch(() => {});
       }
