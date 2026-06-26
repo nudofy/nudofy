@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
@@ -37,6 +38,8 @@ export default function PedidosScreen() {
   const { orders, loading, deleteOrder, refetch } = useOrders();
   const [tab, setTab] = useState<TabKey>('realizados');
   const [search, setSearch] = useState('');
+
+  useFocusEffect(React.useCallback(() => { refetch(); }, [refetch]));
 
   const filtered = useMemo(() => {
     const statuses = TAB_STATUS[tab];
