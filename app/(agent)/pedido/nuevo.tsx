@@ -437,8 +437,7 @@ export default function NuevoPedidoScreen() {
 
   // Guardado silencioso (autosave). No toca `saving` para no interferir con la UI.
   const saveDraftSilently = useCallback(async (): Promise<string | null> => {
-    if (!agent) { toast.error('Debug: agent null'); return null; }
-    if (!selectedSupplier) { toast.error('Debug: supplier null'); return null; }
+    if (!agent || !selectedSupplier) return null;
     const draftData = {
       agent_id: agent.id,
       client_id: selectedClient?.id ?? null,
@@ -455,7 +454,7 @@ export default function NuevoPedidoScreen() {
       await supabase.from('order_items').delete().eq('order_id', orderId);
     } else {
       const { data, error: insertError } = await supabase.from('orders').insert(draftData).select().single();
-      if (insertError) { toast.error('DB: ' + insertError.message); return null; }
+      if (insertError) return null;
       orderId = (data as any)?.id ?? null;
       if (orderId) setCurrentDraftId(orderId);
     }
@@ -502,22 +501,15 @@ export default function NuevoPedidoScreen() {
     };
   }, [saveDraftSilently, agent, selectedSupplier, cart.length]);
 
-  // Limpieza al desmontar: guarda si hay contenido sin draft, o borra si el draft quedó vacío.
+  // Limpieza al desmontar: borra el draft si quedó vacío (sin proveedor ni productos).
   useEffect(() => {
     return () => {
       const dId = draftIdRef.current;
-      const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current && !!agentRef.current;
-
-      if (!dId && hasMeaningfulContent) {
-        // El debounce no llegó a disparar — guardar ahora
-        saveDraftSilentlyRef.current().catch(() => {});
-        return;
-      }
-
+      const hasMeaningfulContent = cartRef.current.length > 0 && !!supplierRef.current;
       if (dId && !hasMeaningfulContent) {
-        Promise.resolve(supabase.from('order_items').delete().eq('order_id', dId))
+        supabase.from('order_items').delete().eq('order_id', dId)
           .then(() => supabase.from('orders').delete().eq('id', dId))
-          .catch((err) => console.warn('[NuevoPedido] cleanup draft error:', err));
+          .catch(() => {});
       }
     };
   }, []);
