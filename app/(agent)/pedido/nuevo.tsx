@@ -160,8 +160,6 @@ export default function NuevoPedidoScreen() {
   draftIdRef.current = currentDraftId;
   const isMountedRef = useRef(true);
   useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
-  const saveDraftSilentlyRef = useRef(saveDraftSilently);
-  saveDraftSilentlyRef.current = saveDraftSilently;
   const agentRef = useRef(agent);
   agentRef.current = agent;
 
@@ -473,6 +471,9 @@ export default function NuevoPedidoScreen() {
     }
     return orderId;
   }, [agent, selectedSupplier, selectedClient, selectedCatalog, cart, cartTotal, notes, discountCode, currentDraftId]);
+
+  const saveDraftSilentlyRef = useRef(saveDraftSilently);
+  saveDraftSilentlyRef.current = saveDraftSilently;
 
   // Mantengo `saveDraft` como wrapper para compatibilidad (llamadas explícitas).
   async function saveDraft(): Promise<string | null> {
