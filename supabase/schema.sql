@@ -180,10 +180,19 @@ DECLARE
   seq_num  INT;
   order_num TEXT;
 BEGIN
+  -- Los borradores no necesitan order_number
+  IF NEW.status = 'draft' THEN
+    RETURN NEW;
+  END IF;
+  -- Si ya tiene order_number (borrador que se confirma), no sobreescribir
+  IF NEW.order_number IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
   year_str := TO_CHAR(NOW(), 'YYYY');
   SELECT COUNT(*) + 1 INTO seq_num
   FROM public.orders
-  WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW());
+  WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
+    AND status != 'draft';
   order_num := 'NUD-' || year_str || '-' || LPAD(seq_num::TEXT, 4, '0');
   NEW.order_number := order_num;
   RETURN NEW;
