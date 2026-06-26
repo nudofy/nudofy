@@ -437,7 +437,8 @@ export default function NuevoPedidoScreen() {
 
   // Guardado silencioso (autosave). No toca `saving` para no interferir con la UI.
   const saveDraftSilently = useCallback(async (): Promise<string | null> => {
-    if (!agent || !selectedSupplier) return null;
+    if (!agent) { toast.error('Sin agente'); return null; }
+    if (!selectedSupplier) { toast.error('Sin proveedor'); return null; }
     const draftData = {
       agent_id: agent.id,
       client_id: selectedClient?.id ?? null,
@@ -454,7 +455,7 @@ export default function NuevoPedidoScreen() {
       await supabase.from('order_items').delete().eq('order_id', orderId);
     } else {
       const { data, error: insertError } = await supabase.from('orders').insert(draftData).select().single();
-      if (insertError) return null;
+      if (insertError) { toast.error('DB: ' + insertError.message); return null; }
       orderId = (data as any)?.id ?? null;
       if (orderId) setCurrentDraftId(orderId);
     }
