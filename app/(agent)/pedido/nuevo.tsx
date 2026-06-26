@@ -519,9 +519,13 @@ export default function NuevoPedidoScreen() {
     };
   }, []);
 
-  function handleBack() {
-    // Navegación limpia: atrás es atrás. El autosave se encarga de persistir.
-    if (step === 'inicio')    { router.back();          return; }
+  async function handleBack() {
+    if (step === 'inicio') {
+      const hasMeaningfulContent = cart.length > 0 && !!selectedSupplier && !!agent;
+      if (hasMeaningfulContent) await saveDraftSilently();
+      router.back();
+      return;
+    }
     if (step === 'modo')      { setStep('inicio');      return; }
     if (step === 'proveedor') { setStep('modo');        return; }
     if (step === 'productos') { setStep('proveedor');   return; }
