@@ -398,8 +398,18 @@ CREATE POLICY "agents_visible_to_client" ON public.agents
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.agents (id, email, name, plan, active)
+  INSERT INTO public.users (id, email, role, name)
   VALUES (
+    NEW.id,
+    NEW.email,
+    'agent',
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1))
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.agents (id, user_id, email, name, plan, active)
+  VALUES (
+    NEW.id,
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
@@ -407,6 +417,7 @@ BEGIN
     true
   )
   ON CONFLICT (id) DO NOTHING;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
