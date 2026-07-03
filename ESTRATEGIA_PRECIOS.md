@@ -2,6 +2,25 @@
 
 > Documento de trabajo. Mercado España + Europa. Precios en EUR, sin IVA.
 > Última actualización: 30 abril 2026 (v2 — reposicionamiento tras análisis AgentesCloud).
+>
+> **✅ IMPLEMENTADO el 4 julio 2026 (v3).** Esta v2 se quedó sin aplicar durante más de dos
+> meses: mientras tanto la web, la app y la BD divergieron en tres estructuras de precio
+> distintas y contradictorias entre sí (incluida una FAQ pública que mencionaba planes
+> "Agencia"/"Agencia Pro" inexistentes). Los números finales aplicados a BD + código + web
+> son ligeramente distintos a los de la sección 1 de aquí abajo — la referencia real y
+> actual es `app-ventas/actualizar-precios.sql`. Resumen de lo que cambió respecto a v2:
+> - **Básico 15€** (no 14€), **Pro 35€** (no 34€), **Agencia 75€** (no 79€) — números
+>   redondeados para verse coherentes entre sí.
+> - **Portal del cliente incluido desde Básico**, no solo desde Pro — v2 ya lo especificaba
+>   así en la matriz de la sección 5.1, pero la implementación en producción lo había
+>   gateado detrás de Pro, contradiciendo el argumento central del documento (§2).
+> - Solo **3 planes públicos** (Básico/Pro/Agencia) — se elimina "Agencia Pro" como plan
+>   público independiente.
+> - **+8€/agente adicional** visible y consistente en Pro y Agencia (antes solo aparecía
+>   en el plan más caro).
+> - Récord de riesgo de este episodio: si una decisión de precios no se aplica de inmediato
+>   en BD/código/web a la vez, asume que se desincronizará. Revisar trimestralmente que
+>   `plans` (BD), `planConfig.ts` (fallback) y `/precios` (web) coincidan.
 
 ---
 

@@ -17,13 +17,12 @@ function formatDate(iso: string) {
 const PLAN_META: Record<string, { label: string; price: string; free?: boolean }> = {
   free:        { label: 'Free',         price: 'Gratis',   free: true },
   free_pro:    { label: 'Free Pro',     price: 'Gratis',   free: true },
-  basic:       { label: 'Básico',       price: '9 €/mes'  },
-  pro:         { label: 'Pro',           price: '19 €/mes' },
-  agency:      { label: 'Agencia',       price: '39 €/mes' },
-  agency_pro:  { label: 'Agencia Pro',   price: '79 €/mes' },
+  basic:       { label: 'Básico',       price: '15 €/mes' },
+  pro:         { label: 'Pro',           price: '35 €/mes' },
+  agency:      { label: 'Agencia',       price: '75 €/mes' },
 };
 
-const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency', 'agency_pro'] as const;
+const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency'] as const;
 
 const DURATIONS = [
   { label: '15 días', days: 15 },

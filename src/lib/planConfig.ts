@@ -14,14 +14,14 @@ export interface PlanConfig {
   max_agents: number | null;
 }
 
-// Fallback por si la BD falla
+// Fallback por si la BD falla — DEBE coincidir con la tabla `plans` en Supabase.
+// Última sincronización: julio 2026 (ver app-ventas/actualizar-precios.sql).
 export const PLAN_FALLBACK: PlanConfig[] = [
   { id: 'free',       name: 'Free',        price_monthly: 0,  max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: null },
   { id: 'free_pro',   name: 'Free Pro',    price_monthly: 0,  max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: null },
-  { id: 'basic',      name: 'Básico',      price_monthly: 9,  max_clients: 50,   max_suppliers: 3,    max_catalogs: 5,    max_agents: 1    },
-  { id: 'pro',        name: 'Pro',         price_monthly: 19, max_clients: 150,  max_suppliers: 10,   max_catalogs: 20,   max_agents: 1    },
-  { id: 'agency',     name: 'Agencia',     price_monthly: 39, max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: 5    },
-  { id: 'agency_pro', name: 'Agencia Pro', price_monthly: 79, max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: null },
+  { id: 'basic',      name: 'Básico',      price_monthly: 15, max_clients: 50,   max_suppliers: 2,    max_catalogs: 5,    max_agents: 1    },
+  { id: 'pro',        name: 'Pro',         price_monthly: 35, max_clients: 500,  max_suppliers: 10,   max_catalogs: 20,   max_agents: 3    },
+  { id: 'agency',     name: 'Agencia',     price_monthly: 75, max_clients: null, max_suppliers: null, max_catalogs: null, max_agents: 8    },
 ];
 
 let _cache: PlanConfig[] | null = null;

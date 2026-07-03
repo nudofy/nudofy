@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     trialExpiry.setDate(trialExpiry.getDate() + 15);
 
     // Insertar en agents
-    const validPlans = ['basic', 'pro', 'agency', 'agency_pro'];
+    const validPlans = ['basic', 'pro', 'agency'];
     const agentPlan = plan && validPlans.includes(plan) ? plan : 'pro';
 
     const { error: agentError } = await supabaseAdmin.from('agents').insert({
