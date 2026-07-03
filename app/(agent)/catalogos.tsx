@@ -1,9 +1,10 @@
 // A-05 · Catálogos — Vista 1: Grid de proveedores (con reordenamiento)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, TextInput, ScrollView, Pressable, StyleSheet, Image, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { colors, space, radius } from '@/theme';
@@ -20,6 +21,8 @@ export default function CatalogosScreen() {
   const toast = useToast();
   const { suppliers, loading, refetch } = useSuppliers();
   const { supplierLimit, supplierUsageLabel } = usePlanLimits();
+
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
   const [search, setSearch] = useState('');
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<Supplier[]>([]);

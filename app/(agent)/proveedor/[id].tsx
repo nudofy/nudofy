@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { confirmDestructive } from '@/lib/confirm';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
@@ -24,8 +25,10 @@ export default function ProveedorScreen() {
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const { catalogs, loading, createCatalog } = useCatalogs(id);
+  const { catalogs, loading, createCatalog, refetch } = useCatalogs(id);
   const { canAddCatalog, catalogUsageLabel, catalogLimit } = usePlanLimits();
+
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   const [showNewCatalog, setShowNewCatalog] = useState(false);
   const [catalogName, setCatalogName] = useState('');

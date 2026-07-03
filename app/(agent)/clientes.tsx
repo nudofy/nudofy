@@ -1,7 +1,8 @@
 // A-02 · Mis clientes
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -12,10 +13,12 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function ClientesScreen() {
   const router = useRouter();
-  const { clients, loading } = useClients();
+  const { clients, loading, refetch } = useClients();
   const { clientLimit, clientUsageLabel } = usePlanLimits();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   const clientTypes = useMemo(() => {
     const types = clients.map(c => c.client_type).filter(Boolean) as string[];

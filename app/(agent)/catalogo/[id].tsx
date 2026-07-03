@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import { useProducts } from '@/hooks/useAgent';
@@ -28,7 +29,9 @@ export default function CatalogoScreen() {
   const router = useRouter();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { products, loading } = useProducts(id);
+  const { products, loading, refetch } = useProducts(id);
+
+  useFocusEffect(React.useCallback(() => { refetch(); }, [refetch]));
   const { numColumns, imageHeight } = useGridLayout();
   const [catalogName, setCatalogName] = useState('');
   const [catalogSeason, setCatalogSeason] = useState('');
