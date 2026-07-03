@@ -142,7 +142,7 @@ serve(async (req) => {
                 <span style="font-size:18px;font-weight:bold;letter-spacing:2px;">${tempPassword}</span>
               </p>
             </div>
-            <p>Descarga la app <strong>Nudofy</strong> e inicia sesión con estas credenciales.</p>
+            <p>Descarga la app <a href="https://apps.apple.com/es/app/nudofy/id6761891090" style="color:#E73121;"><strong>Nudofy</strong></a> (iOS — Android disponible próximamente) e inicia sesión con estas credenciales.</p>
             <p style="color:#999;font-size:12px;margin-top:24px;">
               Por seguridad, cambia tu contraseña desde tu perfil una vez dentro.
             </p>

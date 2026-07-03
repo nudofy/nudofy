@@ -174,7 +174,9 @@ Deno.serve(async (req) => {
         <tr>
           <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;">
             <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#1a1a1a;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:24px;margin-right:12px;">1</span>
-            <span style="font-size:14px;color:#333;">Descarga la app Nudofy en tu móvil</span>
+            <span style="font-size:14px;color:#333;">
+              <a href="https://apps.apple.com/es/app/nudofy/id6761891090" style="color:#e63946;text-decoration:none;font-weight:600;">Descarga la app Nudofy</a> (iOS — Android disponible próximamente)
+            </span>
           </td>
         </tr>
         <tr>
