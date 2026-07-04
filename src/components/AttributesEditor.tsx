@@ -143,7 +143,7 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
       const arrayBuffer = await response.arrayBuffer();
       const { error } = await supabase.storage
         .from('product-images')
-        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, cacheControl: '31536000' });
       if (!error) {
         const { data } = supabase.storage.from('product-images').getPublicUrl(filename);
         onVariantsChange(variants.map((v, i) => i === idx ? { ...v, image_url: data.publicUrl } : v));

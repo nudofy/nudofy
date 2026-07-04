@@ -61,7 +61,7 @@ export default function NuevoProveedorScreen() {
       const arrayBuffer = await response.arrayBuffer();
       const { error } = await supabase.storage
         .from('supplier-logos')
-        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, cacheControl: '31536000' });
       if (error) { toast.error('Error subiendo imagen: ' + error.message); return null; }
       const { data } = supabase.storage.from('supplier-logos').getPublicUrl(filename);
       return data.publicUrl;

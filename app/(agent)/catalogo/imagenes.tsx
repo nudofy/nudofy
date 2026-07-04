@@ -128,7 +128,7 @@ export default function CatalogoImagenesScreen() {
       const arrayBuffer = await response.arrayBuffer();
       const { error: upErr } = await supabase.storage
         .from('product-images')
-        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, cacheControl: '31536000' });
       if (upErr) return { fileName: pick.name, ok: false, error: upErr.message };
 
       const { data: pub } = supabase.storage.from('product-images').getPublicUrl(filename);

@@ -69,7 +69,7 @@ export default function NuevoProductoScreen() {
       const arrayBuffer = await response.arrayBuffer();
       const { error } = await supabase.storage
         .from('product-images')
-        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}` });
+        .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, cacheControl: '31536000' });
       if (error) return null;
       const { data } = supabase.storage.from('product-images').getPublicUrl(filename);
       return data.publicUrl;
