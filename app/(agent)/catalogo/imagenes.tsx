@@ -4,7 +4,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, ScrollView, Pressable, StyleSheet, Image, ActivityIndicator,
+  View, ScrollView, Pressable, StyleSheet, Image, ActivityIndicator, Platform,
 } from 'react-native';
 import { pickFiles as pickFilesUtil } from '@/lib/filePicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -12,6 +12,7 @@ import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
+import { resizeForUpload } from '@/lib/imageResize';
 
 type Product = {
   id: string;
@@ -120,9 +121,10 @@ export default function CatalogoImagenesScreen() {
       return { fileName: pick.name, ok: false, error: 'Sin producto asociado' };
     }
     try {
-      const ext = (pick.name.split('.').pop() ?? 'jpg').toLowerCase();
+      const resizedUri = await resizeForUpload(pick.uri);
+      const ext = Platform.OS === 'web' ? (pick.name.split('.').pop() ?? 'jpg').toLowerCase() : 'jpg';
       const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const response = await fetch(pick.uri);
+      const response = await fetch(resizedUri);
       const arrayBuffer = await response.arrayBuffer();
       const { error: upErr } = await supabase.storage
         .from('product-images')

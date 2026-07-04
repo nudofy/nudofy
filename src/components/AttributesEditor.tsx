@@ -1,12 +1,13 @@
 // Componente para editar atributos + variantes de un producto
 import React, { useEffect, useState } from 'react';
 import {
-  View, TextInput, Pressable, StyleSheet, ScrollView, Switch, Image, ActivityIndicator,
+  View, TextInput, Pressable, StyleSheet, ScrollView, Switch, Image, ActivityIndicator, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
 import { Text, Icon } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { resizeForUpload } from '@/lib/imageResize';
 
 export interface AttributeDraft {
   id?: string;
@@ -135,9 +136,10 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
     const uri = result.assets[0].uri;
     setUploadingIdx(idx);
     try {
-      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const resizedUri = await resizeForUpload(uri);
+      const ext = Platform.OS === 'web' ? (uri.split('.').pop()?.toLowerCase() ?? 'jpg') : 'jpg';
       const filename = `variant_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const response = await fetch(uri);
+      const response = await fetch(resizedUri);
       const arrayBuffer = await response.arrayBuffer();
       const { error } = await supabase.storage
         .from('product-images')

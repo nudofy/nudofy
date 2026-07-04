@@ -12,6 +12,7 @@ import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { useSuppliers } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
+import { resizeForUpload } from '@/lib/imageResize';
 import { SupplierSchema, validate } from '@/lib/validation';
 
 export default function EditarProveedorScreen() {
@@ -72,9 +73,10 @@ export default function EditarProveedorScreen() {
     if (!logoUri) return null;
     setUploadingLogo(true);
     try {
-      const ext = logoUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const resizedUri = await resizeForUpload(logoUri);
+      const ext = Platform.OS === 'web' ? (logoUri.split('.').pop()?.toLowerCase() ?? 'jpg') : 'jpg';
       const filename = `${Date.now()}.${ext}`;
-      const response = await fetch(logoUri);
+      const response = await fetch(resizedUri);
       const arrayBuffer = await response.arrayBuffer();
       const { error } = await supabase.storage
         .from('supplier-logos')

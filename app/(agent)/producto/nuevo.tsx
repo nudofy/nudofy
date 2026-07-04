@@ -15,6 +15,7 @@ import { ProductSchema, validate } from '@/lib/validation';
 import AttributesEditor, { type AttributeDraft, type VariantDraft } from '@/components/AttributesEditor';
 import { useProductVariants } from '@/hooks/useAgent';
 import { useFeatureGate } from '@/hooks/useFeatureGate';
+import { resizeForUpload } from '@/lib/imageResize';
 
 export default function NuevoProductoScreen() {
   const router = useRouter();
@@ -61,9 +62,10 @@ export default function NuevoProductoScreen() {
 
   async function uploadImage(uri: string): Promise<string | null> {
     try {
-      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const resizedUri = await resizeForUpload(uri);
+      const ext = Platform.OS === 'web' ? (uri.split('.').pop()?.toLowerCase() ?? 'jpg') : 'jpg';
       const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const response = await fetch(uri);
+      const response = await fetch(resizedUri);
       const arrayBuffer = await response.arrayBuffer();
       const { error } = await supabase.storage
         .from('product-images')
