@@ -96,6 +96,22 @@ Deno.serve(async (req) => {
     const validPlans = ['basic', 'pro', 'agency'];
     const agentPlan = plan && validPlans.includes(plan) ? plan : 'pro';
 
+    // Crear una "empresa" propia para que "Mi empresa" / invitar agentes
+    // funcione desde el primer día, sin intervención manual de admin.
+    // Si falla, no bloqueamos el alta — el agente queda sin company_id,
+    // como ocurría antes de este cambio.
+    let companyId: string | null = null;
+    const { data: companyData, error: companyError } = await supabaseAdmin
+      .from('companies')
+      .insert({ name: name.trim(), plan: agentPlan, active: true })
+      .select('id')
+      .single();
+    if (companyError) {
+      console.error('register-agent: no se pudo crear la empresa:', companyError.message);
+    } else {
+      companyId = companyData.id;
+    }
+
     const { error: agentError } = await supabaseAdmin.from('agents').insert({
       user_id: userId,
       name: name.trim(),
@@ -105,6 +121,7 @@ Deno.serve(async (req) => {
       plan_expires_at: trialExpiry.toISOString(),
       active: true,
       accepted_dpa_at: dpa_version ? new Date().toISOString() : null,
+      company_id: companyId,
     });
 
     if (agentError) {

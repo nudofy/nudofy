@@ -397,12 +397,20 @@ export function useCompanyAgents() {
   async function inviteAgent(data: { name: string; email: string; phone?: string }) {
     if (!companyId) return { error: 'Sin empresa asociada' };
 
+    // El agente invitado hereda el plan real de la empresa, no un valor fijo —
+    // si no, un invitado en una empresa Pro/Básico se colaba con acceso Agencia.
+    const { data: companyRow } = await supabase
+      .from('companies')
+      .select('plan')
+      .eq('id', companyId)
+      .single();
+
     const { data: fnData, error: fnError } = await supabase.functions.invoke('invite-agent', {
       body: {
         name: data.name,
         email: data.email,
         phone: data.phone ?? null,
-        plan: 'agency',
+        plan: companyRow?.plan ?? 'basic',
         company_id: companyId,
         role: 'agent',
       },
