@@ -8,6 +8,8 @@ import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
+import { FeatureLock } from '@/components/ui';
 
 const REQUIRED_COLS = ['nombre'];
 const OPTIONAL_COLS = ['referencia', 'referencia_2', 'ean', 'familia', 'subfamilia', 'precio', 'pvpr', 'descripcion', 'medidas', 'stock', 'caja_estandar', 'unidades_minimas'];
@@ -74,6 +76,7 @@ export default function ImportarProductosScreen() {
   const router = useRouter();
   const toast = useToast();
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
+  const { allowed, loading: gateLoading, requiredPlan } = useFeatureGate('csv_import');
 
   const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -224,6 +227,21 @@ export default function ImportarProductosScreen() {
 
   const okCount = results.filter(r => r.ok).length;
   const errCount = results.filter(r => !r.ok).length;
+
+  if (gateLoading) return <Screen><TopBar title="Importar productos" onBack={() => router.back()} /></Screen>;
+
+  if (!allowed) {
+    return (
+      <Screen>
+        <TopBar title="Importar productos" onBack={() => router.back()} />
+        <FeatureLock
+          requiredPlan={requiredPlan}
+          title={`Importar por CSV es del plan ${requiredPlan}`}
+          description="Sube catálogos enteros de una vez en lugar de crear productos uno a uno. Mejora tu plan para desbloquearlo."
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

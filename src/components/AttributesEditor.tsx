@@ -29,6 +29,9 @@ interface Props {
   variants: VariantDraft[];
   onAttributesChange: (attrs: AttributeDraft[]) => void;
   onVariantsChange: (variants: VariantDraft[]) => void;
+  /** Nº máximo de atributos combinables. Sin definir = ilimitado (matriz completa). */
+  maxAttributes?: number;
+  upgradeHint?: string;
 }
 
 // Genera todas las combinaciones posibles de opciones
@@ -52,7 +55,8 @@ function variantKey(attrs: Record<string, string>) {
   return Object.entries(attrs).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}:${v}`).join('|');
 }
 
-export default function AttributesEditor({ attributes, variants, onAttributesChange, onVariantsChange }: Props) {
+export default function AttributesEditor({ attributes, variants, onAttributesChange, onVariantsChange, maxAttributes, upgradeHint }: Props) {
+  const atMaxAttributes = maxAttributes != null && attributes.length >= maxAttributes;
 
   // Cuando cambian los atributos, regenera la matriz de variantes preservando los datos ya rellenados
   function regenerateVariants(newAttrs: AttributeDraft[]) {
@@ -220,13 +224,21 @@ export default function AttributesEditor({ attributes, variants, onAttributesCha
         </View>
       ))}
 
-      <Pressable
-        style={({ pressed }) => [styles.addAttrBtn, pressed && { opacity: 0.7 }]}
-        onPress={addAttribute}
-      >
-        <Icon name="Plus" size={16} color={colors.brand} />
-        <Text variant="bodyMedium" color="brand">Añadir atributo</Text>
-      </Pressable>
+      {atMaxAttributes ? (
+        <View style={styles.emptyVariants}>
+          <Text variant="small" color="ink3" align="center">
+            {upgradeHint ?? `Tu plan permite ${maxAttributes} atributo${maxAttributes === 1 ? '' : 's'} por producto.`}
+          </Text>
+        </View>
+      ) : (
+        <Pressable
+          style={({ pressed }) => [styles.addAttrBtn, pressed && { opacity: 0.7 }]}
+          onPress={addAttribute}
+        >
+          <Icon name="Plus" size={16} color={colors.brand} />
+          <Text variant="bodyMedium" color="brand">Añadir atributo</Text>
+        </Pressable>
+      )}
 
       {/* ── Fase 2: Matriz de variantes ── */}
       {hasVariants && (

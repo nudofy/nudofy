@@ -10,6 +10,8 @@ import { useStats } from '@/hooks/useAgent';
 import { useAgentContext } from '@/contexts/AgentContext';
 import { supabase } from '@/lib/supabase';
 import type { MonthStat, YearStat } from '@/hooks/useAgent';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
+import { FeatureLock } from '@/components/ui';
 
 type MonthOrder = { id: string; order_number?: string; total: number; created_at: string; client?: { name: string }; supplier?: { name: string } };
 
@@ -24,6 +26,8 @@ export default function EstadisticasScreen() {
   const [tab, setTab] = useState<Tab>('mensual');
   const { monthStats, yearStats, totalOrders, totalRevenue, loading } = useStats();
   const { agent } = useAgentContext();
+  const { allowed: statsAllowed, loading: gateLoading, requiredPlan: statsRequiredPlan } = useFeatureGate('advanced_stats');
+  const { allowed: comparativesAllowed, requiredPlan: comparativesRequiredPlan } = useFeatureGate('stats_comparatives');
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [monthOrders, setMonthOrders] = useState<MonthOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -52,6 +56,21 @@ export default function EstadisticasScreen() {
         setLoadingOrders(false);
       });
   }, [selectedMonth, agent]);
+
+  if (gateLoading) return <Screen><TopBar title="Estadísticas" onBack={() => router.back()} /></Screen>;
+
+  if (!statsAllowed) {
+    return (
+      <Screen>
+        <TopBar title="Estadísticas" onBack={() => router.back()} />
+        <FeatureLock
+          requiredPlan={statsRequiredPlan}
+          title={`Estadísticas avanzadas es del plan ${statsRequiredPlan}`}
+          description="Desglose de pedidos y facturación por mes y por año. Mejora tu plan para desbloquearlo."
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -100,6 +119,12 @@ export default function EstadisticasScreen() {
             onSelectMonth={(m) => setSelectedMonth(prev => prev === m ? null : m)}
             monthOrders={monthOrders}
             loadingOrders={loadingOrders}
+          />
+        ) : !comparativesAllowed ? (
+          <FeatureLock
+            requiredPlan={comparativesRequiredPlan}
+            title={`Comparativas por año es del plan ${comparativesRequiredPlan}`}
+            description="Compara facturación año contra año y por temporada. Exclusivo del plan Agencia."
           />
         ) : (
           <AnualTab stats={yearStats} maxTotal={maxYearTotal} />

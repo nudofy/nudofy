@@ -16,6 +16,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentContext } from '@/contexts/AgentContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
+import { FeatureLock } from '@/components/ui';
 
 type Tariff = {
   id: string;
@@ -29,6 +31,7 @@ export default function TarifasScreen() {
   const toast = useToast();
   const { user } = useAuth();
   const { agent } = useAgentContext();
+  const { allowed, loading: gateLoading, requiredPlan } = useFeatureGate('custom_tariffs');
 
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,6 +111,21 @@ export default function TarifasScreen() {
         await supabase.from('tariffs').delete().eq('id', t.id);
         fetchTariffs();
       }
+    );
+  }
+
+  if (gateLoading) return <Screen><TopBar title="Tarifas" onBack={() => router.back()} /></Screen>;
+
+  if (!allowed) {
+    return (
+      <Screen>
+        <TopBar title="Tarifas" onBack={() => router.back()} />
+        <FeatureLock
+          requiredPlan={requiredPlan}
+          title={`Tarifas personalizadas es del plan ${requiredPlan}`}
+          description="Crea tarifas con descuentos distintos por cliente. Mejora tu plan para desbloquearlo."
+        />
+      </Screen>
     );
   }
 

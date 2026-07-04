@@ -14,11 +14,13 @@ import { useToast } from '@/contexts/ToastContext';
 import { ProductSchema, validate } from '@/lib/validation';
 import type { Product, ProductImage } from '@/hooks/useAgent';
 import AttributesEditor, { type AttributeDraft, type VariantDraft } from '@/components/AttributesEditor';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
 
 export default function EditarProductoScreen() {
   const router = useRouter();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { allowed: variantsMatrixAllowed } = useFeatureGate('variants_matrix');
 
   const [product, setProduct] = useState<Product | null>(null);
   const [catalogId, setCatalogId] = useState<string | undefined>();
@@ -366,6 +368,8 @@ export default function EditarProductoScreen() {
               variants={variantDrafts}
               onAttributesChange={setAttributeDrafts}
               onVariantsChange={setVariantDrafts}
+              maxAttributes={variantsMatrixAllowed ? undefined : 1}
+              upgradeHint="Tu plan permite 1 atributo por producto (talla o color). Mejora tu plan para combinarlos en matriz."
             />
           </View>
 

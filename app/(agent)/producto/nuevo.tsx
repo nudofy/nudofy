@@ -14,12 +14,14 @@ import { supabase } from '@/lib/supabase';
 import { ProductSchema, validate } from '@/lib/validation';
 import AttributesEditor, { type AttributeDraft, type VariantDraft } from '@/components/AttributesEditor';
 import { useProductVariants } from '@/hooks/useAgent';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
 
 export default function NuevoProductoScreen() {
   const router = useRouter();
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
   const { createProduct } = useProducts(catalogId);
   const toast = useToast();
+  const { allowed: variantsMatrixAllowed } = useFeatureGate('variants_matrix');
 
   const [name, setName] = useState('');
   const [reference, setReference] = useState('');
@@ -238,6 +240,8 @@ export default function NuevoProductoScreen() {
               variants={variantDrafts}
               onAttributesChange={setAttributeDrafts}
               onVariantsChange={setVariantDrafts}
+              maxAttributes={variantsMatrixAllowed ? undefined : 1}
+              upgradeHint="Tu plan permite 1 atributo por producto (talla o color). Mejora tu plan para combinarlos en matriz."
             />
           </View>
 
