@@ -41,12 +41,13 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     if (user) fetchAgent(user.id);
   }
 
-  // El trial está vencido si: el agente tiene plan free/free_pro,
-  // tiene plan_expires_at en el pasado, o su cuenta está desactivada.
+  // El trial está vencido si la cuenta está desactivada, o si tiene una fecha
+  // de expiración ya pasada — sin importar el nombre del plan, porque los trials
+  // se crean con el plan de pago elegido (pro/basic/agency) + plan_expires_at.
+  // Esto cierra el hueco entre la caducidad y la ejecución del cron diario.
   const trialExpired = !loading && agent != null && (
     agent.active === false ||
     (
-      ['free', 'free_pro'].includes(agent.plan) &&
       agent.plan_expires_at != null &&
       new Date(agent.plan_expires_at) < new Date()
     )

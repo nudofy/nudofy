@@ -20,13 +20,15 @@ function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 0 }) + ' €';
 }
 
+// Valores alineados con la tabla `plans` (fuente de verdad). Nota: los planes
+// reales NO limitan el nº de productos (solo clientes/proveedores/catálogos),
+// por eso maxProducts es "ilimitado" (999999 = centinela que la UI muestra como ∞).
 const PLAN_META: Record<string, { label: string; maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
-  free:       { label: 'Free',        maxAgents: 1,   maxClients: 10,     maxProducts: 50,     price: 0  },
-  free_pro:   { label: 'Free Pro',    maxAgents: 5,   maxClients: 500,    maxProducts: 5000,   price: 0  },
-  basic:      { label: 'Básico',      maxAgents: 1,   maxClients: 50,     maxProducts: 500,    price: 9  },
-  pro:        { label: 'Pro',         maxAgents: 1,   maxClients: 500,    maxProducts: 5000,   price: 19 },
-  agency:     { label: 'Agencia',     maxAgents: 10,  maxClients: 500,    maxProducts: 5000,   price: 39 },
-  agency_pro: { label: 'Agencia Pro', maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 79 },
+  free:       { label: 'Free',     maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
+  free_pro:   { label: 'Free Pro', maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
+  basic:      { label: 'Básico',   maxAgents: 1,   maxClients: 50,     maxProducts: 999999, price: 15 },
+  pro:        { label: 'Pro',      maxAgents: 3,   maxClients: 500,    maxProducts: 999999, price: 35 },
+  agency:     { label: 'Agencia',  maxAgents: 8,   maxClients: 999999, maxProducts: 999999, price: 75 },
 };
 
 function UsageBar({ label, current, max, last }: { label: string; current: number; max: number; last?: boolean }) {

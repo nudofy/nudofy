@@ -13,6 +13,7 @@ import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
+import { getPlan } from '@/lib/planConfig';
 
 // Validación NIF/NIE/CIF español
 function validarNifEspanol(value: string): boolean {
@@ -84,7 +85,6 @@ const PLAN_LABELS: Record<string, string> = {
   basic:       'Básico',
   pro:         'Pro',
   agency:      'Agencia',
-  agency_pro:  'Ag. Pro',
 };
 
 // ——— Modal: alta agente individual ———
@@ -196,7 +196,7 @@ function ModalAltaEmpresa({
   const [nif, setNif] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-  const [plan, setPlan] = useState<'agency' | 'agency_pro'>('agency');
+  const [plan, setPlan] = useState<'basic' | 'pro' | 'agency'>('agency');
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
@@ -288,18 +288,22 @@ function ModalAltaEmpresa({
 
             <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
             <View style={styles.planSelector}>
-              {(['agency', 'agency_pro'] as const).map(p => (
-                <Pressable
-                  key={p}
-                  style={[styles.planOpt, plan === p && styles.planOptSelected]}
-                  onPress={() => setPlan(p)}
-                >
-                  <Text variant="smallMedium">{p === 'agency' ? 'Agencia' : 'Agencia Pro'}</Text>
-                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>
-                    {p === 'agency' ? '45 € + 15 €/agente · hasta 10 ag.' : '150 € + 20 €/agente · ilimitado'}
-                  </Text>
-                </Pressable>
-              ))}
+              {(['basic', 'pro', 'agency'] as const).map(p => {
+                const cfg = getPlan(p);
+                const agentsLabel = cfg.max_agents == null ? 'agentes ilimitados' : `hasta ${cfg.max_agents} ag.`;
+                return (
+                  <Pressable
+                    key={p}
+                    style={[styles.planOpt, plan === p && styles.planOptSelected]}
+                    onPress={() => setPlan(p)}
+                  >
+                    <Text variant="smallMedium">{cfg.name}</Text>
+                    <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>
+                      {cfg.price_monthly} €/mes · {agentsLabel}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
@@ -497,7 +501,7 @@ export default function AdminAgentesScreen() {
           />
         </View>
         <View style={styles.pillRow}>
-          {['all', 'basic', 'pro', 'agency', 'agency_pro'].map(p => (
+          {['all', 'basic', 'pro', 'agency'].map(p => (
             <Pressable
               key={p}
               style={[styles.pill, planFilter === p && styles.pillActive]}

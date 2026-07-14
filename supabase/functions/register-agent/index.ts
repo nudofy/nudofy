@@ -3,7 +3,7 @@
 // Crea usuario Auth + registro en agents con plan free_pro (15 días de trial)
 // Envía email de bienvenida con Resend
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 
 const ALLOWED_ORIGINS = [
   'https://nudofy.com',
@@ -66,10 +66,13 @@ Deno.serve(async (req) => {
     }
 
     // Crear usuario en Supabase Auth
+    // role: 'company_admin' porque el auto-registro crea su propia empresa
+    // (ver más abajo) y necesita permisos para invitar agentes a su equipo.
+    // app/_layout.tsx trata 'agent' y 'company_admin' igual para el enrutado.
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email: email.trim().toLowerCase(),
       password,
-      user_metadata: { role: 'agent', name },
+      user_metadata: { role: 'company_admin', name },
       email_confirm: true, // skip email confirmation — we send our own welcome email
     });
 

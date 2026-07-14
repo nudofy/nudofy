@@ -23,7 +23,6 @@ const PLAN_LABELS: Record<string, string> = {
   basic:       'Básico',
   pro:         'Pro',
   agency:      'Agencia',
-  agency_pro:  'Agencia Pro',
 };
 
 export default function AdminDashboardScreen() {

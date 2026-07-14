@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
@@ -49,7 +49,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 function RootLayoutNav() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, profileError, retryProfile } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -105,6 +105,25 @@ function RootLayoutNav() {
     }
   }, [session, profile, loading, segments]);
 
+  // Hay sesión pero el perfil no cargó tras varios reintentos: mostrar una
+  // pantalla de recuperación en vez de dejar la app colgada sin enrutado.
+  if (session && profileError) {
+    return (
+      <View style={styles.errorScreen}>
+        <Text style={styles.errorTitle}>No hemos podido cargar tu cuenta</Text>
+        <Text style={styles.errorBody}>
+          Comprueba tu conexión a internet e inténtalo de nuevo.
+        </Text>
+        <Pressable style={styles.retryBtn} onPress={retryProfile}>
+          <Text style={styles.retryBtnText}>Reintentar</Text>
+        </Pressable>
+        <Pressable style={styles.logoutBtn} onPress={() => supabase.auth.signOut()}>
+          <Text style={styles.logoutBtnText}>Cerrar sesión</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
@@ -133,3 +152,46 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  errorScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: '#fff',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0A0A0A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorBody: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryBtn: {
+    backgroundColor: '#0A0A0A',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  logoutBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  logoutBtnText: {
+    color: '#999',
+    fontSize: 14,
+  },
+});

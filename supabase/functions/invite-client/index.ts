@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 
 const ALLOWED_ORIGINS = [
   'https://nudofy.com',
@@ -28,17 +28,19 @@ serve(async (req) => {
     if (!email) return new Response(JSON.stringify({ error: 'Email requerido' }), { status: 400, headers });
     if (!clientId) return new Response(JSON.stringify({ error: 'clientId requerido' }), { status: 400, headers });
 
-    // Verificar que quien llama es un agente autenticado
+    // Verificar que quien llama es un agente autenticado.
+    // Nota: supabase-js@2 auth.getUser(jwt) falla en este runtime (esm.sh
+    // resuelve una versión con un bug de fetch interno) — se valida el JWT
+    // directamente contra el endpoint GoTrue en su lugar.
     const authHeader = req.headers.get('authorization') ?? '';
-    const supabaseUser = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { authorization: authHeader } } },
-    );
-    const { data: { user: callerUser }, error: callerError } = await supabaseUser.auth.getUser();
-    if (callerError || !callerUser) {
+    const callerJwt = authHeader.replace(/^Bearer\s+/i, '');
+    const callerRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: { apikey: Deno.env.get('SUPABASE_ANON_KEY')!, authorization: `Bearer ${callerJwt}` },
+    });
+    if (!callerRes.ok) {
       return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401, headers });
     }
+    const callerUser: { id: string; email: string } = await callerRes.json();
 
     // Cliente admin (service role)
     const supabaseAdmin = createClient(

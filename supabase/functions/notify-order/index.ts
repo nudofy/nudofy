@@ -1,19 +1,29 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://nudofy.com',
+  'https://app.nudofy.com',
+  'http://localhost:8081', // desarrollo local
+];
+
+function corsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  const headers = corsHeaders(req.headers.get('origin'));
+  if (req.method === 'OPTIONS') return new Response('ok', { headers });
 
   try {
     // order_id + status obligatorios.
     // recipients opcional para reenvíos manuales: array de emails destino.
     const { order_id, status, recipients } = await req.json();
-    if (!order_id) return new Response(JSON.stringify({ error: 'order_id requerido' }), { status: 400, headers: CORS });
+    if (!order_id) return new Response(JSON.stringify({ error: 'order_id requerido' }), { status: 400, headers });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -34,7 +44,7 @@ serve(async (req) => {
       .eq('id', order_id)
       .single();
 
-    if (error || !order) return new Response(JSON.stringify({ error: 'Pedido no encontrado' }), { status: 404, headers: CORS });
+    if (error || !order) return new Response(JSON.stringify({ error: 'Pedido no encontrado' }), { status: 404, headers });
 
     const agent    = order.agent    as any;
     const client   = order.client   as any;
@@ -190,10 +200,10 @@ serve(async (req) => {
         .map(r => sendPushToUser(r.user_id!, r.type)),
     ]);
 
-    return new Response(JSON.stringify({ success: true, sent: finalRecipients.length }), { headers: CORS });
+    return new Response(JSON.stringify({ success: true, sent: finalRecipients.length }), { headers });
 
   } catch (e: any) {
     console.error('[notify-order]', e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
   }
 });

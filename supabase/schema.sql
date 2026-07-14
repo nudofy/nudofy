@@ -42,7 +42,10 @@ CREATE TABLE public.companies (
   name        TEXT NOT NULL,
   nif         TEXT,
   address     TEXT,
-  plan        TEXT NOT NULL DEFAULT 'agency' CHECK (plan IN ('agency', 'agency_pro')),
+  phone       TEXT,
+  -- Toda cuenta con equipo tiene empresa propia (creada por register-agent),
+  -- así que el plan puede ser cualquiera de los planes de pago actuales.
+  plan        TEXT NOT NULL DEFAULT 'basic' CHECK (plan IN ('basic', 'pro', 'agency')),
   active      BOOLEAN DEFAULT TRUE,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
@@ -66,7 +69,7 @@ CREATE TABLE public.agents (
   phone               TEXT,
   business_name       TEXT,
   nif                 TEXT,
-  plan                TEXT NOT NULL DEFAULT 'basic' CHECK (plan IN ('basic', 'pro', 'agency', 'agency_pro')),
+  plan                TEXT NOT NULL DEFAULT 'basic' CHECK (plan IN ('free', 'free_pro', 'basic', 'pro', 'agency')),
   stripe_customer_id  TEXT,
   active              BOOLEAN DEFAULT TRUE,
   created_at          TIMESTAMPTZ DEFAULT NOW()
@@ -270,6 +273,82 @@ CREATE POLICY "users_own_profile" ON public.users
 CREATE POLICY "agents_own_data" ON public.agents
   FOR ALL USING (user_id = auth.uid());
 
+-- Función auxiliar SECURITY DEFINER: evita la recursión infinita de RLS
+-- que se produce si la policy de "agents" consulta "agents" directamente.
+CREATE OR REPLACE FUNCTION public.my_company_id()
+RETURNS UUID
+LANGUAGE sql SECURITY DEFINER STABLE
+AS $$
+  SELECT company_id FROM public.agents WHERE user_id = auth.uid() LIMIT 1;
+$$;
+
+-- Agentes: ver (solo lectura) a los compañeros de su misma empresa,
+-- necesario para que "Mi empresa" liste a los agentes invitados.
+CREATE POLICY "agents_same_company_select" ON public.agents
+  FOR SELECT USING (
+    company_id IS NOT NULL AND company_id = public.my_company_id()
+  );
+
+-- Empresas: un agente puede leer los datos de su propia empresa
+-- (necesario para que "Mi empresa" resuelva el plan y los límites).
+ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "companies_own_select" ON public.companies
+  FOR SELECT USING (id = public.my_company_id());
+
+-- ============================================================
+-- NOTA: reconciliado 2026-07-14 contra el estado REAL de producción
+-- (schema.sql llevaba tiempo desincronizado de la BD viva — ver auditoría).
+-- Estas políticas de "invoices"/"company_users"/admin YA estaban aplicadas
+-- en producción (probablemente pegadas a mano en el SQL Editor en su día)
+-- pero nunca se habían vuelto a copiar aquí. Se documentan tal cual están
+-- en vivo, sin re-ejecutarlas, para que este archivo deje de mentir.
+-- ============================================================
+
+-- Empresas: nudofy_admin tiene acceso total (además de companies_own_select).
+CREATE POLICY "companies_admin_only" ON public.companies
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+
+-- Agentes: nudofy_admin tiene acceso total (además de agents_own_data /
+-- agents_same_company_select). Nota: las políticas de DELETE/UPDATE usan
+-- auth.jwt()->'user_metadata'->>'role' en vez de consultar public.users
+-- como la de SELECT — son dos formas distintas de comprobar "es admin" que
+-- pueden desincronizarse si el rol se cambia en public.users sin refrescar
+-- el JWT. Fuera del alcance de este fix puntual, pero queda anotado.
+CREATE POLICY "nudofy_admin puede ver todos los agentes" ON public.agents
+  FOR ALL USING (
+    (SELECT role FROM public.users WHERE id = auth.uid()) = 'nudofy_admin'
+  );
+CREATE POLICY "nudofy_admin_update_agents" ON public.agents
+  FOR UPDATE USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'nudofy_admin'
+  );
+CREATE POLICY "nudofy_admin_delete_agents" ON public.agents
+  FOR DELETE USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'nudofy_admin'
+  );
+
+-- company_users: SOLO nudofy_admin (ni siquiera el propio company_admin
+-- puede leer su equipo por esta vía — ver "Mi empresa": ese flujo lee la
+-- lista de compañeros a través de agents_same_company_select, no de aquí).
+ALTER TABLE public.company_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "company_users_admin_only" ON public.company_users
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+
+-- invoices: el agente ve solo sus propias facturas; nudofy_admin gestiona todas.
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "invoices_own_agent" ON public.invoices
+  FOR SELECT USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+CREATE POLICY "invoices_admin_all" ON public.invoices
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+
 -- Clientes: el agente ve sus propios clientes
 CREATE POLICY "clients_by_agent" ON public.clients
   FOR ALL USING (
@@ -393,35 +472,13 @@ CREATE POLICY "agents_visible_to_client" ON public.agents
   );
 
 -- ============================================================
--- TRIGGER: crear agente automáticamente al registrarse
+-- NOTA IMPORTANTE sobre el alta de usuarios
 -- ============================================================
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.users (id, email, role, name)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    'agent',
-    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1))
-  )
-  ON CONFLICT (id) DO NOTHING;
-
-  INSERT INTO public.agents (id, user_id, email, name, plan, active)
-  VALUES (
-    NEW.id,
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
-    'free',
-    true
-  )
-  ON CONFLICT (id) DO NOTHING;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+-- El trigger handle_new_user() (definido más arriba) SOLO inserta en
+-- public.users. La fila de public.agents la crea la edge function
+-- `register-agent`, que también crea la empresa y asigna el plan/rol reales.
+--
+-- NO añadir aquí un segundo trigger que inserte en public.agents: hacerlo
+-- duplica la fila del agente y provoca que los .single() del alta devuelvan
+-- 406 "not exactly one row", bloqueando TODOS los registros nuevos.
+-- (Este bug ya ocurrió una vez en producción — ver historial.)

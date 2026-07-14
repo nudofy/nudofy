@@ -12,7 +12,6 @@ const TIER_RANK: Record<string, number> = {
   basic: 1,
   pro: 2,
   agency: 3,
-  agency_pro: 3,
 };
 
 export type Feature = 'variants_matrix' | 'csv_import' | 'custom_tariffs' | 'advanced_stats' | 'stats_comparatives';

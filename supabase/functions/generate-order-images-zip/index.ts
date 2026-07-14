@@ -3,7 +3,7 @@
 // y devuelve una URL firmada válida 24 horas.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.0';
 import { zipSync } from 'https://esm.sh/fflate@0.8.2';
 
 const ALLOWED_ORIGINS = [
@@ -48,10 +48,14 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', ''),
-    );
-    if (authError || !user) return json({ error: 'No autorizado' }, 401, origin);
+    // supabase.auth.getUser(jwt) falla en este runtime (esm.sh resuelve una
+    // versión con un fetch interno roto) — validar el JWT directamente contra GoTrue.
+    const callerJwt = authHeader.replace(/^Bearer\s+/i, '');
+    const callerRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: { apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? '', authorization: `Bearer ${callerJwt}` },
+    });
+    if (!callerRes.ok) return json({ error: 'No autorizado' }, 401, origin);
+    const user: { id: string; email: string } = await callerRes.json();
 
     // ── Parámetros ─────────────────────────────────────────────────────────
     const { orderId } = await req.json();

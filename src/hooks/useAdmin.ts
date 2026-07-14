@@ -11,7 +11,7 @@ export interface AdminAgent {
   name: string;
   email: string;
   phone?: string;
-  plan: 'free' | 'free_pro' | 'basic' | 'pro' | 'agency' | 'agency_pro';
+  plan: 'free' | 'free_pro' | 'basic' | 'pro' | 'agency';
   active: boolean;
   created_at: string;
   company_id?: string;
@@ -24,7 +24,7 @@ export interface AdminCompany {
   name: string;
   nif?: string;
   address?: string;
-  plan: 'agency' | 'agency_pro';
+  plan: 'basic' | 'pro' | 'agency';
   active: boolean;
   created_at: string;
   agent_count?: number;
@@ -87,7 +87,7 @@ export function useAdminKPIs() {
     const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
     Promise.all([
-      supabase.from('agents').select('id, plan, active, created_at'),
+      supabase.from('agents').select('id, plan, active, created_at, plan_expires_at'),
       supabase.from('orders').select('id, created_at').gte('created_at', startOfMonth),
       supabase.from('invoices').select('total, status, period, created_at, agent_id'),
       getPlanConfigs(),
@@ -102,8 +102,18 @@ export function useAdminKPIs() {
       const planName: Record<string, string> = {};
       plans.forEach(p => { planPrice[p.id] = p.price_monthly; planName[p.id] = p.name; });
 
+      // Un agente está en trial (no genera ingreso todavía) si su plan es
+      // free/free_pro, o si tiene plan_expires_at en el futuro (prueba vigente
+      // de un plan de pago). Solo los que pagan de verdad cuentan para el MRR.
+      const nowIso = new Date().toISOString();
+      const isPaying = (a: any) =>
+        a.active &&
+        a.plan !== 'free' && a.plan !== 'free_pro' &&
+        !(a.plan_expires_at && a.plan_expires_at > nowIso);
+
       const activeAgents = agents.filter(a => a.active);
-      const mrr = activeAgents.reduce((s, a) => s + (planPrice[a.plan] ?? 0), 0);
+      const payingAgents = agents.filter(isPaying);
+      const mrr = payingAgents.reduce((s, a) => s + (planPrice[a.plan] ?? 0), 0);
 
       const lastMonthInvoices = invoices.filter(
         i => i.created_at >= startOfLastMonth && i.created_at < startOfMonth
@@ -121,10 +131,10 @@ export function useAdminKPIs() {
         return !!inv;
       }).length;
 
-      // Distribución real por plan
+      // Distribución de ingresos por plan: solo cuenta agentes que pagan
+      // (excluye trials vigentes, igual que el MRR).
       const distMap: Record<string, { agents: number; price: number; name: string }> = {};
-      for (const a of activeAgents) {
-        if (!a.plan || a.plan === 'free' || a.plan === 'free_pro') continue;
+      for (const a of payingAgents) {
         if (!distMap[a.plan]) distMap[a.plan] = { agents: 0, price: planPrice[a.plan] ?? 0, name: planName[a.plan] ?? a.plan };
         distMap[a.plan].agents++;
       }
@@ -294,7 +304,7 @@ export function useAdminCompanies() {
     nif?: string;
     address?: string;
     phone?: string;
-    plan: 'agency' | 'agency_pro';
+    plan: 'basic' | 'pro' | 'agency';
     adminName: string;
     adminEmail: string;
     adminPhone?: string;
@@ -416,7 +426,19 @@ export function useCompanyAgents() {
       },
     });
 
-    if (fnError || fnData?.error) return { error: fnData?.error ?? fnError?.message ?? 'Error invitando agente' };
+    if (fnError || fnData?.error) {
+      // supabase-js no vuelca el cuerpo JSON del error en fnData — hay que
+      // leerlo de fnError.context (la Response cruda) para mostrar el motivo real.
+      let message = fnData?.error ?? fnError?.message ?? 'Error invitando agente';
+      const context = (fnError as any)?.context;
+      if (context?.json) {
+        try {
+          const body = await context.json();
+          if (body?.error) message = body.error;
+        } catch {}
+      }
+      return { error: message };
+    }
     fetchAll();
     return { error: null };
   }
