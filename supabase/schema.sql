@@ -252,6 +252,22 @@ CREATE TABLE public.notifications (
 CREATE INDEX idx_notifications_user ON public.notifications(user_id, read);
 
 -- ============================================================
+-- CONFIGURACIÓN DE PLATAFORMA (panel admin → Configuración)
+-- ============================================================
+-- Solo para ajustes NO sensibles (nombre de app, modo mantenimiento, etc.).
+-- Los secretos (Stripe secret key, Stripe webhook secret, Resend API key)
+-- NUNCA van aquí: esta tabla es legible por el cliente de nudofy_admin
+-- (aunque restringida por RLS), así que cualquier valor guardado aquí viaja
+-- al dispositivo del admin. Van como Edge Function secrets
+-- (`supabase secrets set NOMBRE=valor`), leídos solo server-side con
+-- Deno.env.get(). El CHECK de abajo bloquea insertar esas claves por error.
+CREATE TABLE public.app_config (
+  key         TEXT PRIMARY KEY
+                CHECK (key NOT IN ('stripe_sk', 'stripe_webhook', 'resend_api_key')),
+  value       TEXT
+);
+
+-- ============================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================
 
@@ -345,6 +361,16 @@ CREATE POLICY "invoices_own_agent" ON public.invoices
     agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
   );
 CREATE POLICY "invoices_admin_all" ON public.invoices
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+
+-- app_config: solo nudofy_admin (nunca contiene secretos, ver CHECK arriba).
+-- Nota: en producción hay dos políticas duplicadas con el mismo efecto
+-- ("Solo nudofy_admin" y "admin_all") — inofensivo pero redundante, se deja
+-- solo una documentada aquí; limpiar la duplicada es opcional.
+ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admin_all" ON public.app_config
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
   );

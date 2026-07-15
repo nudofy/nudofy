@@ -10,11 +10,17 @@ import { Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
 
-// Clave de configuración → valor en la tabla app_config { key, value }
+// Clave de configuración → valor en la tabla app_config { key, value }.
+// Los secretos (Resend, Stripe secret key, Stripe webhook signing secret)
+// NUNCA van aquí: app_config es legible por el cliente (aunque restringido a
+// nudofy_admin por RLS, sigue viajando al dispositivo del admin). Van como
+// Edge Function secrets (`supabase secrets set NOMBRE=valor`), leídos solo
+// server-side con Deno.env.get(). La BD tiene además un CHECK constraint
+// que impide insertar esas claves por si acaso.
 const CFG_KEYS = [
   'app_name', 'app_url', 'support_email',
-  'email_from', 'resend_api_key', 'email_activation', 'email_invoice',
-  'stripe_pk', 'stripe_sk', 'stripe_webhook', 'stripe_test_mode',
+  'email_from', 'email_activation', 'email_invoice',
+  'stripe_pk', 'stripe_test_mode',
   'maintenance_mode',
 ] as const;
 
@@ -34,14 +40,12 @@ export default function AdminConfiguracionScreen() {
 
   // Email
   const [emailFrom, setEmailFrom] = useState('facturas@nudofy.com');
-  const [resendKey, setResendKey] = useState('');
   const [emailActivation, setEmailActivation] = useState(true);
   const [emailInvoice, setEmailInvoice] = useState(true);
 
-  // Stripe
+  // Stripe (solo lo público; el secret key y el webhook secret se gestionan
+  // como Edge Function secrets, no desde aquí)
   const [stripePk, setStripePk] = useState('');
-  const [stripeSk, setStripeSk] = useState('');
-  const [stripeWebhook, setStripeWebhook] = useState('');
   const [stripeTestMode, setStripeTestMode] = useState(false);
 
   // Carga inicial desde Supabase
@@ -57,12 +61,9 @@ export default function AdminConfiguracionScreen() {
         if (map.app_url)         setAppUrl(map.app_url);
         if (map.support_email)   setSupportEmail(map.support_email);
         if (map.email_from)      setEmailFrom(map.email_from);
-        if (map.resend_api_key)  setResendKey(map.resend_api_key);
         if (map.email_activation !== undefined) setEmailActivation(map.email_activation === 'true');
         if (map.email_invoice    !== undefined) setEmailInvoice(map.email_invoice === 'true');
         if (map.stripe_pk)       setStripePk(map.stripe_pk);
-        if (map.stripe_sk)       setStripeSk(map.stripe_sk);
-        if (map.stripe_webhook)  setStripeWebhook(map.stripe_webhook);
         if (map.stripe_test_mode !== undefined) setStripeTestMode(map.stripe_test_mode === 'true');
         if (map.maintenance_mode !== undefined) setMaintenanceMode(map.maintenance_mode === 'true');
         setLoadingConfig(false);
@@ -101,12 +102,9 @@ export default function AdminConfiguracionScreen() {
       { key: 'app_url',         value: appUrl },
       { key: 'support_email',   value: supportEmail },
       { key: 'email_from',      value: emailFrom },
-      { key: 'resend_api_key',  value: resendKey },
       { key: 'email_activation',value: String(emailActivation) },
       { key: 'email_invoice',   value: String(emailInvoice) },
       { key: 'stripe_pk',       value: stripePk },
-      { key: 'stripe_sk',       value: stripeSk },
-      { key: 'stripe_webhook',  value: stripeWebhook },
       { key: 'stripe_test_mode',value: String(stripeTestMode) },
       { key: 'maintenance_mode',value: String(maintenanceMode) },
     ];
@@ -178,13 +176,7 @@ export default function AdminConfiguracionScreen() {
           />
         </ConfigRow>
         <ConfigRow label="Resend API Key">
-          <TextInput
-            style={[styles.fieldInput, styles.fieldInputMono]}
-            value={resendKey}
-            onChangeText={setResendKey}
-            secureTextEntry
-            placeholderTextColor={colors.ink4}
-          />
+          <Badge label="Gestionada como Edge Function secret" variant="neutral" />
         </ConfigRow>
         <ConfigRow label="Email activación cuenta">
           <Switch
@@ -206,6 +198,12 @@ export default function AdminConfiguracionScreen() {
 
       {/* Stripe */}
       <ConfigCard title="Stripe — Pagos" icon="CreditCard">
+        <View style={styles.cardNote}>
+          <Text variant="caption" color="ink3">
+            El secret key y el webhook secret no se guardan en la base de datos ni pasan por la app.
+            Se configuran con `supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=...`.
+          </Text>
+        </View>
         <ConfigRow label="Publishable Key">
           <TextInput
             style={[styles.fieldInput, styles.fieldInputMono]}
@@ -215,22 +213,10 @@ export default function AdminConfiguracionScreen() {
           />
         </ConfigRow>
         <ConfigRow label="Secret Key">
-          <TextInput
-            style={[styles.fieldInput, styles.fieldInputMono]}
-            value={stripeSk}
-            onChangeText={setStripeSk}
-            secureTextEntry
-            placeholderTextColor={colors.ink4}
-          />
+          <Badge label="Gestionada como Edge Function secret" variant="neutral" />
         </ConfigRow>
         <ConfigRow label="Webhook Secret">
-          <TextInput
-            style={[styles.fieldInput, styles.fieldInputMono]}
-            value={stripeWebhook}
-            onChangeText={setStripeWebhook}
-            secureTextEntry
-            placeholderTextColor={colors.ink4}
-          />
+          <Badge label="Gestionada como Edge Function secret" variant="neutral" />
         </ConfigRow>
         <ConfigRow label="Modo test" last>
           <Switch
@@ -339,6 +325,10 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: radius.sm,
     backgroundColor: colors.surface2,
     alignItems: 'center', justifyContent: 'center',
+  },
+
+  cardNote: {
+    paddingHorizontal: space[3], paddingTop: space[2] + 4, paddingBottom: space[1],
   },
 
   fieldRow: {
