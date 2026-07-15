@@ -9,6 +9,7 @@ import { colors, space, radius } from '@/theme';
 import { Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Clave de configuración → valor en la tabla app_config { key, value }.
 // Los secretos (Resend, Stripe secret key, Stripe webhook signing secret)
@@ -28,10 +29,12 @@ type CfgKey = typeof CFG_KEYS[number];
 
 export default function AdminConfiguracionScreen() {
   const toast = useToast();
+  const { profile, resetPassword } = useAuth();
   const [saving, setSaving] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [clearingCache, setClearingCache] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   // Plataforma
   const [appName, setAppName] = useState('Nudofy');
@@ -69,6 +72,15 @@ export default function AdminConfiguracionScreen() {
         setLoadingConfig(false);
       });
   }, []);
+
+  async function handleChangeMyPassword() {
+    if (!profile?.email) return;
+    setSendingReset(true);
+    const { error } = await resetPassword(profile.email);
+    setSendingReset(false);
+    if (error) { toast.error(error); return; }
+    toast.success(`Hemos enviado un enlace a ${profile.email} para cambiar tu contraseña.`);
+  }
 
   function handleClearCache() {
     Alert.alert(
@@ -132,6 +144,22 @@ export default function AdminConfiguracionScreen() {
         />
       }
     >
+      {/* Mi cuenta */}
+      <ConfigCard title="Mi cuenta" icon="Lock">
+        <ConfigRow label="Email" last={false}>
+          <Text variant="small" color="ink2">{profile?.email ?? '—'}</Text>
+        </ConfigRow>
+        <ConfigRow label="Contraseña" last>
+          <Button
+            label={sendingReset ? 'Enviando...' : 'Cambiar mi contraseña'}
+            variant="ghost"
+            size="sm"
+            onPress={handleChangeMyPassword}
+            disabled={sendingReset}
+          />
+        </ConfigRow>
+      </ConfigCard>
+
       {/* Información de la plataforma */}
       <ConfigCard title="Información de la plataforma" icon="Settings">
         <ConfigRow label="Nombre de la app">
