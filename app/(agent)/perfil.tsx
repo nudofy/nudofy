@@ -104,9 +104,12 @@ export default function PerfilScreen() {
 
   async function handleChangePassword() {
     if (!email) return;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'nudofy://reset-password',
-    });
+    // En web 'nudofy://reset-password' no lo entiende el navegador — mandar
+    // una URL https real de vuelta a este mismo sitio.
+    const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/reset-password`
+      : 'nudofy://reset-password';
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) { toast.error(error.message); return; }
     toast.success(`Hemos enviado un enlace a ${email} para cambiar tu contraseña.`);
   }

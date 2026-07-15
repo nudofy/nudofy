@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
@@ -113,9 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function resetPassword(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'nudofy:///reset-password',
-    });
+    // En nativo, el enlace del email abre la app por deep link. En web
+    // (panel admin en el navegador) 'nudofy:///reset-password' no significa
+    // nada para el navegador y el enlace queda en blanco — hay que mandar
+    // una URL https real de vuelta a este mismo sitio.
+    const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/reset-password`
+      : 'nudofy:///reset-password';
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) return { error: 'No se pudo enviar el email de recuperación' };
     return { error: null };
   }

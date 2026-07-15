@@ -2,7 +2,7 @@ project_id = "bpdtjjhexygryvxrhivl"
 
 [auth]
 site_url = "https://nudofy.app"
-additional_redirect_urls = ["nudofy://**"]
+additional_redirect_urls = ["nudofy://**", "https://app.nudofy.com/**"]
 
 [auth.email]
 enable_confirmations = true

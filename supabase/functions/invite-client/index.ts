@@ -88,10 +88,12 @@ serve(async (req) => {
 
     // Si ya existe → enviar email de recuperación de contraseña
     if (alreadyExists) {
+      // El portal de clientes es web — 'nudofy://reset-password' no significa
+      // nada para un navegador. Enlace real al portal (ya en additional_redirect_urls).
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email,
-        options: { redirectTo: 'nudofy://reset-password' },
+        options: { redirectTo: 'https://app.nudofy.com/reset-password' },
       });
       if (linkError) {
         return new Response(JSON.stringify({ error: linkError.message }), { status: 400, headers });
