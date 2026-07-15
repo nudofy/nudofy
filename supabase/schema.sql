@@ -34,6 +34,54 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Trigger: cuando un cliente invitado (portal) crea su cuenta, enlazar su
+-- fila en public.clients (creada de antemano por el agente, sin user_id)
+-- con el nuevo auth.users.id, buscando por email.
+CREATE OR REPLACE FUNCTION public.handle_client_invitation_accepted()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE public.clients
+  SET user_id = NEW.id
+  WHERE email = NEW.email
+    AND user_id IS NULL;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_client_auth_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_client_invitation_accepted();
+
+-- ============================================================
+-- PLANES (tabla de precios pública — leída por la web y la app)
+-- ============================================================
+CREATE TABLE public.plans (
+  id                  TEXT PRIMARY KEY, -- 'basic' | 'pro' | 'agency' | ...
+  name                TEXT NOT NULL,
+  tagline             TEXT,
+  price_monthly       NUMERIC,
+  price_extra_agent   NUMERIC,
+  currency            TEXT NOT NULL DEFAULT 'EUR',
+  billing_period      TEXT NOT NULL DEFAULT 'monthly',
+  trial_days          INTEGER NOT NULL DEFAULT 15,
+  max_agents          INTEGER,
+  agents_included      INTEGER DEFAULT 1,
+  max_catalogs        INTEGER,
+  max_products        INTEGER,
+  max_clients         INTEGER,
+  max_orders_month    INTEGER,
+  max_suppliers       INTEGER,
+  features            JSONB NOT NULL DEFAULT '[]',
+  cta_label           TEXT NOT NULL DEFAULT 'Empezar 15 días gratis',
+  cta_href            TEXT,
+  highlighted         BOOLEAN NOT NULL DEFAULT FALSE,
+  is_public           BOOLEAN NOT NULL DEFAULT TRUE,
+  is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order          INTEGER NOT NULL DEFAULT 0,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ============================================================
 -- EMPRESAS (Plan Agencia)
 -- ============================================================
@@ -361,6 +409,24 @@ CREATE POLICY "invoices_own_agent" ON public.invoices
     agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
   );
 CREATE POLICY "invoices_admin_all" ON public.invoices
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+
+-- plans: lectura pública de planes activos y publicados (web de precios y
+-- selector de plan en el registro). Nota: en producción hay dos políticas
+-- de SELECT duplicadas con el mismo efecto ("anon puede leer planes
+-- publicos" y "plans_public_read") — inofensivo, se documenta solo una.
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "plans_public_read" ON public.plans
+  FOR SELECT USING (is_active = TRUE AND is_public = TRUE);
+
+-- Bug real encontrado y arreglado el 2026-07-15 (no solo desincronización):
+-- app/(admin)/planes.tsx hace insert/update/delete directo sobre esta tabla
+-- desde el cliente, pero no existía NINGUNA política de escritura — el
+-- editor de planes del panel admin estaba roto (todo insert/update/delete
+-- fallaba por RLS). Aplicado en prod y verificado.
+CREATE POLICY "plans_admin_all" ON public.plans
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
   );
