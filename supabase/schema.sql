@@ -324,6 +324,21 @@ CREATE TABLE public.app_config (
 );
 
 -- ============================================================
+-- LEADS DE CONTACTO (nudofy-web /contacto)
+-- ============================================================
+-- Antes /contacto solo abría un mailto: (sin backend, sin registro).
+-- Se inserta exclusivamente desde la edge function contact-lead (service
+-- role) — no hay política de INSERT para el cliente.
+CREATE TABLE public.contact_leads (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name        TEXT NOT NULL,
+  email       TEXT NOT NULL,
+  reason      TEXT NOT NULL,
+  message     TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================
 
@@ -436,6 +451,14 @@ CREATE POLICY "plans_public_read" ON public.plans
 -- fallaba por RLS). Aplicado en prod y verificado.
 CREATE POLICY "plans_admin_all" ON public.plans
   FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+
+-- contact_leads: solo nudofy_admin puede leerlos (el INSERT es solo vía
+-- edge function con service role, no hay política de INSERT para el cliente).
+ALTER TABLE public.contact_leads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "contact_leads_admin_read" ON public.contact_leads
+  FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
   );
 
