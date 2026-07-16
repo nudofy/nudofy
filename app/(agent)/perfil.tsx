@@ -110,7 +110,13 @@ export default function PerfilScreen() {
       ? `${window.location.origin}/reset-password`
       : 'nudofy://reset-password';
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const msg = error.status === 429 || /rate limit/i.test(error.message ?? '')
+        ? 'Ya se ha enviado un enlace hace poco. Espera un minuto e inténtalo de nuevo.'
+        : error.message;
+      toast.error(msg);
+      return;
+    }
     toast.success(`Hemos enviado un enlace a ${email} para cambiar tu contraseña.`);
   }
 

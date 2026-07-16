@@ -1,7 +1,12 @@
 project_id = "bpdtjjhexygryvxrhivl"
 
 [auth]
-site_url = "https://nudofy.app"
+# nudofy.app fue el dominio original del proyecto — ya no está conectado a
+# ningún proyecto de Vercel (verificado 2026-07-15). site_url es solo el
+# fallback cuando una llamada de auth no pasa redirectTo explícito; todo el
+# código actual sí lo pasa, pero mejor no dejar el fallback apuntando a un
+# dominio muerto.
+site_url = "https://app.nudofy.com"
 additional_redirect_urls = ["nudofy://**", "https://app.nudofy.com/**"]
 
 [auth.email]
@@ -16,3 +21,10 @@ verify_enabled = true
 [auth.email.template.recovery]
 subject = "Restablece tu contraseña - Nudofy"
 content_path = "./supabase/templates/recovery.html"
+
+# Sin esto, `supabase config push` intenta activar vector buckets (default
+# de la CLI) y falla con 402 porque el proyecto está en plan gratuito —
+# inofensivo pero rompía la salida de cada push. Este proyecto no usa
+# embeddings/vector search.
+[storage.vector]
+enabled = false

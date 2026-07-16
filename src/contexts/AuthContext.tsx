@@ -122,7 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? `${window.location.origin}/reset-password`
       : 'nudofy:///reset-password';
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) return { error: 'No se pudo enviar el email de recuperación' };
+    if (error) {
+      if (error.status === 429 || /rate limit/i.test(error.message ?? '')) {
+        return { error: 'Ya se ha enviado un enlace hace poco. Espera un minuto e inténtalo de nuevo.' };
+      }
+      return { error: 'No se pudo enviar el email de recuperación' };
+    }
     return { error: null };
   }
 
