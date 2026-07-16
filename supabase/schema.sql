@@ -72,6 +72,14 @@ CREATE TABLE public.plans (
   max_orders_month    INTEGER,
   max_suppliers       INTEGER,
   features            JSONB NOT NULL DEFAULT '[]',
+  -- Flags de la tabla comparativa de precios (nudofy-web). Antes vivían
+  -- hardcodeados en un mapa aparte en precios/page.tsx ("si cambias
+  -- features de los planes, ajusta aquí también") — desincronización real
+  -- encontrada en la auditoría del 14 jul. Añadido 2026-07-15.
+  portal_cliente      BOOLEAN NOT NULL DEFAULT TRUE,
+  csv_import          BOOLEAN NOT NULL DEFAULT FALSE,
+  stats_avanzadas     BOOLEAN NOT NULL DEFAULT FALSE,
+  soporte             TEXT NOT NULL DEFAULT 'Email',
   cta_label           TEXT NOT NULL DEFAULT 'Empezar 15 días gratis',
   cta_href            TEXT,
   highlighted         BOOLEAN NOT NULL DEFAULT FALSE,
