@@ -269,6 +269,39 @@ CREATE TRIGGER set_order_number
   BEFORE INSERT ON public.orders
   FOR EACH ROW EXECUTE FUNCTION generate_order_number();
 
+-- El flujo normal de la app autoguarda el pedido como borrador (INSERT con
+-- status='draft', generate_order_number() no le asigna número) y al confirmar
+-- hace un UPDATE de ese mismo borrador a status='sent_to_supplier'. Ese UPDATE
+-- no dispara generate_order_number() (es BEFORE INSERT), así que necesita su
+-- propio trigger para asignar el número en el momento de la confirmación.
+CREATE OR REPLACE FUNCTION assign_order_number_on_confirm()
+RETURNS TRIGGER AS $$
+DECLARE
+  year_str TEXT;
+  seq_num  INT;
+  order_num TEXT;
+BEGIN
+  IF OLD.status = 'draft' AND NEW.status != 'draft' AND NEW.order_number IS NULL THEN
+    year_str := TO_CHAR(NOW(), 'YYYY');
+
+    PERFORM pg_advisory_xact_lock(hashtext('order_number_' || year_str));
+
+    SELECT COALESCE(MAX(SUBSTRING(order_number FROM 'NUD-\d{4}-(\d+)')::INT), 0) + 1
+    INTO seq_num
+    FROM public.orders
+    WHERE order_number LIKE 'NUD-' || year_str || '-%';
+
+    order_num := 'NUD-' || year_str || '-' || LPAD(seq_num::TEXT, 4, '0');
+    NEW.order_number := order_num;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_order_number_on_confirm
+  BEFORE UPDATE ON public.orders
+  FOR EACH ROW EXECUTE FUNCTION assign_order_number_on_confirm();
+
 -- ============================================================
 -- LÍNEAS DE PEDIDO
 -- ============================================================
