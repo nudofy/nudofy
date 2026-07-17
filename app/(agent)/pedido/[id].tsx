@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import type { Order, OrderItem, Supplier, Catalog } from '@/hooks/useAgent';
 import { printAndShare } from '@/lib/pdf';
+import { confirmDestructive } from '@/lib/confirm';
 
 // Tipos de las relaciones que devuelve el select de este screen
 type OrderClient = { id: string; name: string; address?: string; email?: string };
@@ -163,6 +164,21 @@ Un saludo.`;
     await supabase.from('order_items').delete().eq('order_id', order.id);
     await supabase.from('orders').delete().eq('id', order.id);
     router.back();
+  }
+
+  function cancelOrder() {
+    if (!order) return;
+    confirmDestructive(
+      'Cancelar pedido',
+      'El pedido quedará marcado como cancelado. Se conserva en el historial, pero deja de contar como pedido activo.',
+      async () => {
+        const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
+        if (error) { toast.error(error.message); return; }
+        toast.success('Pedido cancelado');
+        setOrder(o => o ? { ...o, status: 'cancelled' } : o);
+      },
+      'Cancelar pedido'
+    );
   }
 
   function openResendModal() {
@@ -593,6 +609,23 @@ Un saludo.`;
           </View>
         )}
 
+        {order.status === 'cancelled' && (
+          <View style={styles.cancelledCard}>
+            <View style={styles.cancelledIcon}>
+              <Icon name="X" size={20} color={colors.white} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="bodyMedium">Pedido cancelado</Text>
+              <Text variant="small" color="ink3">{formatDateTime(order.created_at)}</Text>
+              {order.order_number && (
+                <View style={styles.orderNumPill}>
+                  <Text variant="caption" color="ink2">{order.order_number}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Cliente y entrega */}
         <DataBlock title="Cliente y entrega" icon="User">
           <DataRow label="Cliente" value={order.client?.name ?? 'Sin cliente'} />
@@ -719,6 +752,18 @@ Un saludo.`;
           <Button
             label="Marcar como enviado al proveedor"
             onPress={sendToSupplier}
+            fullWidth
+            style={{ marginTop: space[2] }}
+          />
+        )}
+
+        {/* Cancelar pedido */}
+        {(isConfirmed || order.status === 'proposal_sent') && (
+          <Button
+            label="Cancelar pedido"
+            icon="X"
+            variant="danger"
+            onPress={cancelOrder}
             fullWidth
             style={{ marginTop: space[2] }}
           />
@@ -915,6 +960,18 @@ const styles = StyleSheet.create({
     width: 36, height: 36,
     borderRadius: radius.md,
     backgroundColor: '#D97706',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelledCard: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: space[3],
+    flexDirection: 'row', alignItems: 'flex-start', gap: space[3],
+  },
+  cancelledIcon: {
+    width: 36, height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.danger,
     alignItems: 'center', justifyContent: 'center',
   },
   notesCard: {
