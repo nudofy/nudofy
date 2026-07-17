@@ -3,7 +3,8 @@
 // y deja el color alineado con el sistema.
 
 import React from 'react';
-import { icons, LucideProps } from 'lucide-react-native';
+import { LucideProps } from 'lucide-react-native';
+import * as icons from 'lucide-react-native/icons';
 import { colors } from '@/theme';
 
 export type IconName = keyof typeof icons;
