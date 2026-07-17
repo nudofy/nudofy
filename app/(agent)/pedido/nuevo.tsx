@@ -597,7 +597,6 @@ export default function NuevoPedidoScreen() {
         product_id: i.product.id,
         quantity: i.quantity,
         unit_price: i.product.price,
-        total: Math.round(i.product.price * i.quantity * 100) / 100,
         attributes: i.attributes ?? null,
         variant_id: i.variant_id ?? null,
       }))
