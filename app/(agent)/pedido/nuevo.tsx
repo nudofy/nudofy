@@ -18,6 +18,9 @@ import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import type { Client, Supplier, Catalog, Product, Order } from '@/hooks/useAgent';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { pickFile } from '@/lib/filePicker';
+import { readFileText, normalizeHeader } from '@/lib/csvImport';
+import Papa from 'papaparse';
 
 type Step = 'inicio' | 'modo' | 'proveedor' | 'productos' | 'carrito';
 type ClientMode = 'existing' | 'new_now' | 'new_later';
@@ -25,6 +28,14 @@ type ClientMode = 'existing' | 'new_now' | 'new_later';
 interface CartItem { product: Product; quantity: number; attributes?: Record<string, string>; variant_id?: string; itemKey: string; }
 interface NewClientData { name: string; phone: string; email: string; address: string; }
 interface ClientAddress { id: string; label: string; address?: string; city?: string; postal_code?: string; }
+
+const IMPORT_CSV_TEMPLATE =
+  'referencia,descripcion,unidades,precio\n' +
+  'REF-001,Producto de ejemplo,3,9.99\n' +
+  'REF-002,Otro producto,1,14.50';
+
+type ImportCsvRow = Record<string, string>;
+type ImportCsvResult = { reference: string; ok: boolean; error?: string };
 
 function formatEur(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -73,6 +84,8 @@ export default function NuevoPedidoScreen() {
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannerCooldown, setScannerCooldown] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   // Modal de selección de atributos
   const [attrProduct, setAttrProduct] = useState<Product | null>(null);
@@ -280,6 +293,102 @@ export default function NuevoPedidoScreen() {
       if (existing) return prev.map(i => i.itemKey === key ? { ...i, quantity: i.quantity + 1 } : i);
       return [...prev, { product, quantity: 1, attributes: attrs, variant_id: variantId, itemKey: key }];
     });
+  }
+
+  async function shareImportCsvTemplate() {
+    try {
+      if (Platform.OS === 'web') {
+        const blob = new Blob([IMPORT_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla_pedido.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const FileSystem = await import('expo-file-system/legacy');
+        const Sharing = await import('expo-sharing');
+        const fileUri = FileSystem.cacheDirectory + 'plantilla_pedido.csv';
+        await FileSystem.writeAsStringAsync(fileUri, IMPORT_CSV_TEMPLATE, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Guardar plantilla CSV',
+            UTI: 'public.comma-separated-values-text',
+          });
+        } else {
+          toast.error('La función de compartir no está disponible en este dispositivo.');
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'No se pudo descargar la plantilla');
+    }
+  }
+
+  async function handleImportCsv() {
+    if (!selectedCatalog) { toast.error('Selecciona antes un catálogo'); return; }
+    const picked = await pickFile({ type: 'text/csv' });
+    if (!picked) return;
+
+    setImporting(true);
+    try {
+      const text = await readFileText(picked.uri);
+      const parsed = Papa.parse<ImportCsvRow>(text, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: normalizeHeader,
+      });
+
+      const rows = parsed.data;
+      if (rows.length === 0) { toast.error('El fichero no tiene filas'); return; }
+
+      const results: ImportCsvResult[] = [];
+      const matched: { product: Product; quantity: number }[] = [];
+
+      for (const row of rows) {
+        const ref = (row['referencia'] ?? '').trim();
+        if (!ref) { results.push({ reference: '(vacía)', ok: false, error: 'Fila sin referencia' }); continue; }
+
+        const product = products.find(p => (p.reference ?? '').trim().toLowerCase() === ref.toLowerCase());
+        if (!product) { results.push({ reference: ref, ok: false, error: 'No encontrada en el catálogo' }); continue; }
+
+        const qtyRaw = row['unidades'] ?? row['cantidad'];
+        const qty = qtyRaw ? parseInt(qtyRaw, 10) : 1;
+        matched.push({ product, quantity: qty > 0 ? qty : 1 });
+        results.push({ reference: ref, ok: true });
+      }
+
+      if (matched.length > 0) {
+        setCart(prev => {
+          const next = [...prev];
+          for (const { product, quantity } of matched) {
+            const idx = next.findIndex(i => i.itemKey === product.id);
+            if (idx >= 0) next[idx] = { ...next[idx], quantity: next[idx].quantity + quantity };
+            else next.push({ product, quantity, itemKey: product.id });
+          }
+          return next;
+        });
+      }
+
+      const errCount = results.filter(r => !r.ok).length;
+      if (errCount === 0) {
+        toast.success(`${matched.length} producto${matched.length !== 1 ? 's' : ''} importado${matched.length !== 1 ? 's' : ''}`);
+      } else {
+        toast.error(`${matched.length} importados, ${errCount} sin encontrar: ${results.filter(r => !r.ok).map(r => r.reference).join(', ')}`);
+      }
+
+      setShowImportModal(false);
+      if (matched.length > 0) setStep('carrito');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'No se pudo leer el fichero');
+    } finally {
+      setImporting(false);
+    }
   }
 
   function removeFromCart(itemKey: string) {
@@ -871,6 +980,13 @@ export default function NuevoPedidoScreen() {
             >
               <Icon name="ScanBarcode" size={20} color={colors.white} />
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.7 }]}
+              onPress={() => setShowImportModal(true)}
+              accessibilityLabel="Importar productos por CSV"
+            >
+              <Icon name="FileUp" size={20} color={colors.white} />
+            </Pressable>
           </View>
           <FlatList
             data={filteredProducts}
@@ -1135,6 +1251,39 @@ export default function NuevoPedidoScreen() {
               );
             })}
             <Pressable style={styles.modalCancel} onPress={() => setShowAddressPicker(false)}>
+              <Text variant="small" color="ink3">Cerrar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal importar productos por CSV */}
+      <Modal visible={showImportModal} transparent animationType="slide" onRequestClose={() => setShowImportModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text variant="heading" style={{ marginBottom: space[2] }}>Importar productos por CSV</Text>
+            <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
+              Sube un CSV con una fila por producto. Columna obligatoria:{' '}
+              <Text variant="smallMedium">referencia</Text> (debe existir en{' '}
+              {selectedCatalog?.name ?? 'el catálogo seleccionado'}). Opcionales:{' '}
+              <Text variant="smallMedium">unidades</Text>, descripcion, precio.
+            </Text>
+            <Button
+              label="Descargar plantilla"
+              icon="Download"
+              variant="secondary"
+              onPress={shareImportCsvTemplate}
+              fullWidth
+              style={{ marginBottom: space[2] }}
+            />
+            <Button
+              label="Seleccionar fichero CSV"
+              icon="FileUp"
+              onPress={handleImportCsv}
+              loading={importing}
+              fullWidth
+            />
+            <Pressable style={styles.modalCancel} onPress={() => setShowImportModal(false)}>
               <Text variant="small" color="ink3">Cerrar</Text>
             </Pressable>
           </View>
