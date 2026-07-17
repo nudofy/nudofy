@@ -39,7 +39,10 @@ export default function ClientesScreen() {
       <TopBar
         title="Mis clientes"
         subtitle={clientLimit !== null ? `${clientUsageLabel} clientes` : undefined}
-        actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: 'Nuevo cliente' }]}
+        actions={[
+          { icon: 'Upload', onPress: () => router.push('/(agent)/cliente/importar'), accessibilityLabel: 'Importar CSV' },
+          { icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: 'Nuevo cliente' },
+        ]}
       />
 
       {/* Buscador */}
