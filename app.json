@@ -52,7 +52,7 @@
       "expo-document-picker",
       ["expo-camera", { "cameraPermission": "Necesitamos acceso a la cámara para escanear códigos de barras." }],
       ["expo-image-picker", { "photosPermission": "Necesitamos acceso a tu galería para subir imágenes de productos.", "cameraPermission": "Necesitamos acceso a la cámara para hacer fotos de productos." }],
-      ["expo-build-properties", { "android": { "targetSdkVersion": 35, "compileSdkVersion": 35, "useLegacyPackaging": false } }],
+      ["expo-build-properties", { "android": { "targetSdkVersion": 36, "compileSdkVersion": 36, "useLegacyPackaging": false } }],
       ["expo-notifications", {
         "icon": "./assets/icon.png",
         "color": "#E73121",
