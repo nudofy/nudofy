@@ -438,7 +438,11 @@ export default function NuevoPedidoScreen() {
   // Guardado silencioso (autosave). No toca `saving` para no interferir con la UI.
   const saveDraftSilently = useCallback(async (): Promise<string | null> => {
     if (!agent || !selectedSupplier) return null;
-    if (isSavingRef.current) return committedDraftIdRef.current;
+    // No autoguardar mientras se confirma el pedido: el autoguardado no conoce
+    // el cliente nuevo que se está creando en ese momento (newClientLater) y su
+    // propio borrado+inserción de order_items puede solaparse con el de
+    // confirmOrder, dejando el cliente sin vincular o las líneas sin guardar.
+    if (isSavingRef.current || confirmingRef.current) return committedDraftIdRef.current;
     isSavingRef.current = true;
     try {
     const draftData = {
