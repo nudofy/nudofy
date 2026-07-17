@@ -545,73 +545,82 @@ export default function NuevoPedidoScreen() {
     if (step === 'carrito')   { setStep('productos');   return; }
   }
 
+  const confirmingRef = useRef(false);
+
   async function confirmOrder() {
     if (!agent || !selectedSupplier) return;
     if (cart.length === 0) { toast.error('El carrito está vacío'); return; }
+    // Guard síncrono: `saving` (estado de React) no basta para evitar un doble
+    // toque antes del primer re-render, lo que puede disparar dos confirmaciones
+    // en paralelo y dejar el pedido en un estado inconsistente.
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
     setSaving(true);
+    try {
+      let clientId: string | null = selectedClient?.id ?? null;
 
-    let clientId: string | null = selectedClient?.id ?? null;
+      if (clientMode === 'new_later' && newClientLater.name.trim()) {
+        const { data, error } = await supabase.from('clients').insert({
+          agent_id: agent.id,
+          name: newClientLater.name.trim(),
+          phone: newClientLater.phone.trim() || null,
+          email: newClientLater.email.trim() || null,
+          address: newClientLater.address.trim() || null }).select().single();
+        if (error || !data) { toast.error('No se pudo crear el cliente'); return; }
+        clientId = (data as any).id;
+      }
 
-    if (clientMode === 'new_later' && newClientLater.name.trim()) {
-      const { data, error } = await supabase.from('clients').insert({
-        agent_id: agent.id,
-        name: newClientLater.name.trim(),
-        phone: newClientLater.phone.trim() || null,
-        email: newClientLater.email.trim() || null,
-        address: newClientLater.address.trim() || null }).select().single();
-      if (error || !data) { toast.error('No se pudo crear el cliente'); setSaving(false); return; }
-      clientId = (data as any).id;
-    }
+      const orderValues = {
+        client_id: clientId,
+        supplier_id: selectedSupplier.id,
+        catalog_id: selectedCatalog?.id ?? null,
+        status: 'sent_to_supplier' as const,
+        total: cartTotal,
+        discount_code: discountCode || null,
+        notes: notes || null,
+        shipping_address_id: selectedAddressId || null,
+      };
 
-    const orderValues = {
-      client_id: clientId,
-      supplier_id: selectedSupplier.id,
-      catalog_id: selectedCatalog?.id ?? null,
-      status: 'sent_to_supplier' as const,
-      total: cartTotal,
-      discount_code: discountCode || null,
-      notes: notes || null,
-      shipping_address_id: selectedAddressId || null,
-    };
+      let orderId: string;
 
-    let orderId: string;
+      if (currentDraftId) {
+        const { error } = await supabase.from('orders').update(orderValues).eq('id', currentDraftId);
+        if (error) { toast.error(error.message); return; }
+        orderId = currentDraftId;
+        await supabase.from('order_items').delete().eq('order_id', orderId);
+      } else {
+        const { data: order, error } = await supabase
+          .from('orders')
+          .insert({ agent_id: agent.id, ...orderValues })
+          .select()
+          .single();
+        if (error || !order) { toast.error(error?.message ?? 'No se pudo crear el pedido'); return; }
+        orderId = order.id;
+      }
 
-    if (currentDraftId) {
-      const { error } = await supabase.from('orders').update(orderValues).eq('id', currentDraftId);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      orderId = currentDraftId;
-      await supabase.from('order_items').delete().eq('order_id', orderId);
-    } else {
-      const { data: order, error } = await supabase
-        .from('orders')
-        .insert({ agent_id: agent.id, ...orderValues })
-        .select()
-        .single();
-      if (error || !order) { toast.error(error?.message ?? 'No se pudo crear el pedido'); setSaving(false); return; }
-      orderId = order.id;
-    }
+      const { error: itemsError } = await supabase.from('order_items').insert(
+        cart.map(i => ({
+          order_id: orderId,
+          product_id: i.product.id,
+          quantity: i.quantity,
+          unit_price: i.product.price,
+          attributes: i.attributes ?? null,
+          variant_id: i.variant_id ?? null,
+        }))
+      );
 
-    const { error: itemsError } = await supabase.from('order_items').insert(
-      cart.map(i => ({
-        order_id: orderId,
-        product_id: i.product.id,
-        quantity: i.quantity,
-        unit_price: i.product.price,
-        attributes: i.attributes ?? null,
-        variant_id: i.variant_id ?? null,
-      }))
-    );
+      if (itemsError) {
+        // Rollback: volver el pedido a borrador para no dejarlo confirmado sin líneas
+        await supabase.from('orders').update({ status: 'draft' }).eq('id', orderId);
+        toast.error('Error guardando las líneas del pedido. Inténtalo de nuevo.');
+        return;
+      }
 
-    if (itemsError) {
-      // Rollback: volver el pedido a borrador para no dejarlo confirmado sin líneas
-      await supabase.from('orders').update({ status: 'draft' }).eq('id', orderId);
-      toast.error('Error guardando las líneas del pedido. Inténtalo de nuevo.');
+      router.replace(`/(agent)/pedido/${orderId}` as any);
+    } finally {
+      confirmingRef.current = false;
       setSaving(false);
-      return;
     }
-
-    setSaving(false);
-    router.replace(`/(agent)/pedido/${orderId}` as any);
   }
 
   const selectedAddress = clientAddresses.find(a => a.id === selectedAddressId);
