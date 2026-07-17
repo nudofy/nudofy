@@ -43,7 +43,7 @@ export async function shareFile(opts: ShareFileOptions): Promise<boolean> {
 
   // Nativo: descargar a caché y compartir
   try {
-    const FileSystem = await import('expo-file-system');
+    const FileSystem = await import('expo-file-system/legacy');
     const Sharing = await import('expo-sharing');
 
     const localUri = (FileSystem.cacheDirectory ?? '') + filename;

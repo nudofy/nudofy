@@ -46,7 +46,7 @@ async function readFileText(uri: string): Promise<string> {
     const response = await fetch(uri);
     buffer = await response.arrayBuffer();
   } else {
-    const FileSystem = await import('expo-file-system');
+    const FileSystem = await import('expo-file-system/legacy');
     const base64 = await FileSystem.readAsStringAsync(uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
@@ -98,7 +98,7 @@ export default function ImportarProductosScreen() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       } else {
-        const FileSystem = await import('expo-file-system');
+        const FileSystem = await import('expo-file-system/legacy');
         const Sharing = await import('expo-sharing');
         const fileUri = FileSystem.cacheDirectory + 'plantilla_productos.csv';
         await FileSystem.writeAsStringAsync(fileUri, CSV_TEMPLATE, {
