@@ -248,10 +248,17 @@ BEGIN
     RETURN NEW;
   END IF;
   year_str := TO_CHAR(NOW(), 'YYYY');
-  SELECT COUNT(*) + 1 INTO seq_num
+
+  -- Bloqueo de transacción por año para serializar confirmaciones concurrentes
+  -- (evita que dos inserts casi simultáneos calculen el mismo número)
+  PERFORM pg_advisory_xact_lock(hashtext('order_number_' || year_str));
+
+  -- MAX en vez de COUNT: inmune a huecos por pedidos borrados
+  SELECT COALESCE(MAX(SUBSTRING(order_number FROM 'NUD-\d{4}-(\d+)')::INT), 0) + 1
+  INTO seq_num
   FROM public.orders
-  WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
-    AND status != 'draft';
+  WHERE order_number LIKE 'NUD-' || year_str || '-%';
+
   order_num := 'NUD-' || year_str || '-' || LPAD(seq_num::TEXT, 4, '0');
   NEW.order_number := order_num;
   RETURN NEW;
