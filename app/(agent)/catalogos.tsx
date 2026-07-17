@@ -3,8 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, TextInput, ScrollView, Pressable, StyleSheet, Image, Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { colors, space, radius } from '@/theme';

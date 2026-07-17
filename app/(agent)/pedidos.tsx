@@ -1,8 +1,7 @@
 // A-09 · Historial de pedidos (3 pestañas)
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';

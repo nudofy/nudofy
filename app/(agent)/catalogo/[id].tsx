@@ -5,8 +5,7 @@ import {
   StyleSheet, Image, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
   useWindowDimensions,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import { useProducts } from '@/hooks/useAgent';

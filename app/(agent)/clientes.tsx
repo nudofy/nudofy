@@ -1,8 +1,7 @@
 // A-02 · Mis clientes
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
