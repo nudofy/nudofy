@@ -431,8 +431,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.ink,
     padding: 0,
-    // @ts-ignore — solo web
-    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
+    ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}),
   },
   showToggle: {
     paddingHorizontal: space[2],
