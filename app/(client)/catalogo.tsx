@@ -185,9 +185,9 @@ function SupplierCard({ supplier, onPress }: { supplier: PortalSupplier; onPress
 
 function useGridLayout() {
   const { width } = useWindowDimensions();
-  if (width >= 1024) return { numColumns: 4, imageHeight: 200 };
-  if (width >= 640)  return { numColumns: 3, imageHeight: 180 };
-  return { numColumns: 2, imageHeight: 140 };
+  if (width >= 1024) return { numColumns: 4, imageHeight: 260 };
+  if (width >= 640)  return { numColumns: 3, imageHeight: 230 };
+  return { numColumns: 2, imageHeight: 170 };
 }
 
 // ——— Product grid con carrito ———
@@ -298,7 +298,7 @@ function ProductGrid({
                   <Image
                     source={{ uri: product.image_url }}
                     style={styles.productImage}
-                    resizeMode="contain"
+                    resizeMode="cover"
                   />
                 ) : (
                   <Icon name="Package" size={24} color={colors.ink4} />

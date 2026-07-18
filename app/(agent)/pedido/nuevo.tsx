@@ -1007,7 +1007,7 @@ export default function NuevoPedidoScreen() {
                     onPress={() => p.image_url && setImageViewer(p.image_url)}
                   >
                     {p.image_url ? (
-                      <Image source={{ uri: p.image_url }} style={styles.productCardImgEl} resizeMode="contain" />
+                      <Image source={{ uri: p.image_url }} style={styles.productCardImgEl} resizeMode="cover" />
                     ) : (
                       <Icon name="Package" size={24} color={colors.ink4} />
                     )}
@@ -1569,7 +1569,7 @@ const styles = StyleSheet.create({
   },
   productCardActive: { borderColor: colors.ink, borderWidth: 1.5 },
   productCardImg: {
-    height: 140,
+    height: 175,
     backgroundColor: colors.white,
     alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
