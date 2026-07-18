@@ -19,9 +19,9 @@ function formatEur(n: number) {
 
 function useGridLayout() {
   const { width } = useWindowDimensions();
-  if (width >= 1024) return { numColumns: 4, imageHeight: 200 };
-  if (width >= 640)  return { numColumns: 3, imageHeight: 180 };
-  return { numColumns: 2, imageHeight: 140 };
+  if (width >= 1024) return { numColumns: 4, imageHeight: 260 };
+  if (width >= 640)  return { numColumns: 3, imageHeight: 230 };
+  return { numColumns: 2, imageHeight: 170 };
 }
 
 export default function CatalogoScreen() {
@@ -145,7 +145,7 @@ export default function CatalogoScreen() {
       >
         <View style={[styles.cardImage, { height: imageHeight }]}>
           {item.image_url ? (
-            <Image source={{ uri: item.image_url }} style={styles.productImage} resizeMode="contain" />
+            <Image source={{ uri: item.image_url }} style={styles.productImage} resizeMode="cover" />
           ) : (
             <Icon name="Package" size={32} color={colors.ink4} />
           )}
