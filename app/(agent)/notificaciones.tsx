@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAgentContext } from '@/contexts/AgentContext';
 import { colors, space, radius } from '@/theme';
@@ -26,23 +27,25 @@ const TYPE_META: Record<string, { icon: IconName; color: string }> = {
   plan_expiry:     { icon: 'Clock',        color: colors.warning  },
 };
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1)  return 'ahora mismo';
-  if (minutes < 60) return `hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24)   return `hace ${hours} h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7)     return `hace ${days} días`;
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-}
-
 export default function NotificacionesScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const { agent } = useAgentContext();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  function timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1)  return t('notifications.just_now');
+    if (minutes < 60) return t('notifications.minutes_ago', { count: minutes });
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24)   return t('notifications.hours_ago', { count: hours });
+    const days = Math.floor(hours / 24);
+    if (days < 7)     return t('notifications.days_ago', { count: days });
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+  }
 
   useEffect(() => {
     if (!agent) return;
@@ -64,8 +67,8 @@ export default function NotificacionesScreen() {
         activity.push({
           id: 'plan-expiry',
           type: 'plan_expiry',
-          title: daysLeft === 0 ? 'Tu trial vence hoy' : `Tu trial vence en ${daysLeft} días`,
-          subtitle: 'Elige un plan para seguir usando Nudofy sin interrupciones',
+          title: daysLeft === 0 ? t('notifications.trial_ends_today') : t('notifications.trial_ends_in_days', { count: daysLeft }),
+          subtitle: t('notifications.trial_subtitle'),
           date: now.toISOString(),
         });
       }
@@ -81,7 +84,7 @@ export default function NotificacionesScreen() {
 
     if (orders) {
       for (const order of orders) {
-        const clientName = (order.client as any)?.name ?? 'Cliente';
+        const clientName = (order.client as any)?.name ?? t('notifications.default_client');
         const num = order.order_number ?? order.id.slice(0, 8);
         let type: ActivityItem['type'] = 'order_new';
         let title = '';
@@ -90,26 +93,26 @@ export default function NotificacionesScreen() {
         switch (order.status) {
           case 'draft':
             type = 'order_new';
-            title = `Borrador creado · ${num}`;
+            title = t('notifications.draft_created', { num });
             break;
           case 'confirmed':
             type = 'order_confirmed';
-            title = `Pedido confirmado · ${num}`;
+            title = t('notifications.order_confirmed', { num });
             break;
           case 'proposal_sent':
             type = 'order_sent';
-            title = `Propuesta enviada · ${num}`;
+            title = t('notifications.proposal_sent', { num });
             break;
           case 'sent_to_supplier':
             type = 'order_sent';
-            title = `Enviado al proveedor · ${num}`;
+            title = t('notifications.sent_to_supplier', { num });
             break;
           case 'cancelled':
             type = 'order_cancelled';
-            title = `Pedido cancelado · ${num}`;
+            title = t('notifications.order_cancelled', { num });
             break;
           default:
-            title = `Pedido actualizado · ${num}`;
+            title = t('notifications.order_updated', { num });
         }
 
         activity.push({
@@ -131,17 +134,17 @@ export default function NotificacionesScreen() {
 
   return (
     <Screen>
-      <TopBar title="Notificaciones" />
+      <TopBar title={t('notifications.title')} />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {loading && (
-          <Text variant="small" color="ink3" align="center" style={styles.empty}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.empty}>{t('notifications.loading')}</Text>
         )}
         {!loading && items.length === 0 && (
           <View style={styles.emptyState}>
             <Icon name="Bell" size={32} color={colors.ink4} />
             <Text variant="small" color="ink3" align="center" style={{ marginTop: space[2] }}>
-              No hay actividad reciente
+              {t('notifications.empty')}
             </Text>
           </View>
         )}

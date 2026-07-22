@@ -6,6 +6,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -18,6 +19,7 @@ import type { Supplier } from '@/hooks/useAgent';
 export default function CatalogosScreen() {
   const router = useRouter();
   const toast = useToast();
+  const { t } = useTranslation('catalog');
   const { suppliers, loading, refetch } = useSuppliers();
   const { supplierLimit, supplierUsageLabel } = usePlanLimits();
 
@@ -49,17 +51,17 @@ export default function CatalogosScreen() {
     await refetch();
     setSaving(false);
     setReordering(false);
-    toast.success('Orden guardado');
+    toast.success(t('agent.order_saved'));
   }
 
   return (
     <Screen>
       <TopBar
-        title="Proveedores"
-        subtitle={supplierLimit !== null ? `${supplierUsageLabel} proveedores` : undefined}
+        title={t('agent.title')}
+        subtitle={supplierLimit !== null ? `${supplierUsageLabel} ${t('agent.usage_suffix')}` : undefined}
         actions={[
-          { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: 'Reordenar proveedores' },
-          { icon: 'Plus', onPress: () => router.push('/(agent)/proveedor/nuevo' as any), accessibilityLabel: 'Nuevo proveedor' },
+          { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: t('agent.reorder_label') },
+          { icon: 'Plus', onPress: () => router.push('/(agent)/proveedor/nuevo' as any), accessibilityLabel: t('agent.new_supplier') },
         ]}
       />
 
@@ -69,7 +71,7 @@ export default function CatalogosScreen() {
           <Icon name="Search" size={16} color={colors.ink4} />
           <TextInput
             style={styles.inputEl}
-            placeholder="Buscar en todos los catálogos..."
+            placeholder={t('agent.search_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -79,10 +81,10 @@ export default function CatalogosScreen() {
 
       {/* Grid de proveedores */}
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.gridContent}>
-        {loading && <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>Cargando...</Text>}
+        {loading && <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>{t('agent.loading')}</Text>}
         {!loading && activeSuppliers.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[8] }}>
-            {search ? 'Sin resultados' : 'Aún no tienes proveedores activos'}
+            {search ? t('agent.no_results') : t('agent.no_suppliers')}
           </Text>
         )}
         <View style={styles.grid}>
@@ -102,9 +104,9 @@ export default function CatalogosScreen() {
       <Modal visible={reordering} animationType="slide" onRequestClose={() => setReordering(false)}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <View style={styles.modalHeader}>
-            <Text variant="heading">Reordenar proveedores</Text>
+            <Text variant="heading">{t('agent.reorder_modal_title')}</Text>
             <Text variant="small" color="ink3" style={{ marginTop: 4 }}>
-              Mantén pulsado y arrastra para reordenar
+              {t('agent.reorder_modal_hint')}
             </Text>
           </View>
 
@@ -138,14 +140,14 @@ export default function CatalogosScreen() {
               style={[styles.footerBtn, styles.footerBtnSecondary]}
               onPress={() => setReordering(false)}
             >
-              <Text variant="bodyMedium" color="ink2">Cancelar</Text>
+              <Text variant="bodyMedium" color="ink2">{t('agent.cancel')}</Text>
             </Pressable>
             <Pressable
               style={[styles.footerBtn, styles.footerBtnPrimary, saving && { opacity: 0.6 }]}
               onPress={saveOrder}
               disabled={saving}
             >
-              <Text variant="bodyMedium" color="white">{saving ? 'Guardando…' : 'Guardar orden'}</Text>
+              <Text variant="bodyMedium" color="white">{saving ? t('agent.saving') : t('agent.save_order')}</Text>
             </Pressable>
           </View>
         </GestureHandlerRootView>
@@ -155,6 +157,7 @@ export default function CatalogosScreen() {
 }
 
 function SupplierCard({ supplier, onPress }: { supplier: Supplier; onPress: () => void }) {
+  const { t } = useTranslation('catalog');
   const initial = supplier.name.charAt(0).toUpperCase();
   const count = supplier.catalog_count ?? 0;
 
@@ -168,7 +171,7 @@ function SupplierCard({ supplier, onPress }: { supplier: Supplier; onPress: () =
         </View>
       )}
       <Text variant="bodyMedium" align="center" numberOfLines={2}>{supplier.name}</Text>
-      <Text variant="caption" color="ink3">{count} catálogo{count !== 1 ? 's' : ''}</Text>
+      <Text variant="caption" color="ink3">{t('agent.catalog_count', { count })}</Text>
     </Pressable>
   );
 }

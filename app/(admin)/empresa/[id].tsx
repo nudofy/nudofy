@@ -5,6 +5,7 @@ import {
   Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { useAdminCompanyDetail } from '@/hooks/useAdmin';
 import { colors, space, radius } from '@/theme';
@@ -12,26 +13,18 @@ import { Text, Icon, Button, Badge } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 0 }) + ' €';
-}
-
 // Valores alineados con la tabla `plans` (fuente de verdad). Nota: los planes
 // reales NO limitan el nº de productos (solo clientes/proveedores/catálogos),
 // por eso maxProducts es "ilimitado" (999999 = centinela que la UI muestra como ∞).
-const PLAN_META: Record<string, { label: string; maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
-  free:       { label: 'Free',     maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
-  free_pro:   { label: 'Free Pro', maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
-  basic:      { label: 'Básico',   maxAgents: 1,   maxClients: 50,     maxProducts: 999999, price: 15 },
-  pro:        { label: 'Pro',      maxAgents: 3,   maxClients: 500,    maxProducts: 999999, price: 35 },
-  agency:     { label: 'Agencia',  maxAgents: 8,   maxClients: 999999, maxProducts: 999999, price: 75 },
+const PLAN_LIMITS: Record<string, { maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
+  free:       { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
+  free_pro:   { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
+  basic:      { maxAgents: 1,   maxClients: 50,     maxProducts: 999999, price: 15 },
+  pro:        { maxAgents: 3,   maxClients: 500,    maxProducts: 999999, price: 35 },
+  agency:     { maxAgents: 8,   maxClients: 999999, maxProducts: 999999, price: 75 },
 };
 
-function UsageBar({ label, current, max, last }: { label: string; current: number; max: number; last?: boolean }) {
+function UsageBar({ label, current, max, unlimitedLabel, last }: { label: string; current: number; max: number; unlimitedLabel: string; last?: boolean }) {
   const pct = max > 0 && max < 999999 ? Math.min((current / max) * 100, 100) : 0;
   const barColor = pct >= 90 ? colors.danger : pct >= 70 ? colors.warning : colors.success;
   return (
@@ -40,7 +33,7 @@ function UsageBar({ label, current, max, last }: { label: string; current: numbe
         <Text variant="small" color="ink2">{label}</Text>
         <Text variant="smallMedium">
           {current.toLocaleString('es-ES')}
-          {max < 999999 ? ` / ${max.toLocaleString('es-ES')}` : ' (ilimitado)'}
+          {max < 999999 ? ` / ${max.toLocaleString('es-ES')}` : ` (${unlimitedLabel})`}
         </Text>
       </View>
       {max < 999999 && (
@@ -54,7 +47,26 @@ function UsageBar({ label, current, max, last }: { label: string; current: numbe
 
 export default function AdminEmpresaDetailScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('admin');
   const toast = useToast();
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  function formatEur(n: number) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return n.toLocaleString(locale, { minimumFractionDigits: 0 }) + ' €';
+  }
+
+  const PLAN_META: Record<string, { label: string; maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
+    free:     { label: t('agente_detail.plan_free'),    ...PLAN_LIMITS.free },
+    free_pro: { label: t('agente_detail.plan_free_pro'), ...PLAN_LIMITS.free_pro },
+    basic:    { label: t('shared.plan_basic'), ...PLAN_LIMITS.basic },
+    pro:      { label: t('shared.plan_pro'),   ...PLAN_LIMITS.pro },
+    agency:   { label: t('shared.plan_agency'), ...PLAN_LIMITS.agency },
+  };
   const { id } = useLocalSearchParams<{ id: string }>();
   const { company, agents, invoices, clientCount, productCount, loading, updateCompany, toggleActive } = useAdminCompanyDetail(id);
 
@@ -71,10 +83,10 @@ export default function AdminEmpresaDetailScreen() {
   const [savingPassword, setSavingPassword] = useState(false);
 
   async function handleChangePassword() {
-    if (newPassword.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
-    if (newPassword !== confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
+    if (newPassword.length < 6) { toast.error(t('empresa_detail.min_chars_error')); return; }
+    if (newPassword !== confirmPassword) { toast.error(t('empresa_detail.passwords_mismatch')); return; }
     const adminAgent = agents.find(a => a.role === 'admin') ?? agents[0];
-    if (!adminAgent?.user_id) { toast.error('No se encontró usuario admin en esta empresa'); return; }
+    if (!adminAgent?.user_id) { toast.error(t('empresa_detail.no_admin_user_error')); return; }
     setSavingPassword(true);
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/reset-user-password`, {
@@ -88,8 +100,8 @@ export default function AdminEmpresaDetailScreen() {
     });
     const json = await res.json();
     setSavingPassword(false);
-    if (!res.ok || json.error) { toast.error(json.error ?? 'Error al cambiar contraseña'); return; }
-    toast.success('Contraseña actualizada');
+    if (!res.ok || json.error) { toast.error(json.error ?? t('empresa_detail.password_change_error')); return; }
+    toast.success(t('empresa_detail.password_updated'));
     setShowPasswordModal(false);
     setNewPassword('');
     setConfirmPassword('');
@@ -97,9 +109,9 @@ export default function AdminEmpresaDetailScreen() {
 
   if (loading || !company) {
     return (
-      <AdminShell activeSection="agentes" title="Cargando...">
+      <AdminShell activeSection="agentes" title={t('empresa_detail.loading_title')}>
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-          Cargando empresa...
+          {t('empresa_detail.loading_body')}
         </Text>
       </AdminShell>
     );
@@ -130,17 +142,21 @@ export default function AdminEmpresaDetailScreen() {
     const { error } = await updateCompany({ name: editName, nif: editNif, address: editAddress });
     setSaving(false);
     if (error) toast.error(error);
-    else { setEditing(false); toast.success('Empresa actualizada'); }
+    else { setEditing(false); toast.success(t('empresa_detail.company_updated')); }
   }
 
   async function handleToggleActive() {
     Alert.alert(
-      company!.active ? 'Suspender empresa' : 'Activar empresa',
-      `¿${company!.active ? 'Suspender' : 'Activar'} a ${company!.name}? ${company!.active ? 'Los agentes perderán acceso.' : ''}`,
+      company!.active ? t('empresa_detail.suspend_company_title') : t('empresa_detail.activate_company_title'),
+      t('empresa_detail.confirm_toggle_company', {
+        action: company!.active ? t('empresa_detail.suspend') : t('empresa_detail.activate'),
+        name: company!.name,
+        extra: company!.active ? t('empresa_detail.agents_lose_access') : '',
+      }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('empresa_detail.cancel'), style: 'cancel' },
         {
-          text: company!.active ? 'Suspender' : 'Activar',
+          text: company!.active ? t('empresa_detail.suspend') : t('empresa_detail.activate'),
           style: company!.active ? 'destructive' : 'default',
           onPress: async () => {
             const { error } = await toggleActive(!company!.active);
@@ -153,18 +169,18 @@ export default function AdminEmpresaDetailScreen() {
 
   async function handleDelete() {
     Alert.alert(
-      'Borrar empresa',
-      `¿Eliminar permanentemente "${company!.name}" y todos sus agentes? Esta acción no se puede deshacer.`,
+      t('empresa_detail.delete_company_title'),
+      t('empresa_detail.delete_company_body', { name: company!.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('empresa_detail.cancel'), style: 'cancel' },
         {
-          text: 'Borrar',
+          text: t('empresa_detail.delete'),
           style: 'destructive',
           onPress: async () => {
             const { error } = await supabase.functions.invoke('delete-company', {
               body: { companyId: company!.id },
             });
-            if (error) Alert.alert('Error', error.message ?? 'Error al borrar la empresa');
+            if (error) Alert.alert(t('shared.error_title'), error.message ?? t('empresa_detail.delete_company_error'));
             else router.back();
           },
         },
@@ -176,7 +192,7 @@ export default function AdminEmpresaDetailScreen() {
     // Buscar el email del admin de la empresa
     const adminAgent = agents.find(a => a.role === 'admin');
     const email = adminAgent?.email ?? '';
-    if (!email) { toast.error('No se encontró un admin con email en esta empresa'); return; }
+    if (!email) { toast.error(t('empresa_detail.no_admin_email_error')); return; }
 
     const subject = `Nudofy · Propuesta de upgrade a Agencia Pro — ${company!.name}`;
     const body =
@@ -202,12 +218,12 @@ Equipo Nudofy`;
 
     const url = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     const supported = await Linking.canOpenURL(url);
-    if (!supported) { toast.error('No se pudo abrir el cliente de correo'); return; }
+    if (!supported) { toast.error(t('empresa_detail.mail_client_error')); return; }
     await Linking.openURL(url);
   }
 
   return (
-    <AdminShell activeSection="agentes" title="Ficha de empresa">
+    <AdminShell activeSection="agentes" title={t('empresa_detail.title')}>
       {/* Breadcrumb + acciones */}
       <View style={styles.pageHeader}>
         <Pressable
@@ -216,32 +232,32 @@ Equipo Nudofy`;
           hitSlop={8}
         >
           <Icon name="ArrowLeft" size={16} color={colors.ink2} />
-          <Text variant="smallMedium" color="ink2">Agentes</Text>
+          <Text variant="smallMedium" color="ink2">{t('empresa_detail.breadcrumb_agentes')}</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
         <View style={styles.pageActions}>
           <Button
-            label="Cambiar contraseña"
+            label={t('empresa_detail.change_password')}
             variant="secondary"
             size="sm"
             onPress={() => setShowPasswordModal(true)}
           />
           <Button
-            label="Borrar"
+            label={t('empresa_detail.delete')}
             variant="danger"
             size="sm"
             onPress={handleDelete}
           />
           <Button
-            label={company.active ? 'Suspender' : 'Activar'}
+            label={company.active ? t('empresa_detail.suspend') : t('empresa_detail.activate')}
             variant="secondary"
             size="sm"
             onPress={handleToggleActive}
           />
           {editing ? (
-            <Button label="Guardar" size="sm" onPress={handleSave} loading={saving} />
+            <Button label={t('empresa_detail.save')} size="sm" onPress={handleSave} loading={saving} />
           ) : (
-            <Button label="Editar" size="sm" onPress={startEdit} />
+            <Button label={t('empresa_detail.edit')} size="sm" onPress={startEdit} />
           )}
         </View>
       </View>
@@ -253,11 +269,11 @@ Equipo Nudofy`;
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text variant="heading">{company.name}</Text>
-          <Text variant="caption" color="ink3">Alta: {formatDate(company.created_at)}</Text>
+          <Text variant="caption" color="ink3">{t('empresa_detail.signup_label', { date: formatDate(company.created_at) })}</Text>
           <View style={styles.companyMeta}>
-            <Badge label={`Plan ${plan.label}`} variant="neutral" />
+            <Badge label={t('empresa_detail.plan_prefix', { plan: plan.label })} variant="neutral" />
             <Badge
-              label={company.active ? 'Activo' : 'Suspendido'}
+              label={company.active ? t('empresa_detail.active') : t('empresa_detail.suspended')}
               variant={company.active ? 'success' : 'neutral'}
             />
           </View>
@@ -267,24 +283,24 @@ Equipo Nudofy`;
       {/* KPIs */}
       <View style={styles.kpiGrid}>
         <KpiCard
-          label="Agentes activos"
+          label={t('empresa_detail.kpi_active_agents')}
           value={`${activeAgentCount}${plan.maxAgents < 999 ? ` / ${plan.maxAgents}` : ''}`}
-          sub={plan.maxAgents < 999 ? `${plan.maxAgents - activeAgentCount} plazas disponibles` : 'Ilimitados'}
+          sub={plan.maxAgents < 999 ? t('empresa_detail.slots_available', { count: plan.maxAgents - activeAgentCount }) : t('empresa_detail.unlimited')}
         />
         <KpiCard
-          label="Clientes totales"
+          label={t('empresa_detail.kpi_total_clients')}
           value={`${clientCount.toLocaleString('es-ES')}${plan.maxClients < 999999 ? ` / ${plan.maxClients.toLocaleString('es-ES')}` : ''}`}
-          sub={plan.maxClients < 999999 ? `${(plan.maxClients - clientCount).toLocaleString('es-ES')} disponibles` : 'Ilimitados'}
+          sub={plan.maxClients < 999999 ? t('empresa_detail.available_suffix', { count: plan.maxClients - clientCount }) : t('empresa_detail.unlimited')}
         />
         <KpiCard
-          label="Productos en catálogo"
+          label={t('empresa_detail.kpi_products')}
           value={`${productCount.toLocaleString('es-ES')}${plan.maxProducts < 999999 ? ` / ${plan.maxProducts.toLocaleString('es-ES')}` : ''}`}
-          sub={plan.maxProducts < 999999 ? `${(plan.maxProducts - productCount).toLocaleString('es-ES')} disponibles` : 'Ilimitados'}
+          sub={plan.maxProducts < 999999 ? t('empresa_detail.available_suffix', { count: plan.maxProducts - productCount }) : t('empresa_detail.unlimited')}
         />
         <KpiCard
-          label="Facturación mensual"
+          label={t('empresa_detail.kpi_monthly_billing')}
           value={formatEur(monthlyTotal)}
-          sub={`${activeAgentCount} agentes × ${basePrice} €/mes`}
+          sub={t('empresa_detail.agents_price_breakdown', { count: activeAgentCount, price: basePrice })}
           accent
         />
       </View>
@@ -296,12 +312,12 @@ Equipo Nudofy`;
             <Icon name="TrendingUp" size={20} color={colors.white} />
           </View>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text variant="bodyMedium">Sugerencia · Plan Agencia Pro</Text>
+            <Text variant="bodyMedium">{t('empresa_detail.upgrade_suggestion_title')}</Text>
             <Text variant="caption" color="ink3">
-              Esta empresa se acerca a los límites del plan Agencia. Agencia Pro ofrece todo ilimitado.
+              {t('empresa_detail.upgrade_suggestion_body')}
             </Text>
             <View style={{ alignSelf: 'flex-start', marginTop: space[1] }}>
-              <Button label="Proponer upgrade" variant="secondary" size="sm" onPress={handleProposeUpgrade} />
+              <Button label={t('empresa_detail.propose_upgrade')} variant="secondary" size="sm" onPress={handleProposeUpgrade} />
             </View>
           </View>
         </View>
@@ -310,40 +326,40 @@ Equipo Nudofy`;
       {/* Datos empresa */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text variant="bodyMedium">Datos de la empresa</Text>
+          <Text variant="bodyMedium">{t('empresa_detail.company_data_title')}</Text>
           {!editing && (
             <Pressable
               onPress={startEdit}
               hitSlop={8}
               style={({ pressed }) => [pressed && { opacity: 0.6 }]}
             >
-              <Text variant="smallMedium" color="ink2">Editar</Text>
+              <Text variant="smallMedium" color="ink2">{t('empresa_detail.edit')}</Text>
             </Pressable>
           )}
         </View>
         {editing ? (
           <View style={styles.editBody}>
-            <EditField label="Razón social">
+            <EditField label={t('empresa_detail.business_name')}>
               <TextInput style={styles.editInput} value={editName} onChangeText={setEditName} placeholderTextColor={colors.ink4} />
             </EditField>
-            <EditField label="NIF / CIF">
+            <EditField label={t('empresa_detail.nif')}>
               <TextInput style={styles.editInput} value={editNif} onChangeText={setEditNif} placeholder="B-12345678" placeholderTextColor={colors.ink4} autoCapitalize="characters" />
             </EditField>
-            <EditField label="Dirección fiscal">
+            <EditField label={t('empresa_detail.fiscal_address')}>
               <TextInput style={styles.editInput} value={editAddress} onChangeText={setEditAddress} placeholder="C/ Mayor 1, Madrid" placeholderTextColor={colors.ink4} />
             </EditField>
             <View style={styles.editActions}>
-              <Button label="Cancelar" variant="secondary" onPress={() => setEditing(false)} />
-              <Button label="Guardar" onPress={handleSave} loading={saving} />
+              <Button label={t('empresa_detail.cancel')} variant="secondary" onPress={() => setEditing(false)} />
+              <Button label={t('empresa_detail.save')} onPress={handleSave} loading={saving} />
             </View>
           </View>
         ) : (
           <>
-            <FieldRow label="Razón social" value={company.name} />
-            <FieldRow label="NIF" value={company.nif ?? '—'} />
-            <FieldRow label="Dirección fiscal" value={company.address ?? '—'} />
-            <FieldRow label="Plan activo" value={`${plan.label} · ${formatEur(monthlyTotal)}/mes`} />
-            <FieldRow label="Alta" value={formatDate(company.created_at)} last />
+            <FieldRow label={t('empresa_detail.business_name')} value={company.name} />
+            <FieldRow label={t('empresa_detail.nif')} value={company.nif ?? '—'} />
+            <FieldRow label={t('empresa_detail.fiscal_address')} value={company.address ?? '—'} />
+            <FieldRow label={t('empresa_detail.active_plan')} value={t('empresa_detail.plan_per_month', { plan: plan.label, amount: formatEur(monthlyTotal) })} />
+            <FieldRow label={t('empresa_detail.signup_short')} value={formatDate(company.created_at)} last />
           </>
         )}
       </View>
@@ -351,22 +367,22 @@ Equipo Nudofy`;
       {/* Uso del plan */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text variant="bodyMedium">Uso del plan</Text>
+          <Text variant="bodyMedium">{t('empresa_detail.plan_usage_title')}</Text>
         </View>
-        <UsageBar label="Agentes" current={activeAgentCount} max={plan.maxAgents} />
-        <UsageBar label="Clientes" current={clientCount} max={plan.maxClients} />
-        <UsageBar label="Productos" current={productCount} max={plan.maxProducts} last />
+        <UsageBar label={t('empresa_detail.usage_agents')} current={activeAgentCount} max={plan.maxAgents} unlimitedLabel={t('empresa_detail.unlimited')} />
+        <UsageBar label={t('empresa_detail.usage_clients')} current={clientCount} max={plan.maxClients} unlimitedLabel={t('empresa_detail.unlimited')} />
+        <UsageBar label={t('empresa_detail.usage_products')} current={productCount} max={plan.maxProducts} unlimitedLabel={t('empresa_detail.unlimited')} last />
       </View>
 
       {/* Agentes */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text variant="bodyMedium">Agentes de la empresa</Text>
+          <Text variant="bodyMedium">{t('empresa_detail.company_agents_title')}</Text>
           <Text variant="caption" color="ink3">{agents.length}</Text>
         </View>
         {agents.length === 0 ? (
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-            Sin agentes aún
+            {t('empresa_detail.no_agents_yet')}
           </Text>
         ) : (
           agents.map((agent, i) => {
@@ -383,15 +399,15 @@ Equipo Nudofy`;
                 <View style={{ flex: 1, gap: 2 }}>
                   <View style={styles.agentNameRow}>
                     <Text variant="smallMedium">{agent.name}</Text>
-                    <Badge label={isAdmin ? 'Admin' : 'Agente'} variant="neutral" />
+                    <Badge label={isAdmin ? t('empresa_detail.role_admin') : t('empresa_detail.role_agent')} variant="neutral" />
                   </View>
                   <Text variant="caption" color="ink3">{agent.email}</Text>
                   <Text variant="caption" color="ink3">
-                    {agent.client_count} clientes · {agent.order_count_month} pedidos este mes
+                    {t('empresa_detail.agent_stats', { clients: agent.client_count, orders: agent.order_count_month })}
                   </Text>
                 </View>
                 <Button
-                  label="Ver"
+                  label={t('empresa_detail.view')}
                   variant="secondary"
                   size="sm"
                   onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
@@ -406,12 +422,12 @@ Equipo Nudofy`;
       {invoices.length > 0 && (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text variant="bodyMedium">Historial de facturas</Text>
+            <Text variant="bodyMedium">{t('empresa_detail.invoices_history_title')}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View>
               <View style={styles.tableHead}>
-                {['Período', 'Importe', 'IVA', 'Total', 'Estado'].map((h, i) => (
+                {[t('empresa_detail.col_period'), t('empresa_detail.col_amount'), t('empresa_detail.col_vat'), t('empresa_detail.col_total'), t('empresa_detail.col_status')].map((h, i) => (
                   <Text
                     key={h}
                     variant="caption"
@@ -423,7 +439,7 @@ Equipo Nudofy`;
                 ))}
               </View>
               {invoices.map((inv, i) => {
-                const statusLabel = inv.status === 'paid' ? 'Pagada' : inv.status === 'pending' ? 'Pendiente' : 'Vencida';
+                const statusLabel = inv.status === 'paid' ? t('empresa_detail.invoice_paid') : inv.status === 'pending' ? t('empresa_detail.invoice_pending') : t('empresa_detail.invoice_overdue');
                 const statusVariant: 'success' | 'warning' | 'danger' =
                   inv.status === 'paid' ? 'success' : inv.status === 'pending' ? 'warning' : 'danger';
                 return (
@@ -459,18 +475,18 @@ Equipo Nudofy`;
           <Pressable style={styles.modalOverlay} onPress={() => setShowPasswordModal(false)}>
             <Pressable style={styles.modal} onPress={e => e.stopPropagation()}>
               <View style={styles.modalHeader}>
-                <Text variant="bodyMedium">Cambiar contraseña</Text>
+                <Text variant="bodyMedium">{t('empresa_detail.change_password')}</Text>
                 <Pressable onPress={() => setShowPasswordModal(false)} hitSlop={8}>
                   <Text variant="small" color="ink3">✕</Text>
                 </Pressable>
               </View>
               <View style={{ padding: space[4], gap: space[2] }}>
                 <Text variant="small" color="ink3">
-                  Nueva contraseña para el admin de {company.name}
+                  {t('empresa_detail.new_password_for_admin', { name: company.name })}
                 </Text>
                 <TextInput
                   style={styles.pwInput}
-                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  placeholder={t('empresa_detail.new_password_placeholder')}
                   placeholderTextColor={colors.ink4}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -479,7 +495,7 @@ Equipo Nudofy`;
                 />
                 <TextInput
                   style={styles.pwInput}
-                  placeholder="Confirmar contraseña"
+                  placeholder={t('empresa_detail.confirm_password_placeholder')}
                   placeholderTextColor={colors.ink4}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -487,7 +503,7 @@ Equipo Nudofy`;
                   autoCapitalize="none"
                 />
                 <Button
-                  label="Guardar contraseña"
+                  label={t('empresa_detail.save_password')}
                   onPress={handleChangePassword}
                   loading={savingPassword}
                   fullWidth

@@ -1,0 +1,14 @@
+{
+  "min_chars_one": "Minimum {{count}} character",
+  "min_chars_other": "Minimum {{count}} characters",
+  "max_chars_one": "Maximum {{count}} character",
+  "max_chars_other": "Maximum {{count}} characters",
+  "email_required": "Email is required",
+  "email_invalid": "Invalid email",
+  "password_required": "Password is required",
+  "phone_invalid": "Invalid phone number",
+  "nif_invalid": "Invalid tax ID format (8-9 characters)",
+  "must_be_number": "Must be a number",
+  "price_negative": "Price cannot be negative",
+  "vat_out_of_range": "VAT out of range (0–100)"
+}

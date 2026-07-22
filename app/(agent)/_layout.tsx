@@ -36,6 +36,9 @@ function AgentLayoutNav() {
       <Stack.Screen name="pedido/nuevo" />
       <Stack.Screen name="pedido/[id]" />
       <Stack.Screen name="mas" />
+      <Stack.Screen name="analitica" />
+      <Stack.Screen name="analitica-productos" />
+      <Stack.Screen name="producto-analitica/[id]" />
       <Stack.Screen name="tarifas" />
       <Stack.Screen name="dpa-aceptar" options={{ gestureEnabled: false }} />
       <Stack.Screen name="trial-vencido" options={{ gestureEnabled: false }} />

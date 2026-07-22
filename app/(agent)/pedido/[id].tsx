@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Share, Linking, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
@@ -10,6 +11,7 @@ import { useToast } from '@/contexts/ToastContext';
 import type { Order, OrderItem, Supplier, Catalog } from '@/hooks/useAgent';
 import { printAndShare } from '@/lib/pdf';
 import { confirmDestructive } from '@/lib/confirm';
+import { formatEur } from '@/lib/format';
 
 // Tipos de las relaciones que devuelve el select de este screen
 type OrderClient = { id: string; name: string; address?: string; email?: string };
@@ -29,7 +31,10 @@ type FullOrderItem = OrderItem & {
   attributes?: Record<string, string> | null;
 };
 
-function formatEur(n: number) {
+// Los mensajes generados (email/WhatsApp/PDF a proveedor) se mantienen en
+// español siempre — pertenecen a la fase de "emails transaccionales", no a
+// la extracción de strings de la interfaz visible.
+function formatEurEs(n: number) {
   return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
 
@@ -45,14 +50,16 @@ function normalizePhoneForWhatsApp(raw: string): string {
   return digits;
 }
 
-function formatDateTime(iso: string) {
+function formatDateTime(iso: string, language: string) {
+  const locale = language === 'fr' ? 'fr-FR' : language === 'en' ? 'en-GB' : 'es-ES';
   const d = new Date(iso);
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) +
-    ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function PedidoScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const { id } = useLocalSearchParams<{ id: string }>();
   const toast = useToast();
   const [order, setOrder] = useState<FullOrder | null>(null);
@@ -106,7 +113,7 @@ export default function PedidoScreen() {
     try {
       const lines = items.map(it => {
         const ref = it.product?.reference ? ` (${it.product.reference})` : '';
-        return `• ${it.product?.name ?? '—'}${ref} — x${it.quantity} · ${formatEur(it.total)}`;
+        return `• ${it.product?.name ?? '—'}${ref} — x${it.quantity} · ${formatEurEs(it.total)}`;
       }).join('\n');
 
       const subject = `Propuesta de pedido ${order.order_number ?? ''} · ${order.supplier?.name ?? ''}`;
@@ -121,7 +128,7 @@ Catálogo: ${order.catalog?.name ?? '—'}
 Productos:
 ${lines}
 
-Total: ${formatEur(order.total)}
+Total: ${formatEurEs(order.total)}
 ${order.notes ? '\nObservaciones:\n' + order.notes + '\n' : ''}
 Por favor, confírmame si estás de acuerdo.
 
@@ -129,16 +136,16 @@ Un saludo.`;
 
       const url = `mailto:${encodeURIComponent(proposalEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       const supported = await Linking.canOpenURL(url);
-      if (!supported) { toast.error('No se pudo abrir el cliente de correo'); return; }
+      if (!supported) { toast.error(t('order_detail.mail_client_error')); return; }
       await Linking.openURL(url);
 
       const { error } = await supabase.from('orders').update({ status: 'proposal_sent' }).eq('id', order.id);
       if (error) { toast.error(error.message); return; }
       setOrder(o => o ? { ...o, status: 'proposal_sent' } : o);
       setShowProposalModal(false);
-      toast.success('Propuesta enviada al cliente');
+      toast.success(t('order_detail.proposal_sent_toast'));
     } catch (e: any) {
-      toast.error(e?.message ?? 'Error al enviar la propuesta');
+      toast.error(e?.message ?? t('order_detail.proposal_error'));
     } finally {
       setSendingProposal(false);
     }
@@ -148,7 +155,7 @@ Un saludo.`;
     if (!order) return;
     const { error } = await supabase.from('orders').update({ status: 'confirmed' }).eq('id', order.id);
     if (error) { toast.error(error.message); return; }
-    toast.success('Pedido confirmado');
+    toast.success(t('order_detail.order_confirmed_toast'));
     setOrder(o => o ? { ...o, status: 'confirmed' } : o);
   }
 
@@ -169,15 +176,15 @@ Un saludo.`;
   function cancelOrder() {
     if (!order) return;
     confirmDestructive(
-      'Cancelar pedido',
-      'El pedido quedará marcado como cancelado. Se conserva en el historial, pero deja de contar como pedido activo.',
+      t('order_detail.cancel_confirm_title'),
+      t('order_detail.cancel_confirm_body'),
       async () => {
         const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
         if (error) { toast.error(error.message); return; }
-        toast.success('Pedido cancelado');
+        toast.success(t('order_detail.order_cancelled_toast'));
         setOrder(o => o ? { ...o, status: 'cancelled' } : o);
       },
-      'Cancelar pedido'
+      t('order_detail.cancel_order')
     );
   }
 
@@ -196,7 +203,7 @@ Un saludo.`;
     if (!order) return;
     const all = [...resendEmails];
     if (resendCustom.trim()) all.push(resendCustom.trim());
-    if (all.length === 0) { toast.error('Selecciona al menos un destinatario'); return; }
+    if (all.length === 0) { toast.error(t('order_detail.select_recipient_error')); return; }
     setSendingResend(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -210,13 +217,13 @@ Un saludo.`;
         body: JSON.stringify({ order_id: order.id, recipients: all }),
       });
       if (res.ok) {
-        toast.success(`Notificación enviada a ${all.length} destinatario${all.length > 1 ? 's' : ''}`);
+        toast.success(t('order_detail.resend_success', { count: all.length }));
         setShowResendModal(false);
       } else {
-        toast.error('Error al reenviar');
+        toast.error(t('order_detail.resend_error'));
       }
     } catch {
-      toast.error('Error de conexión');
+      toast.error(t('order_detail.connection_error'));
     } finally {
       setSendingResend(false);
     }
@@ -233,7 +240,7 @@ Un saludo.`;
       .update({ status: 'sent_to_supplier', sent_at: new Date().toISOString() })
       .eq('id', order.id);
     if (error) { toast.error(error.message); return; }
-    toast.success('Pedido enviado al proveedor');
+    toast.success(t('order_detail.order_sent_toast'));
     setOrder(o => o ? { ...o, status: 'sent_to_supplier' } : o);
   }
 
@@ -372,7 +379,7 @@ Un saludo.`;
 
       await printAndShare({ html, filename: `pedido-${order.order_number ?? order.id.slice(0, 8)}.pdf`, dialogTitle: `Pedido ${order.order_number ?? ''}` });
     } catch (e: any) {
-      toast.error(e?.message ?? 'Error generando el PDF');
+      toast.error(e?.message ?? t('order_detail.pdf_error'));
     } finally {
       setGeneratingPdf(false);
     }
@@ -397,13 +404,13 @@ Un saludo.`;
       );
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data?.error ?? 'Error generando el ZIP');
+        toast.error(data?.error ?? t('order_detail.zip_error'));
         return;
       }
       await Linking.openURL(data.url);
-      toast.success(`ZIP con ${data.count} imágenes listo`);
+      toast.success(t('order_detail.zip_success', { count: data.count }));
     } catch (e: any) {
-      toast.error(e?.message ?? 'Error inesperado');
+      toast.error(e?.message ?? t('order_detail.unexpected_error'));
     } finally {
       setGeneratingZip(false);
     }
@@ -411,7 +418,7 @@ Un saludo.`;
 
   async function shareOrder() {
     await Share.share({
-      message: `Pedido ${order?.order_number} · ${formatEur(order?.total ?? 0)}\nNudofy` });
+      message: `Pedido ${order?.order_number} · ${formatEurEs(order?.total ?? 0)}\nNudofy` });
   }
 
   async function emailToSupplier() {
@@ -422,7 +429,7 @@ Un saludo.`;
     const shippingAddr = order.shipping_address;
 
     if (!supplier?.email) {
-      toast.error('El proveedor no tiene email configurado');
+      toast.error(t('order_detail.supplier_no_email'));
       return;
     }
 
@@ -432,7 +439,7 @@ Un saludo.`;
       const variant = it.attributes && Object.keys(it.attributes).length > 0
         ? ` [${Object.entries(it.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}]`
         : '';
-      return `• ${name}${variant}${ref} — x${it.quantity} · ${formatEur(it.total)}`;
+      return `• ${name}${variant}${ref} — x${it.quantity} · ${formatEurEs(it.total)}`;
     }).join('\n');
 
     // Dirección de envío: usar la del pedido si existe, o la del cliente como fallback
@@ -454,13 +461,13 @@ Catálogo: ${catalog?.name ?? '—'}
 Líneas:
 ${lines}
 
-Total: ${formatEur(order.total)}
+Total: ${formatEurEs(order.total)}
 ${order.notes ? '\nObservaciones:\n' + order.notes + '\n' : ''}
 Un saludo.`;
 
     const url = `mailto:${encodeURIComponent(supplier.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     const supported = await Linking.canOpenURL(url);
-    if (!supported) { toast.error('No se pudo abrir el cliente de correo'); return; }
+    if (!supported) { toast.error(t('order_detail.mail_client_error')); return; }
     await Linking.openURL(url);
   }
 
@@ -472,7 +479,7 @@ Un saludo.`;
     const shippingAddr = order.shipping_address;
 
     if (!supplier?.phone) {
-      toast.error('El proveedor no tiene teléfono configurado');
+      toast.error(t('order_detail.supplier_no_phone'));
       return;
     }
 
@@ -483,7 +490,7 @@ Un saludo.`;
       const variant = it.attributes && Object.keys(it.attributes).length > 0
         ? ` [${Object.entries(it.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}]`
         : '';
-      return `• ${name}${variant} — x${it.quantity} · ${formatEur(it.total)}`;
+      return `• ${name}${variant} — x${it.quantity} · ${formatEurEs(it.total)}`;
     }).join('\n');
 
     // Dirección de envío: usar la del pedido si existe, o la del cliente como fallback
@@ -504,22 +511,22 @@ Te paso un pedido nuevo:
 *Líneas:*
 ${lines}
 
-*Total:* ${formatEur(order.total)}
+*Total:* ${formatEurEs(order.total)}
 ${order.notes ? '\n*Observaciones:* ' + order.notes + '\n' : ''}
 Un saludo.`;
 
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     const supported = await Linking.canOpenURL(url);
-    if (!supported) { toast.error('No se pudo abrir WhatsApp'); return; }
+    if (!supported) { toast.error(t('order_detail.whatsapp_error')); return; }
     await Linking.openURL(url);
   }
 
   if (loading || !order) {
     return (
       <Screen>
-        <TopBar title="Pedido" onBack={() => router.back()} />
+        <TopBar title={t('order_detail.top_bar_title')} onBack={() => router.back()} />
         <View style={styles.loadingWrap}>
-          <Text variant="small" color="ink3">Cargando...</Text>
+          <Text variant="small" color="ink3">{t('order_detail.loading')}</Text>
         </View>
       </Screen>
     );
@@ -529,7 +536,7 @@ Un saludo.`;
 
   return (
     <Screen>
-      <TopBar title="Resumen del pedido" onBack={() => router.back()} />
+      <TopBar title={t('order_detail.title')} onBack={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Badge de estado */}
@@ -539,32 +546,32 @@ Un saludo.`;
               <Icon name="Check" size={20} color={colors.white} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="bodyMedium">Pedido confirmado</Text>
-              <Text variant="small" color="ink3">{formatDateTime(order.created_at)}</Text>
+              <Text variant="bodyMedium">{t('order_detail.status_confirmed')}</Text>
+              <Text variant="small" color="ink3">{formatDateTime(order.created_at, i18n.language)}</Text>
               {order.order_number && (
                 <View style={styles.orderNumPill}>
                   <Text variant="caption" color="ink2">{order.order_number}</Text>
                 </View>
               )}
             </View>
-            {order.status === 'sent_to_supplier' && <Badge label="Enviado" variant="success" />}
+            {order.status === 'sent_to_supplier' && <Badge label={t('order_detail.status_sent_badge')} variant="success" />}
           </View>
         )}
         {order.status === 'draft' && (
           <View style={styles.draftCard}>
             <Icon name="FileText" size={20} color={colors.ink2} />
             <View style={{ flex: 1 }}>
-              <Text variant="bodyMedium">Borrador · Sin confirmar</Text>
+              <Text variant="bodyMedium">{t('order_detail.status_draft')}</Text>
               <View style={styles.draftActions}>
                 <Button
-                  label="Continuar pedido"
+                  label={t('order_detail.continue_order')}
                   icon="ArrowRight"
                   onPress={() => router.push(`/(agent)/pedido/nuevo?draftId=${order.id}&edit=1` as any)}
                   style={{ flex: 1 }}
                 />
                 {!confirmDelete ? (
                   <Button
-                    label="Eliminar"
+                    label={t('order_detail.delete')}
                     icon="Trash2"
                     variant="ghost"
                     onPress={() => setConfirmDelete(true)}
@@ -572,16 +579,16 @@ Un saludo.`;
                   />
                 ) : (
                   <View style={styles.deleteConfirm}>
-                    <Text variant="small" color="danger">¿Seguro?</Text>
+                    <Text variant="small" color="danger">{t('order_detail.confirm_delete')}</Text>
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <Button label="Sí" variant="ghost" size="sm" onPress={deleteDraft} />
-                      <Button label="No" variant="secondary" size="sm" onPress={() => setConfirmDelete(false)} />
+                      <Button label={t('order_detail.yes')} variant="ghost" size="sm" onPress={deleteDraft} />
+                      <Button label={t('order_detail.no')} variant="secondary" size="sm" onPress={() => setConfirmDelete(false)} />
                     </View>
                   </View>
                 )}
               </View>
               <Button
-                label="Enviar propuesta al cliente"
+                label={t('order_detail.send_proposal')}
                 icon="Send"
                 variant="secondary"
                 onPress={openProposalModal}
@@ -598,8 +605,8 @@ Un saludo.`;
               <Icon name="Clock" size={20} color={colors.white} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="bodyMedium">Propuesta enviada</Text>
-              <Text variant="small" color="ink3">Esperando aprobación del cliente</Text>
+              <Text variant="bodyMedium">{t('order_detail.status_proposal_sent')}</Text>
+              <Text variant="small" color="ink3">{t('order_detail.waiting_approval')}</Text>
               {order.order_number && (
                 <View style={styles.orderNumPill}>
                   <Text variant="caption" color="ink2">{order.order_number}</Text>
@@ -615,8 +622,8 @@ Un saludo.`;
               <Icon name="X" size={20} color={colors.white} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="bodyMedium">Pedido cancelado</Text>
-              <Text variant="small" color="ink3">{formatDateTime(order.created_at)}</Text>
+              <Text variant="bodyMedium">{t('order_detail.status_cancelled')}</Text>
+              <Text variant="small" color="ink3">{formatDateTime(order.created_at, i18n.language)}</Text>
               {order.order_number && (
                 <View style={styles.orderNumPill}>
                   <Text variant="caption" color="ink2">{order.order_number}</Text>
@@ -627,10 +634,10 @@ Un saludo.`;
         )}
 
         {/* Cliente y entrega */}
-        <DataBlock title="Cliente y entrega" icon="User">
-          <DataRow label="Cliente" value={order.client?.name ?? 'Sin cliente'} />
+        <DataBlock title={t('order_detail.client_delivery_title')} icon="User">
+          <DataRow label={t('order_detail.client_label')} value={order.client?.name ?? t('order_detail.no_client')} />
           <DataRow
-            label="Envío a"
+            label={t('order_detail.shipping_to')}
             value={
               order.shipping_address
                 ? [
@@ -645,14 +652,14 @@ Un saludo.`;
         </DataBlock>
 
         {/* Proveedor */}
-        <DataBlock title="Proveedor" icon="Truck">
-          <DataRow label="Proveedor" value={order.supplier?.name ?? '—'} />
-          <DataRow label="Catálogo" value={order.catalog?.name ?? '—'} />
-          <DataRow label="Condiciones" value={order.supplier?.conditions ?? '—'} last />
+        <DataBlock title={t('order_detail.supplier_title')} icon="Truck">
+          <DataRow label={t('order_detail.supplier_label')} value={order.supplier?.name ?? '—'} />
+          <DataRow label={t('order_detail.catalog_label')} value={order.catalog?.name ?? '—'} />
+          <DataRow label={t('order_detail.conditions_label')} value={order.supplier?.conditions ?? '—'} last />
         </DataBlock>
 
         {/* Líneas */}
-        <DataBlock title="Líneas del pedido" icon="ListOrdered">
+        <DataBlock title={t('order_detail.lines_title')} icon="ListOrdered">
           {items.map((item, idx) => {
             const variantLabel = item.attributes && Object.keys(item.attributes).length > 0
               ? Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(' · ')
@@ -671,11 +678,11 @@ Un saludo.`;
                     <Text variant="caption" color="ink3">{variantLabel}</Text>
                   ) : null}
                   {item.product?.reference ? (
-                    <Text variant="caption" color="ink4">Ref. {item.product.reference}</Text>
+                    <Text variant="caption" color="ink4">{t('order_detail.ref_prefix', { ref: item.product.reference })}</Text>
                   ) : null}
                 </View>
                 <Text variant="smallMedium" style={styles.itemAmount}>
-                  x{item.quantity} · {formatEur(item.total)}
+                  x{item.quantity} · {formatEur(item.total, i18n.language)}
                 </Text>
               </View>
             );
@@ -687,17 +694,17 @@ Un saludo.`;
           const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
           const subtotal = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
           return (
-            <DataBlock title="Totales" icon="Receipt">
-              <DataRow label={`Subtotal (${totalUnits} uds.)`} value={formatEur(subtotal)} />
-              {order.discount_code && <DataRow label="Código descuento" value={order.discount_code} />}
-              <DataRow label="Total pedido" value={formatEur(order.total)} bold last />
+            <DataBlock title={t('order_detail.totals_title')} icon="Receipt">
+              <DataRow label={t('order_detail.subtotal_label', { count: totalUnits })} value={formatEur(subtotal, i18n.language)} />
+              {order.discount_code && <DataRow label={t('order_detail.discount_code_label')} value={order.discount_code} />}
+              <DataRow label={t('order_detail.total_order_label')} value={formatEur(order.total, i18n.language)} bold last />
             </DataBlock>
           );
         })()}
 
         {order.notes && (
           <View style={styles.notesCard}>
-            <Text variant="caption" color="ink3" style={styles.notesLabel}>Observaciones</Text>
+            <Text variant="caption" color="ink3" style={styles.notesLabel}>{t('order_detail.notes_label')}</Text>
             <Text variant="body" style={{ marginTop: 4 }}>{order.notes}</Text>
           </View>
         )}
@@ -706,28 +713,28 @@ Un saludo.`;
         <View style={styles.actionsGrid}>
           <ActionBtn
             icon="FileText"
-            label={generatingPdf ? 'Generando…' : 'PDF con imágenes'}
+            label={generatingPdf ? t('order_detail.generating') : t('order_detail.pdf_with_images')}
             onPress={generatePdf}
             loading={generatingPdf}
           />
-          <ActionBtn icon="Mail" label="Enviar email" onPress={emailToSupplier} />
-          <ActionBtn icon="MessageCircle" label="WhatsApp" onPress={whatsappToSupplier} />
-          <ActionBtn icon="Share2" label="Compartir" onPress={shareOrder} />
+          <ActionBtn icon="Mail" label={t('order_detail.send_email')} onPress={emailToSupplier} />
+          <ActionBtn icon="MessageCircle" label={t('order_detail.whatsapp')} onPress={whatsappToSupplier} />
+          <ActionBtn icon="Share2" label={t('order_detail.share')} onPress={shareOrder} />
           <ActionBtn
             icon="Image"
-            label={generatingZip ? 'Generando…' : 'Imágenes ZIP'}
+            label={generatingZip ? t('order_detail.generating') : t('order_detail.images_zip')}
             onPress={downloadImages}
             loading={generatingZip}
           />
           {isConfirmed && (
-            <ActionBtn icon="Send" label="Reenviar notif." onPress={openResendModal} />
+            <ActionBtn icon="Send" label={t('order_detail.resend_notif')} onPress={openResendModal} />
           )}
         </View>
 
         {/* Finalizar desde propuesta */}
         {order.status === 'proposal_sent' && (
           <Button
-            label="Cliente aprobado — Finalizar pedido"
+            label={t('order_detail.finalize_order')}
             icon="CircleCheck"
             onPress={finalizeFromProposal}
             fullWidth
@@ -738,7 +745,7 @@ Un saludo.`;
         {/* Continuar editando pedido */}
         {(order.status === 'confirmed' || order.status === 'proposal_sent') && (
           <Button
-            label="Continuar pedido"
+            label={t('order_detail.continue_order')}
             icon="ShoppingCart"
             variant="secondary"
             onPress={revertToDraftAndContinue}
@@ -750,7 +757,7 @@ Un saludo.`;
         {/* Enviar al proveedor */}
         {order.status === 'confirmed' && (
           <Button
-            label="Marcar como enviado al proveedor"
+            label={t('order_detail.mark_sent_to_supplier')}
             onPress={sendToSupplier}
             fullWidth
             style={{ marginTop: space[2] }}
@@ -760,7 +767,7 @@ Un saludo.`;
         {/* Cancelar pedido */}
         {(isConfirmed || order.status === 'proposal_sent') && (
           <Button
-            label="Cancelar pedido"
+            label={t('order_detail.cancel_order')}
             icon="X"
             variant="danger"
             onPress={cancelOrder}
@@ -775,14 +782,14 @@ Un saludo.`;
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
-              <Text variant="heading" style={{ marginBottom: space[1] }}>Reenviar notificación</Text>
+              <Text variant="heading" style={{ marginBottom: space[1] }}>{t('order_detail.resend_modal_title')}</Text>
               <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
-                Selecciona a quién quieres reenviar el resumen del pedido.
+                {t('order_detail.resend_modal_hint')}
               </Text>
 
               {[
-                order?.supplier?.email && { label: `Proveedor · ${order.supplier.email}`, email: order.supplier.email },
-                order?.client?.email   && { label: `Cliente · ${order.client.email}`,     email: order.client.email },
+                order?.supplier?.email && { label: t('order_detail.supplier_prefix', { email: order.supplier.email }), email: order.supplier.email },
+                order?.client?.email   && { label: t('order_detail.client_prefix', { email: order.client.email }),     email: order.client.email },
               ].filter(Boolean).map((item: any) => (
                 <Pressable
                   key={item.email}
@@ -797,7 +804,7 @@ Un saludo.`;
               ))}
 
               <Text variant="caption" color="ink3" style={[styles.modalLabel, { marginTop: space[3] }]}>
-                Otro email (opcional)
+                {t('order_detail.other_email_label')}
               </Text>
               <TextInput
                 style={styles.modalInput}
@@ -810,8 +817,8 @@ Un saludo.`;
               />
 
               <View style={styles.modalActions}>
-                <Button label="Cancelar" variant="secondary" onPress={() => setShowResendModal(false)} style={{ flex: 1 }} />
-                <Button label="Enviar" icon="Send" onPress={handleResend} loading={sendingResend} style={{ flex: 2 }} />
+                <Button label={t('order_detail.cancel')} variant="secondary" onPress={() => setShowResendModal(false)} style={{ flex: 1 }} />
+                <Button label={t('order_detail.send')} icon="Send" onPress={handleResend} loading={sendingResend} style={{ flex: 2 }} />
               </View>
             </View>
           </View>
@@ -823,12 +830,12 @@ Un saludo.`;
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
-              <Text variant="heading" style={{ marginBottom: space[1] }}>Enviar propuesta al cliente</Text>
+              <Text variant="heading" style={{ marginBottom: space[1] }}>{t('order_detail.proposal_modal_title')}</Text>
               <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
-                Se abrirá tu cliente de correo con el resumen del pedido listo para enviar.
+                {t('order_detail.proposal_modal_hint')}
               </Text>
 
-              <Text variant="caption" color="ink3" style={styles.modalLabel}>Email del cliente</Text>
+              <Text variant="caption" color="ink3" style={styles.modalLabel}>{t('order_detail.client_email_label')}</Text>
               <TextInput
                 style={styles.modalInput}
                 value={proposalEmail}
@@ -842,13 +849,13 @@ Un saludo.`;
 
               <View style={styles.modalActions}>
                 <Button
-                  label="Cancelar"
+                  label={t('order_detail.cancel')}
                   variant="secondary"
                   onPress={() => setShowProposalModal(false)}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  label="Enviar"
+                  label={t('order_detail.send')}
                   icon="Send"
                   onPress={sendProposal}
                   loading={sendingProposal}

@@ -4,11 +4,13 @@ import {
   View, ScrollView, Pressable, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text } from '@/components/ui';
 import { useStats } from '@/hooks/useAgent';
 import { useAgentContext } from '@/contexts/AgentContext';
 import { supabase } from '@/lib/supabase';
+import { formatEur } from '@/lib/format';
 import type { MonthStat, YearStat } from '@/hooks/useAgent';
 import { useFeatureGate } from '@/hooks/useFeatureGate';
 import { FeatureLock } from '@/components/ui';
@@ -17,12 +19,9 @@ type MonthOrder = { id: string; order_number?: string; total: number; created_at
 
 type Tab = 'mensual' | 'anual';
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
 export default function EstadisticasScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const [tab, setTab] = useState<Tab>('mensual');
   const { monthStats, yearStats, totalOrders, totalRevenue, loading } = useStats();
   const { agent } = useAgentContext();
@@ -57,16 +56,16 @@ export default function EstadisticasScreen() {
       });
   }, [selectedMonth, agent]);
 
-  if (gateLoading) return <Screen><TopBar title="Estadísticas" onBack={() => router.back()} /></Screen>;
+  if (gateLoading) return <Screen><TopBar title={t('stats.title')} onBack={() => router.back()} /></Screen>;
 
   if (!statsAllowed) {
     return (
       <Screen>
-        <TopBar title="Estadísticas" onBack={() => router.back()} />
+        <TopBar title={t('stats.title')} onBack={() => router.back()} />
         <FeatureLock
           requiredPlan={statsRequiredPlan}
-          title={`Estadísticas avanzadas es del plan ${statsRequiredPlan}`}
-          description="Desglose de pedidos y facturación por mes y por año. Mejora tu plan para desbloquearlo."
+          title={t('stats.gate_title', { plan: statsRequiredPlan })}
+          description={t('stats.gate_description')}
         />
       </Screen>
     );
@@ -74,41 +73,41 @@ export default function EstadisticasScreen() {
 
   return (
     <Screen>
-      <TopBar title="Estadísticas" onBack={() => router.back()} />
+      <TopBar title={t('stats.title')} onBack={() => router.back()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* KPIs globales */}
         <View style={styles.kpiRow}>
           <View style={styles.kpi}>
             <Text variant="heading">{totalOrders}</Text>
-            <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Pedidos totales</Text>
+            <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{t('stats.total_orders')}</Text>
           </View>
           <View style={[styles.kpi, styles.kpiAccent]}>
-            <Text variant="heading" style={{ color: colors.white }}>{formatEur(totalRevenue)}</Text>
+            <Text variant="heading" style={{ color: colors.white }}>{formatEur(totalRevenue, i18n.language)}</Text>
             <Text variant="caption" style={{ color: colors.white, opacity: 0.85, marginTop: 2 }}>
-              Facturación total
+              {t('stats.total_revenue')}
             </Text>
           </View>
         </View>
 
         {/* Tabs */}
         <View style={styles.tabBar}>
-          {(['mensual', 'anual'] as Tab[]).map(t => (
+          {(['mensual', 'anual'] as Tab[]).map(tabKey => (
             <Pressable
-              key={t}
+              key={tabKey}
               style={({ pressed }) => [styles.tabItem, pressed && { opacity: 0.7 }]}
-              onPress={() => setTab(t)}
+              onPress={() => setTab(tabKey)}
             >
-              <Text variant="smallMedium" color={tab === t ? 'ink' : 'ink3'}>
-                {t === 'mensual' ? 'Por mes' : 'Por año'}
+              <Text variant="smallMedium" color={tab === tabKey ? 'ink' : 'ink3'}>
+                {tabKey === 'mensual' ? t('stats.tab_monthly') : t('stats.tab_yearly')}
               </Text>
-              {tab === t && <View style={styles.tabIndicator} />}
+              {tab === tabKey && <View style={styles.tabIndicator} />}
             </Pressable>
           ))}
         </View>
 
         {loading ? (
-          <Text variant="small" color="ink3" align="center" style={styles.empty}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.empty}>{t('stats.loading')}</Text>
         ) : tab === 'mensual' ? (
           <MensualTab
             stats={monthStats}
@@ -123,8 +122,8 @@ export default function EstadisticasScreen() {
         ) : !comparativesAllowed ? (
           <FeatureLock
             requiredPlan={comparativesRequiredPlan}
-            title={`Comparativas por año es del plan ${comparativesRequiredPlan}`}
-            description="Compara facturación año contra año y por temporada. Exclusivo del plan Agencia."
+            title={t('stats.comparatives_gate_title', { plan: comparativesRequiredPlan })}
+            description={t('stats.comparatives_gate_description')}
           />
         ) : (
           <AnualTab stats={yearStats} maxTotal={maxYearTotal} />
@@ -144,6 +143,7 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
   monthOrders: MonthOrder[];
   loadingOrders: boolean;
 }) {
+  const { t, i18n } = useTranslation('agent');
   const year = new Date().getFullYear();
   const selectedStat = selectedMonth !== null ? stats[selectedMonth] : null;
 
@@ -152,24 +152,24 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
       {/* Resumen mes actual */}
       <View style={styles.card}>
         <Text variant="caption" color="ink3">
-          Este mes ({stats[currentMonth]?.label} {year})
+          {t('stats.this_month', { label: stats[currentMonth]?.label, year })}
         </Text>
         <View style={styles.highlightRow}>
           <View style={styles.highlightItem}>
             <Text variant="title">{currentStat?.orders ?? 0}</Text>
-            <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Pedidos</Text>
+            <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{t('stats.orders_label')}</Text>
           </View>
           <View style={styles.highlightDivider} />
           <View style={styles.highlightItem}>
-            <Text variant="title">{formatEur(currentStat?.total ?? 0)}</Text>
-            <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Facturación</Text>
+            <Text variant="title">{formatEur(currentStat?.total ?? 0, i18n.language)}</Text>
+            <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{t('stats.revenue_label')}</Text>
           </View>
         </View>
       </View>
 
       {/* Barras por mes — pulsables */}
       <View style={styles.card}>
-        <Text variant="bodyMedium">Facturación mensual {year}</Text>
+        <Text variant="bodyMedium">{t('stats.monthly_revenue_title', { year })}</Text>
         <View style={styles.barsWrap}>
           {stats.map((m) => {
             const pct = maxTotal > 0 ? m.total / maxTotal : 0;
@@ -201,7 +201,7 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
         </View>
         {selectedMonth !== null && (
           <Text variant="caption" color="ink3" align="center">
-            Toca el mismo mes para cerrar
+            {t('stats.close_hint')}
           </Text>
         )}
       </View>
@@ -210,13 +210,13 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
       {selectedMonth !== null && (
         <View style={styles.card}>
           <Text variant="bodyMedium">
-            {selectedStat?.label} {year} · {selectedStat?.orders ?? 0} pedido{(selectedStat?.orders ?? 0) !== 1 ? 's' : ''}
+            {t('stats.month_orders_title', { label: selectedStat?.label, year, count: selectedStat?.orders ?? 0 })}
           </Text>
           {loadingOrders ? (
             <ActivityIndicator size="small" color={colors.ink3} />
           ) : monthOrders.length === 0 ? (
             <Text variant="small" color="ink3" align="center" style={styles.empty}>
-              Sin pedidos confirmados este mes
+              {t('stats.no_confirmed_month')}
             </Text>
           ) : (
             monthOrders.map((o, i) => (
@@ -226,7 +226,7 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
                   <Text variant="smallMedium">{(o.client as any)?.name ?? '—'}</Text>
                   <Text variant="caption" color="ink3">{(o.supplier as any)?.name ?? '—'}</Text>
                 </View>
-                <Text variant="bodyMedium" style={styles.tableAmount}>{formatEur(o.total)}</Text>
+                <Text variant="bodyMedium" style={styles.tableAmount}>{formatEur(o.total, i18n.language)}</Text>
               </View>
             ))
           )}
@@ -235,10 +235,10 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
 
       {/* Tabla mensual */}
       <View style={styles.card}>
-        <Text variant="bodyMedium">Detalle por mes</Text>
+        <Text variant="bodyMedium">{t('stats.monthly_detail_title')}</Text>
         {stats.filter(m => m.orders > 0).length === 0 ? (
           <Text variant="small" color="ink3" align="center" style={styles.empty}>
-            Sin pedidos confirmados este año
+            {t('stats.no_confirmed_year')}
           </Text>
         ) : (
           stats.map((m, i) => m.orders > 0 && (
@@ -254,10 +254,10 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
                 {m.label} {m.year}
               </Text>
               <Text variant="small" color="ink3" style={{ marginRight: space[3] }}>
-                {m.orders} pedido{m.orders !== 1 ? 's' : ''}
+                {t('stats.order_count', { count: m.orders })}
               </Text>
               <Text variant="bodyMedium" style={styles.tableAmount}>
-                {formatEur(m.total)}
+                {formatEur(m.total, i18n.language)}
               </Text>
             </Pressable>
           ))
@@ -268,17 +268,18 @@ function MensualTab({ stats, currentMonth, currentStat, maxTotal, selectedMonth,
 }
 
 function AnualTab({ stats, maxTotal }: { stats: YearStat[]; maxTotal: number }) {
+  const { t, i18n } = useTranslation('agent');
   return (
     <View style={styles.tabContent}>
       {stats.length === 0 ? (
         <Text variant="small" color="ink3" align="center" style={styles.empty}>
-          Sin datos anuales
+          {t('stats.no_yearly_data')}
         </Text>
       ) : (
         <>
           {/* Barras por año */}
           <View style={styles.card}>
-            <Text variant="bodyMedium">Facturación anual</Text>
+            <Text variant="bodyMedium">{t('stats.yearly_revenue_title')}</Text>
             <View style={[styles.barsWrap, { gap: 16 }]}>
               {stats.map((y) => {
                 const pct = maxTotal > 0 ? y.total / maxTotal : 0;
@@ -301,7 +302,7 @@ function AnualTab({ stats, maxTotal }: { stats: YearStat[]; maxTotal: number }) 
 
           {/* Tabla anual */}
           <View style={styles.card}>
-            <Text variant="bodyMedium">Detalle por año</Text>
+            <Text variant="bodyMedium">{t('stats.yearly_detail_title')}</Text>
             {stats.map((y, i) => (
               <View
                 key={y.year}
@@ -309,10 +310,10 @@ function AnualTab({ stats, maxTotal }: { stats: YearStat[]; maxTotal: number }) 
               >
                 <Text variant="bodyMedium" style={{ flex: 1 }}>{y.year}</Text>
                 <Text variant="small" color="ink3" style={{ marginRight: space[3] }}>
-                  {y.orders} pedido{y.orders !== 1 ? 's' : ''}
+                  {t('stats.order_count', { count: y.orders })}
                 </Text>
                 <Text variant="bodyMedium" style={styles.tableAmount}>
-                  {formatEur(y.total)}
+                  {formatEur(y.total, i18n.language)}
                 </Text>
               </View>
             ))}

@@ -5,28 +5,30 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space } from '@/theme';
 import Icon, { IconName } from './ui/Icon';
 import Text from './ui/Text';
 
 type Tab = {
   key: string;
-  label: string;
+  labelKey: string;
   route: string;
   icon: IconName;
 };
 
 const TABS: Tab[] = [
-  { key: 'home',       label: 'Inicio',      route: '/(agent)/home',       icon: 'LayoutGrid'    },
-  { key: 'clientes',   label: 'Clientes',    route: '/(agent)/clientes',   icon: 'Users'         },
-  { key: 'catalogos',  label: 'Proveedores', route: '/(agent)/catalogos',  icon: 'Package'       },
-  { key: 'pedidos',    label: 'Pedidos',     route: '/(agent)/pedidos',    icon: 'ClipboardList' },
-  { key: 'mas',        label: 'Más',         route: '/(agent)/mas',        icon: 'Menu'          },
+  { key: 'home',       labelKey: 'agent_tabs.home',       route: '/(agent)/home',       icon: 'LayoutGrid'    },
+  { key: 'clientes',   labelKey: 'agent_tabs.clientes',   route: '/(agent)/clientes',   icon: 'Users'         },
+  { key: 'catalogos',  labelKey: 'agent_tabs.proveedores', route: '/(agent)/catalogos', icon: 'Package'       },
+  { key: 'pedidos',    labelKey: 'agent_tabs.pedidos',    route: '/(agent)/pedidos',    icon: 'ClipboardList' },
+  { key: 'mas',        labelKey: 'agent_tabs.mas',        route: '/(agent)/mas',        icon: 'Menu'          },
 ];
 
 export default function BottomTabBar({ activeTab }: { activeTab: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('nav');
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, space[2]) }]}>
@@ -52,7 +54,7 @@ export default function BottomTabBar({ activeTab }: { activeTab: string }) {
               allowFontScaling={false}
               style={[styles.label, { color: active ? colors.brand : colors.ink4 }]}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </Text>
           </Pressable>
         );

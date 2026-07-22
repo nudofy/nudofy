@@ -9,6 +9,7 @@ import { confirmDestructive } from '@/lib/confirm';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
@@ -16,6 +17,7 @@ import { useClients, useSuppliers, useCatalogs, useProducts, useOrders } from '@
 import { useAgentContext } from '@/contexts/AgentContext';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
+import { formatEur } from '@/lib/format';
 import type { Client, Supplier, Catalog, Product, Order } from '@/hooks/useAgent';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { pickFile } from '@/lib/filePicker';
@@ -37,26 +39,24 @@ const IMPORT_CSV_TEMPLATE =
 type ImportCsvRow = Record<string, string>;
 type ImportCsvResult = { reference: string; ok: boolean; error?: string };
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(iso: string, t: (key: string, opts?: any) => string, language: string): string {
   const now = new Date();
   const d = new Date(iso);
   const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000);
-  if (diffMin < 1) return 'hace instantes';
-  if (diffMin < 60) return `hace ${diffMin} min`;
+  if (diffMin < 1) return t('order_new.moment_ago');
+  if (diffMin < 60) return t('order_new.minutes_ago', { count: diffMin });
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `hace ${diffHour}h`;
+  if (diffHour < 24) return t('order_new.hours_ago', { count: diffHour });
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return 'ayer';
-  if (diffDay < 7) return `hace ${diffDay} días`;
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (diffDay === 1) return t('order_new.yesterday');
+  if (diffDay < 7) return t('order_new.days_ago', { count: diffDay });
+  const locale = language === 'fr' ? 'fr-FR' : language === 'en' ? 'en-GB' : 'es-ES';
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 export default function NuevoPedidoScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const params = useLocalSearchParams<{ clientId?: string; draftId?: string; edit?: string }>();
   const { agent } = useAgentContext();
   const toast = useToast();
@@ -318,20 +318,20 @@ export default function NuevoPedidoScreen() {
         if (canShare) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'text/csv',
-            dialogTitle: 'Guardar plantilla CSV',
+            dialogTitle: t('product_import.share_dialog_title'),
             UTI: 'public.comma-separated-values-text',
           });
         } else {
-          toast.error('La función de compartir no está disponible en este dispositivo.');
+          toast.error(t('order_new.share_error'));
         }
       }
     } catch (e: any) {
-      toast.error(e?.message ?? 'No se pudo descargar la plantilla');
+      toast.error(e?.message ?? t('order_new.download_template_error'));
     }
   }
 
   async function handleImportCsv() {
-    if (!selectedCatalog) { toast.error('Selecciona antes un catálogo'); return; }
+    if (!selectedCatalog) { toast.error(t('order_new.select_catalog_first')); return; }
     const picked = await pickFile({ type: 'text/csv' });
     if (!picked) return;
 
@@ -345,17 +345,17 @@ export default function NuevoPedidoScreen() {
       });
 
       const rows = parsed.data;
-      if (rows.length === 0) { toast.error('El fichero no tiene filas'); return; }
+      if (rows.length === 0) { toast.error(t('order_new.no_rows_in_file')); return; }
 
       const results: ImportCsvResult[] = [];
       const matched: { product: Product; quantity: number }[] = [];
 
       for (const row of rows) {
         const ref = (row['referencia'] ?? '').trim();
-        if (!ref) { results.push({ reference: '(vacía)', ok: false, error: 'Fila sin referencia' }); continue; }
+        if (!ref) { results.push({ reference: t('order_new.ref_empty_placeholder'), ok: false, error: t('order_new.empty_row_error') }); continue; }
 
         const product = products.find(p => (p.reference ?? '').trim().toLowerCase() === ref.toLowerCase());
-        if (!product) { results.push({ reference: ref, ok: false, error: 'No encontrada en el catálogo' }); continue; }
+        if (!product) { results.push({ reference: ref, ok: false, error: t('order_new.not_found_in_catalog') }); continue; }
 
         const qtyRaw = row['unidades'] ?? row['cantidad'];
         const qty = qtyRaw ? parseInt(qtyRaw, 10) : 1;
@@ -377,15 +377,19 @@ export default function NuevoPedidoScreen() {
 
       const errCount = results.filter(r => !r.ok).length;
       if (errCount === 0) {
-        toast.success(`${matched.length} producto${matched.length !== 1 ? 's' : ''} importado${matched.length !== 1 ? 's' : ''}`);
+        toast.success(t('order_new.imported_products', { count: matched.length }));
       } else {
-        toast.error(`${matched.length} importados, ${errCount} sin encontrar: ${results.filter(r => !r.ok).map(r => r.reference).join(', ')}`);
+        toast.error(t('order_new.imported_with_errors', {
+          matched: matched.length,
+          errors: errCount,
+          refs: results.filter(r => !r.ok).map(r => r.reference).join(', '),
+        }));
       }
 
       setShowImportModal(false);
       if (matched.length > 0) setStep('carrito');
     } catch (e: any) {
-      toast.error(e?.message ?? 'No se pudo leer el fichero');
+      toast.error(e?.message ?? t('order_new.read_file_error'));
     } finally {
       setImporting(false);
     }
@@ -475,7 +479,7 @@ export default function NuevoPedidoScreen() {
   async function openScanner() {
     if (!cameraPermission?.granted) {
       const { granted } = await requestCameraPermission();
-      if (!granted) { toast.error('Se necesita permiso de cámara para escanear'); return; }
+      if (!granted) { toast.error(t('order_new.camera_permission_error')); return; }
     }
     setScannerOpen(true);
   }
@@ -516,13 +520,13 @@ export default function NuevoPedidoScreen() {
       if (foundAttrs && foundVariantId) {
         // Variante identificada directamente por barcode — añadir sin modal
         addToCart(foundProduct, foundAttrs, foundVariantId);
-        toast.success(`${foundProduct.name} (${Object.values(foundAttrs).join(' · ')}) añadido`);
+        toast.success(t('order_new.variant_added', { name: foundProduct.name, attrs: Object.values(foundAttrs).join(' · ') }));
       } else {
         handleAddProduct(foundProduct);
-        toast.success(`${foundProduct.name} añadido al carrito`);
+        toast.success(t('order_new.product_added', { name: foundProduct.name }));
       }
     } else {
-      toast.error(`Código ${data} no encontrado en este catálogo`);
+      toast.error(t('order_new.barcode_not_found', { code: data }));
     }
 
     // Cooldown de 2s para evitar lecturas múltiples
@@ -530,7 +534,7 @@ export default function NuevoPedidoScreen() {
   }
 
   async function confirmNewClientNow() {
-    if (!newClientNow.name.trim()) { toast.error('El nombre es obligatorio'); return; }
+    if (!newClientNow.name.trim()) { toast.error(t('order_new.name_required_error')); return; }
     if (!agent) return;
     const { data, error } = await supabase.from('clients').insert({
       agent_id: agent.id,
@@ -538,7 +542,7 @@ export default function NuevoPedidoScreen() {
       phone: newClientNow.phone.trim() || null,
       email: newClientNow.email.trim() || null,
       address: newClientNow.address.trim() || null }).select().single();
-    if (error || !data) { toast.error('No se pudo crear el cliente'); return; }
+    if (error || !data) { toast.error(t('order_new.client_create_error')); return; }
     setSelectedClient(data as Client);
     setClientMode('existing');
     setStep('proveedor');
@@ -640,11 +644,11 @@ export default function NuevoPedidoScreen() {
       const hasMeaningfulContent = cart.length > 0 && !!selectedSupplier && !!agent;
       if (hasMeaningfulContent && !currentDraftId) {
         Alert.alert(
-          '¿Guardar borrador?',
-          'Tienes productos en el carrito. ¿Quieres guardar el pedido como borrador?',
+          t('order_new.save_draft_dialog_title'),
+          t('order_new.save_draft_dialog_body'),
           [
-            { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
-            { text: 'Guardar', style: 'default', onPress: () => { saveDraftSilently().then((id) => { if (id) toast.success('Borrador guardado'); else toast.error('Error al guardar: faltan datos'); router.back(); }); } },
+            { text: t('order_new.discard_action'), style: 'destructive', onPress: () => router.back() },
+            { text: t('order_new.save_action'), style: 'default', onPress: () => { saveDraftSilently().then((id) => { if (id) toast.success(t('order_new.draft_saved')); else toast.error(t('order_new.draft_save_error')); router.back(); }); } },
           ]
         );
         return;
@@ -662,7 +666,7 @@ export default function NuevoPedidoScreen() {
 
   async function confirmOrder() {
     if (!agent || !selectedSupplier) return;
-    if (cart.length === 0) { toast.error('El carrito está vacío'); return; }
+    if (cart.length === 0) { toast.error(t('order_new.empty_cart_error')); return; }
     // Guard síncrono: `saving` (estado de React) no basta para evitar un doble
     // toque antes del primer re-render, lo que puede disparar dos confirmaciones
     // en paralelo y dejar el pedido en un estado inconsistente.
@@ -679,7 +683,7 @@ export default function NuevoPedidoScreen() {
           phone: newClientLater.phone.trim() || null,
           email: newClientLater.email.trim() || null,
           address: newClientLater.address.trim() || null }).select().single();
-        if (error || !data) { toast.error('No se pudo crear el cliente'); return; }
+        if (error || !data) { toast.error(t('order_new.client_create_error')); return; }
         clientId = (data as any).id;
       }
 
@@ -707,7 +711,7 @@ export default function NuevoPedidoScreen() {
           .insert({ agent_id: agent.id, ...orderValues })
           .select()
           .single();
-        if (error || !order) { toast.error(error?.message ?? 'No se pudo crear el pedido'); return; }
+        if (error || !order) { toast.error(error?.message ?? t('order_new.order_create_error')); return; }
         orderId = order.id;
       }
 
@@ -725,7 +729,7 @@ export default function NuevoPedidoScreen() {
       if (itemsError) {
         // Rollback: volver el pedido a borrador para no dejarlo confirmado sin líneas
         await supabase.from('orders').update({ status: 'draft' }).eq('id', orderId);
-        toast.error('Error guardando las líneas del pedido. Inténtalo de nuevo.');
+        toast.error(t('order_new.order_items_error'));
         return;
       }
 
@@ -738,7 +742,13 @@ export default function NuevoPedidoScreen() {
 
   const selectedAddress = clientAddresses.find(a => a.id === selectedAddressId);
 
-  const topBarTitle = { inicio: 'Pedidos', modo: 'Nuevo pedido', proveedor: 'Proveedor', productos: 'Productos', carrito: 'Carrito' }[step];
+  const topBarTitle = {
+    inicio: t('order_new.topbar_pedidos'),
+    modo: t('order_new.topbar_nuevo'),
+    proveedor: t('order_new.topbar_proveedor'),
+    productos: t('order_new.topbar_productos'),
+    carrito: t('order_new.topbar_carrito'),
+  }[step];
   const showCartAction = step !== 'carrito' && step !== 'modo' && step !== 'inicio' && cart.length > 0;
 
   // Subtítulo de estado de guardado (solo en pasos de edición con draft activo)
@@ -746,9 +756,9 @@ export default function NuevoPedidoScreen() {
   const saveStatusText = !showSaveStatus
     ? undefined
     : autoSaving
-      ? 'Guardando…'
+      ? t('order_new.saving')
       : lastSavedAt
-        ? `Guardado · ${formatRelativeTime(lastSavedAt.toISOString())}`
+        ? t('order_new.saved_at', { time: formatRelativeTime(lastSavedAt.toISOString(), t, i18n.language) })
         : undefined;
 
   return (
@@ -757,7 +767,7 @@ export default function NuevoPedidoScreen() {
         title={topBarTitle}
         subtitle={saveStatusText}
         onBack={handleBack}
-        actions={showCartAction ? [{ icon: 'ShoppingCart', onPress: () => setStep('carrito'), badge: true, accessibilityLabel: `Ver carrito, ${cart.length} productos` }] : undefined}
+        actions={showCartAction ? [{ icon: 'ShoppingCart', onPress: () => setStep('carrito'), badge: true, accessibilityLabel: t('order_new.view_cart_label', { count: cart.length }) }] : undefined}
       />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -775,22 +785,22 @@ export default function NuevoPedidoScreen() {
               <Icon name="Plus" size={20} color={colors.white} />
             </View>
             <View style={styles.cardBody}>
-              <Text variant="bodyMedium">Nuevo pedido</Text>
-              <Text variant="small" color="ink3">Seleccionar cliente, proveedor y productos</Text>
+              <Text variant="bodyMedium">{t('order_new.new_order_title')}</Text>
+              <Text variant="small" color="ink3">{t('order_new.new_order_subtitle')}</Text>
             </View>
             <Icon name="ChevronRight" size={20} color={colors.ink3} />
           </Pressable>
 
           {/* Borradores */}
           <Text variant="caption" color="ink3" style={styles.sectionLabel}>
-            Pendientes{drafts.length > 0 ? ` · ${drafts.length}` : ''}
+            {t('order_new.pending_label')}{drafts.length > 0 ? ` · ${drafts.length}` : ''}
           </Text>
 
           {draftsLoading && <ActivityIndicator color={colors.ink3} style={{ marginTop: space[4] }} />}
 
           {!draftsLoading && drafts.length === 0 && (
             <View style={styles.emptyBox}>
-              <Text variant="small" color="ink3">No hay pedidos pendientes</Text>
+              <Text variant="small" color="ink3">{t('order_new.no_pending')}</Text>
             </View>
           )}
 
@@ -805,12 +815,12 @@ export default function NuevoPedidoScreen() {
               </View>
               <View style={styles.cardBody}>
                 <Text variant="bodyMedium">{draft.supplier?.name ?? '—'}</Text>
-                <Text variant="small" color="ink3">{draft.client?.name ?? 'Sin cliente'}</Text>
+                <Text variant="small" color="ink3">{draft.client?.name ?? t('order_new.no_client')}</Text>
                 <View style={styles.draftMeta}>
                   {draft.total > 0 && (
-                    <Text variant="smallMedium" color="ink2">{formatEur(draft.total)}</Text>
+                    <Text variant="smallMedium" color="ink2">{formatEur(draft.total, i18n.language)}</Text>
                   )}
-                  <Text variant="caption" color="ink3">· {formatRelativeTime(draft.created_at)}</Text>
+                  <Text variant="caption" color="ink3">· {formatRelativeTime(draft.created_at, t, i18n.language)}</Text>
                 </View>
               </View>
               <Pressable
@@ -819,13 +829,13 @@ export default function NuevoPedidoScreen() {
                 onPress={(e) => {
                   e.stopPropagation?.();
                   confirmDestructive(
-                    'Descartar pedido',
-                    '¿Seguro que quieres eliminar este pedido pendiente? No se podrá recuperar.',
+                    t('order_new.discard_order_title'),
+                    t('order_new.discard_order_body'),
                     async () => { await deleteOrder(draft.id); refetchDrafts(); },
-                    'Descartar'
+                    t('order_new.discard')
                   );
                 }}
-                accessibilityLabel="Descartar pedido pendiente"
+                accessibilityLabel={t('order_new.discard_pending_label')}
               >
                 <Icon name="Trash2" size={16} color={colors.ink3} />
               </Pressable>
@@ -837,13 +847,13 @@ export default function NuevoPedidoScreen() {
       {/* PASO 0: Elegir modo cliente */}
       {step === 'modo' && (
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modoContent}>
-          <Text variant="heading" style={{ marginBottom: space[2] }}>¿Cómo quieres empezar?</Text>
+          <Text variant="heading" style={{ marginBottom: space[2] }}>{t('order_new.how_start')}</Text>
 
           {/* Opción 1: Cliente existente */}
           <ModeOption
             icon="User"
-            title="Cliente existente"
-            subtitle="Selecciona un cliente de tu lista"
+            title={t('order_new.existing_client_title')}
+            subtitle={t('order_new.existing_client_subtitle')}
             onPress={() => { setClientMode('existing'); setShowClientSearch(true); }}
           />
 
@@ -853,7 +863,7 @@ export default function NuevoPedidoScreen() {
                 <Icon name="Search" size={16} color={colors.ink4} />
                 <TextInput
                   style={styles.inputEl}
-                  placeholder="Buscar cliente..."
+                  placeholder={t('order_new.search_client_placeholder')}
                   placeholderTextColor={colors.ink4}
                   value={clientSearch}
                   onChangeText={setClientSearch}
@@ -874,7 +884,7 @@ export default function NuevoPedidoScreen() {
                 ))}
               </ScrollView>
               <Pressable onPress={() => setShowClientSearch(false)}>
-                <Text variant="small" color="ink3" align="right">Cancelar</Text>
+                <Text variant="small" color="ink3" align="right">{t('order_new.cancel')}</Text>
               </Pressable>
             </View>
           )}
@@ -882,26 +892,26 @@ export default function NuevoPedidoScreen() {
           {/* Opción 2: Dar de alta cliente nuevo ahora */}
           <ModeOption
             icon="UserPlus"
-            title="Dar de alta cliente nuevo"
-            subtitle="Crea el cliente antes de empezar el pedido"
+            title={t('order_new.new_client_now_title')}
+            subtitle={t('order_new.new_client_now_subtitle')}
             onPress={() => setClientMode(clientMode === 'new_now' ? null : 'new_now')}
           />
 
           {clientMode === 'new_now' && (
             <View style={styles.formBox}>
-              <TextInput style={styles.input} placeholder="Nombre *" placeholderTextColor={colors.ink4} value={newClientNow.name} onChangeText={v => setNewClientNow(p => ({ ...p, name: v }))} />
-              <TextInput style={styles.input} placeholder="Teléfono" placeholderTextColor={colors.ink4} value={newClientNow.phone} onChangeText={v => setNewClientNow(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
-              <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.ink4} value={newClientNow.email} onChangeText={v => setNewClientNow(p => ({ ...p, email: v }))} keyboardType="email-address" autoCapitalize="none" />
-              <TextInput style={styles.input} placeholder="Dirección" placeholderTextColor={colors.ink4} value={newClientNow.address} onChangeText={v => setNewClientNow(p => ({ ...p, address: v }))} />
-              <Button label="Crear cliente y continuar" icon="ArrowRight" iconPosition="right" onPress={confirmNewClientNow} fullWidth />
+              <TextInput style={styles.input} placeholder={t('order_new.name_required_placeholder')} placeholderTextColor={colors.ink4} value={newClientNow.name} onChangeText={v => setNewClientNow(p => ({ ...p, name: v }))} />
+              <TextInput style={styles.input} placeholder={t('order_new.phone_placeholder')} placeholderTextColor={colors.ink4} value={newClientNow.phone} onChangeText={v => setNewClientNow(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+              <TextInput style={styles.input} placeholder={t('order_new.email_placeholder')} placeholderTextColor={colors.ink4} value={newClientNow.email} onChangeText={v => setNewClientNow(p => ({ ...p, email: v }))} keyboardType="email-address" autoCapitalize="none" />
+              <TextInput style={styles.input} placeholder={t('order_new.address_placeholder')} placeholderTextColor={colors.ink4} value={newClientNow.address} onChangeText={v => setNewClientNow(p => ({ ...p, address: v }))} />
+              <Button label={t('order_new.create_client_continue')} icon="ArrowRight" iconPosition="right" onPress={confirmNewClientNow} fullWidth />
             </View>
           )}
 
           {/* Opción 3: Empezar sin cliente */}
           <ModeOption
             icon="ClipboardList"
-            title="Empezar sin cliente"
-            subtitle="Añade los datos del cliente al finalizar"
+            title={t('order_new.no_client_mode_title')}
+            subtitle={t('order_new.no_client_mode_subtitle')}
             onPress={() => { setClientMode('new_later'); setStep('proveedor'); }}
           />
         </ScrollView>
@@ -915,11 +925,11 @@ export default function NuevoPedidoScreen() {
               <Avatar name={selectedClient.name} size={22} fontSize={9} />
               <Text variant="smallMedium" style={{ flex: 1 }}>{selectedClient.name}</Text>
               <Pressable onPress={() => setStep('modo')} hitSlop={8}>
-                <Text variant="small" color="brand">Cambiar</Text>
+                <Text variant="small" color="brand">{t('order_new.change')}</Text>
               </Pressable>
             </View>
           )}
-          <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar proveedor..." />
+          <SearchBar value={search} onChangeText={setSearch} placeholder={t('order_new.search_supplier_placeholder')} />
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.listContent}>
             {!selectedSupplier ? (
               filteredSuppliers.map(s => (
@@ -933,7 +943,7 @@ export default function NuevoPedidoScreen() {
                   </View>
                   <View style={styles.cardBody}>
                     <Text variant="bodyMedium">{s.name}</Text>
-                    <Text variant="small" color="ink3">{s.catalog_count ?? 0} catálogos</Text>
+                    <Text variant="small" color="ink3">{t('order_new.catalogs_count', { count: s.catalog_count ?? 0 })}</Text>
                   </View>
                   <Icon name="ChevronRight" size={20} color={colors.ink4} />
                 </Pressable>
@@ -942,7 +952,7 @@ export default function NuevoPedidoScreen() {
               <>
                 <Pressable style={styles.changeBtn} onPress={() => { setSelectedSupplier(null); setSelectedCatalog(null); }}>
                   <Icon name="ChevronLeft" size={16} color={colors.ink2} />
-                  <Text variant="small" color="ink2">Cambiar proveedor ({selectedSupplier.name})</Text>
+                  <Text variant="small" color="ink2">{t('order_new.change_supplier', { name: selectedSupplier.name })}</Text>
                 </Pressable>
                 {catalogs.filter(c => c.status === 'active').map(cat => (
                   <Pressable
@@ -955,7 +965,7 @@ export default function NuevoPedidoScreen() {
                     </View>
                     <View style={styles.cardBody}>
                       <Text variant="bodyMedium">{cat.name}</Text>
-                      <Text variant="small" color="ink3">{cat.product_count ?? 0} referencias</Text>
+                      <Text variant="small" color="ink3">{t('order_new.refs_count', { count: cat.product_count ?? 0 })}</Text>
                     </View>
                     <Icon name="ChevronRight" size={20} color={colors.ink4} />
                   </Pressable>
@@ -971,19 +981,19 @@ export default function NuevoPedidoScreen() {
         <>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2], paddingHorizontal: space[3], paddingTop: space[2] }}>
             <View style={{ flex: 1 }}>
-              <SearchBar value={search} onChangeText={setSearch} placeholder="Buscar por nombre o referencia..." />
+              <SearchBar value={search} onChangeText={setSearch} placeholder={t('order_new.search_product_placeholder')} />
             </View>
             <Pressable
               style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.7 }]}
               onPress={openScanner}
-              accessibilityLabel="Escanear código de barras"
+              accessibilityLabel={t('order_new.scan_barcode')}
             >
               <Icon name="ScanBarcode" size={20} color={colors.white} />
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.7 }]}
               onPress={() => setShowImportModal(true)}
-              accessibilityLabel="Importar productos por CSV"
+              accessibilityLabel={t('order_new.import_csv')}
             >
               <Icon name="FileUp" size={20} color={colors.white} />
             </Pressable>
@@ -1021,14 +1031,14 @@ export default function NuevoPedidoScreen() {
                   {/* Info */}
                   <View style={styles.productCardBody}>
                     <Text variant="smallMedium" numberOfLines={2}>{p.name}</Text>
-                    {p.reference ? <Text variant="caption" color="ink3">Ref. {p.reference}</Text> : null}
+                    {p.reference ? <Text variant="caption" color="ink3">{t('order_new.ref_prefix', { ref: p.reference })}</Text> : null}
                     {(p.familia || p.subfamilia) ? (
                       <Text variant="caption" color="ink4" numberOfLines={1}>
                         {[p.familia, p.subfamilia].filter(Boolean).join(' · ')}
                       </Text>
                     ) : null}
-                    <Text variant="smallMedium" style={{ marginTop: 2 }}>{formatEur(p.price)}</Text>
-                    {p.stock != null ? <Text variant="caption" color="ink4">Stock: {p.stock}</Text> : null}
+                    <Text variant="smallMedium" style={{ marginTop: 2 }}>{formatEur(p.price, i18n.language)}</Text>
+                    {p.stock != null ? <Text variant="caption" color="ink4">{t('order_new.stock_label', { count: p.stock })}</Text> : null}
                   </View>
 
                   {/* Controles qty */}
@@ -1049,7 +1059,7 @@ export default function NuevoPedidoScreen() {
                         onPress={() => handleAddProduct(p)}
                       >
                         <Icon name="Plus" size={16} color={colors.white} />
-                        <Text variant="smallMedium" color="white">Añadir</Text>
+                        <Text variant="smallMedium" color="white">{t('order_new.add')}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -1060,10 +1070,10 @@ export default function NuevoPedidoScreen() {
           {cart.length > 0 && (
             <View style={styles.cartBar}>
               <View style={{ flex: 1 }}>
-                <Text variant="smallMedium">{cart.length} producto{cart.length !== 1 ? 's' : ''}</Text>
-                <Text variant="caption" color="ink3">{formatEur(cartTotal)}</Text>
+                <Text variant="smallMedium">{t('order_new.products_count', { count: cart.length })}</Text>
+                <Text variant="caption" color="ink3">{formatEur(cartTotal, i18n.language)}</Text>
               </View>
-              <Button label="Ver carrito" icon="ArrowRight" iconPosition="right" size="sm" onPress={() => setStep('carrito')} />
+              <Button label={t('order_new.view_cart')} icon="ArrowRight" iconPosition="right" size="sm" onPress={() => setStep('carrito')} />
             </View>
           )}
         </>
@@ -1076,27 +1086,27 @@ export default function NuevoPedidoScreen() {
             {/* Resumen proveedor */}
             <View style={styles.summaryCard}>
               <Text variant="smallMedium">{selectedSupplier?.name} · {selectedCatalog?.name}</Text>
-              <Text variant="caption" color="ink3">{cart.length} productos · {cart.reduce((s, i) => s + i.quantity, 0)} unidades</Text>
+              <Text variant="caption" color="ink3">{t('order_new.cart_summary', { count: cart.length, units: cart.reduce((s, i) => s + i.quantity, 0) })}</Text>
             </View>
 
             {/* Cliente */}
             <View style={styles.sectionCard}>
-              <Text variant="smallMedium" color="ink2" style={styles.sectionTitle}>Cliente</Text>
+              <Text variant="smallMedium" color="ink2" style={styles.sectionTitle}>{t('order_new.client_section')}</Text>
               {clientMode === 'existing' && selectedClient && (
                 <View style={styles.clientSelectedRow}>
                   <Avatar name={selectedClient.name} size={28} fontSize={11} />
                   <Text variant="bodyMedium" style={{ flex: 1 }}>{selectedClient.name}</Text>
                   <Pressable onPress={() => setStep('modo')} hitSlop={8}>
-                    <Text variant="small" color="brand">Cambiar</Text>
+                    <Text variant="small" color="brand">{t('order_new.change')}</Text>
                   </Pressable>
                 </View>
               )}
               {clientMode === 'new_later' && (
                 <View style={{ gap: space[2] }}>
-                  <TextInput style={styles.input} placeholder="Nombre del cliente *" placeholderTextColor={colors.ink4} value={newClientLater.name} onChangeText={v => setNewClientLater(p => ({ ...p, name: v }))} />
-                  <TextInput style={styles.input} placeholder="Teléfono" placeholderTextColor={colors.ink4} value={newClientLater.phone} onChangeText={v => setNewClientLater(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
-                  <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.ink4} value={newClientLater.email} onChangeText={v => setNewClientLater(p => ({ ...p, email: v }))} keyboardType="email-address" autoCapitalize="none" />
-                  <TextInput style={styles.input} placeholder="Dirección" placeholderTextColor={colors.ink4} value={newClientLater.address} onChangeText={v => setNewClientLater(p => ({ ...p, address: v }))} />
+                  <TextInput style={styles.input} placeholder={t('order_new.name_client_placeholder')} placeholderTextColor={colors.ink4} value={newClientLater.name} onChangeText={v => setNewClientLater(p => ({ ...p, name: v }))} />
+                  <TextInput style={styles.input} placeholder={t('order_new.phone_placeholder')} placeholderTextColor={colors.ink4} value={newClientLater.phone} onChangeText={v => setNewClientLater(p => ({ ...p, phone: v }))} keyboardType="phone-pad" />
+                  <TextInput style={styles.input} placeholder={t('order_new.email_placeholder')} placeholderTextColor={colors.ink4} value={newClientLater.email} onChangeText={v => setNewClientLater(p => ({ ...p, email: v }))} keyboardType="email-address" autoCapitalize="none" />
+                  <TextInput style={styles.input} placeholder={t('order_new.address_placeholder')} placeholderTextColor={colors.ink4} value={newClientLater.address} onChangeText={v => setNewClientLater(p => ({ ...p, address: v }))} />
                 </View>
               )}
             </View>
@@ -1104,10 +1114,10 @@ export default function NuevoPedidoScreen() {
             {/* Dirección de envío — solo si hay cliente existente con direcciones */}
             {clientMode === 'existing' && clientAddresses.length > 0 && (
               <View style={styles.sectionCard}>
-                <Text variant="smallMedium" color="ink2" style={styles.sectionTitle}>Dirección de envío</Text>
+                <Text variant="smallMedium" color="ink2" style={styles.sectionTitle}>{t('order_new.shipping_address_section')}</Text>
                 <Pressable style={styles.addressPicker} onPress={() => setShowAddressPicker(true)}>
                   <View style={{ flex: 1 }}>
-                    <Text variant="bodyMedium">{selectedAddress?.label ?? 'Seleccionar dirección'}</Text>
+                    <Text variant="bodyMedium">{selectedAddress?.label ?? t('order_new.select_address')}</Text>
                     {selectedAddress?.address && <Text variant="small" color="ink3">{selectedAddress.address}{selectedAddress.city ? `, ${selectedAddress.city}` : ''}</Text>}
                   </View>
                   <Icon name="ChevronDown" size={20} color={colors.ink3} />
@@ -1126,11 +1136,11 @@ export default function NuevoPedidoScreen() {
                         {Object.entries(item.attributes).map(([k,v]) => `${k}: ${v}`).join(' · ')}
                       </Text>
                     )}
-                    <Text variant="caption" color="ink3">{item.product.reference} · {formatEur(item.product.price)}/ud</Text>
+                    <Text variant="caption" color="ink3">{item.product.reference} · {formatEur(item.product.price, i18n.language)}{t('order_new.per_unit_suffix')}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text variant="caption" color="ink3">x{item.quantity}</Text>
-                    <Text variant="smallMedium">{formatEur(item.product.price * item.quantity)}</Text>
+                    <Text variant="smallMedium">{formatEur(item.product.price * item.quantity, i18n.language)}</Text>
                   </View>
                 </View>
               ))}
@@ -1142,7 +1152,7 @@ export default function NuevoPedidoScreen() {
                 <Icon name="Tag" size={16} color={colors.ink4} />
                 <TextInput
                   style={styles.inputEl}
-                  placeholder="Código descuento (opcional)"
+                  placeholder={t('order_new.discount_placeholder')}
                   placeholderTextColor={colors.ink4}
                   value={discountCode}
                   onChangeText={setDiscountCode}
@@ -1154,7 +1164,7 @@ export default function NuevoPedidoScreen() {
             <TextInput
               style={styles.notesInput}
               multiline
-              placeholder="Observaciones, instrucciones de entrega..."
+              placeholder={t('order_new.notes_placeholder')}
               placeholderTextColor={colors.ink4}
               value={notes}
               onChangeText={setNotes}
@@ -1164,26 +1174,26 @@ export default function NuevoPedidoScreen() {
           {/* Total y confirmar */}
           <View style={styles.totalBar}>
             <View style={styles.totalRow}>
-              <Text variant="small" color="ink3">Base imponible ({cart.reduce((s, i) => s + i.quantity, 0)} uds.)</Text>
-              <Text variant="smallMedium">{formatEur(baseImponible)}</Text>
+              <Text variant="small" color="ink3">{t('order_new.base_taxable', { count: cart.reduce((s, i) => s + i.quantity, 0) })}</Text>
+              <Text variant="smallMedium">{formatEur(baseImponible, i18n.language)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text variant="small" color="ink3">IVA</Text>
-              <Text variant="smallMedium">{formatEur(totalIva)}</Text>
+              <Text variant="small" color="ink3">{t('order_new.vat')}</Text>
+              <Text variant="smallMedium">{formatEur(totalIva, i18n.language)}</Text>
             </View>
             <View style={styles.totalFinal}>
-              <Text variant="bodyMedium">Total pedido</Text>
-              <Text variant="title" color="brand">{formatEur(cartTotal)}</Text>
+              <Text variant="bodyMedium">{t('order_new.total_order')}</Text>
+              <Text variant="title" color="brand">{formatEur(cartTotal, i18n.language)}</Text>
             </View>
             <Button
-              label="Guardar borrador"
+              label={t('order_new.save_draft')}
               variant="secondary"
-              onPress={() => { saveDraftSilently().then((id) => { if (id) { toast.success('Borrador guardado'); router.back(); } else { toast.error('Error al guardar: faltan datos'); } }); }}
+              onPress={() => { saveDraftSilently().then((id) => { if (id) { toast.success(t('order_new.draft_saved')); router.back(); } else { toast.error(t('order_new.draft_save_error')); } }); }}
               fullWidth
               style={{ marginBottom: space[2] }}
             />
             <Button
-              label="Confirmar y generar PDF"
+              label={t('order_new.confirm_generate_pdf')}
               onPress={confirmOrder}
               loading={saving}
               fullWidth
@@ -1205,7 +1215,7 @@ export default function NuevoPedidoScreen() {
           <View style={styles.scanOverlay}>
             <View style={styles.scanFrame} />
             <Text variant="small" color="white" align="center" style={{ marginTop: space[4] }}>
-              Apunta al código de barras del producto
+              {t('order_new.barcode_hint')}
             </Text>
           </View>
           {/* Botón cerrar */}
@@ -1233,7 +1243,7 @@ export default function NuevoPedidoScreen() {
       <Modal visible={showAddressPicker} transparent animationType="slide" onRequestClose={() => setShowAddressPicker(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text variant="heading" style={{ marginBottom: space[3] }}>Seleccionar dirección</Text>
+            <Text variant="heading" style={{ marginBottom: space[3] }}>{t('order_new.select_address_title')}</Text>
             {clientAddresses.map(addr => {
               const isSel = selectedAddressId === addr.id;
               return (
@@ -1251,7 +1261,7 @@ export default function NuevoPedidoScreen() {
               );
             })}
             <Pressable style={styles.modalCancel} onPress={() => setShowAddressPicker(false)}>
-              <Text variant="small" color="ink3">Cerrar</Text>
+              <Text variant="small" color="ink3">{t('order_new.close')}</Text>
             </Pressable>
           </View>
         </View>
@@ -1261,15 +1271,15 @@ export default function NuevoPedidoScreen() {
       <Modal visible={showImportModal} transparent animationType="slide" onRequestClose={() => setShowImportModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text variant="heading" style={{ marginBottom: space[2] }}>Importar productos por CSV</Text>
+            <Text variant="heading" style={{ marginBottom: space[2] }}>{t('order_new.import_csv_title')}</Text>
             <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
-              Sube un CSV con una fila por producto. Columna obligatoria:{' '}
-              <Text variant="smallMedium">referencia</Text> (debe existir en{' '}
-              {selectedCatalog?.name ?? 'el catálogo seleccionado'}). Opcionales:{' '}
-              <Text variant="smallMedium">unidades</Text>, descripcion, precio.
+              {t('order_new.import_csv_hint_prefix')}{' '}
+              <Text variant="smallMedium">referencia</Text> {t('order_new.import_csv_hint_middle')}{' '}
+              {selectedCatalog?.name ?? t('order_new.import_csv_hint_catalog_fallback')}{t('order_new.import_csv_hint_suffix')}{' '}
+              <Text variant="smallMedium">unidades</Text>{t('order_new.import_csv_hint_end')}
             </Text>
             <Button
-              label="Descargar plantilla"
+              label={t('order_new.download_template')}
               icon="Download"
               variant="secondary"
               onPress={shareImportCsvTemplate}
@@ -1277,14 +1287,14 @@ export default function NuevoPedidoScreen() {
               style={{ marginBottom: space[2] }}
             />
             <Button
-              label="Seleccionar fichero CSV"
+              label={t('order_new.select_csv_file')}
               icon="FileUp"
               onPress={handleImportCsv}
               loading={importing}
               fullWidth
             />
             <Pressable style={styles.modalCancel} onPress={() => setShowImportModal(false)}>
-              <Text variant="small" color="ink3">Cerrar</Text>
+              <Text variant="small" color="ink3">{t('order_new.close')}</Text>
             </Pressable>
           </View>
         </View>
@@ -1313,11 +1323,11 @@ export default function NuevoPedidoScreen() {
               })()}
               <Text variant="heading" style={{ marginBottom: space[1] }}>{attrProduct?.name}</Text>
               <Text variant="caption" color="ink3" style={{ marginBottom: space[3] }}>
-                Selecciona las opciones para añadir al pedido
+                {t('order_new.select_options')}
               </Text>
               <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 300 }}>
                 {attrLoading ? (
-                  <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[4] }}>Cargando opciones…</Text>
+                  <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[4] }}>{t('order_new.loading_options')}</Text>
                 ) : (
                   attrList.map(attr => {
                     const selectedVal = attrSelections[attr.name];
@@ -1331,7 +1341,7 @@ export default function NuevoPedidoScreen() {
                           onPress={() => setOpenAttrPicker(isOpen ? null : attr.name)}
                         >
                           <Text variant="smallMedium" color={selectedVal ? 'ink' : 'ink4'} style={{ flex: 1 }}>
-                            {selectedVal ?? `Elige ${attr.name}…`}
+                            {selectedVal ?? t('order_new.choose_option', { name: attr.name })}
                           </Text>
                           <Icon name={isOpen ? 'ChevronUp' : 'ChevronDown'} size={16} color={colors.ink3} />
                         </Pressable>
@@ -1365,7 +1375,7 @@ export default function NuevoPedidoScreen() {
                                     {opt.value}
                                   </Text>
                                   {!avail && (
-                                    <Text variant="caption" color="ink4">No disponible</Text>
+                                    <Text variant="caption" color="ink4">{t('order_new.not_available')}</Text>
                                   )}
                                   {selected && avail && (
                                     <Icon name="Check" size={14} color={colors.brand} />
@@ -1382,7 +1392,7 @@ export default function NuevoPedidoScreen() {
               </ScrollView>
               <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[3] }}>
                 <Pressable style={[styles.modalCancel, { flex: 1 }]} onPress={() => { setAttrProduct(null); setAttrVariants([]); setOpenAttrPicker(null); }}>
-                  <Text variant="smallMedium" color="ink2">Cancelar</Text>
+                  <Text variant="smallMedium" color="ink2">{t('order_new.cancel')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.attrConfirmBtn, { flex: 2 },
@@ -1390,7 +1400,7 @@ export default function NuevoPedidoScreen() {
                   onPress={confirmAttrSelection}
                   disabled={attrList.some(a => !attrSelections[a.name])}
                 >
-                  <Text variant="smallMedium" color="white">Añadir al pedido</Text>
+                  <Text variant="smallMedium" color="white">{t('order_new.add_to_order')}</Text>
                 </Pressable>
               </View>
             </View>

@@ -6,16 +6,14 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import { useProducts } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
+import { formatEur } from '@/lib/format';
 import type { Product } from '@/hooks/useAgent';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
 
 function useGridLayout() {
   const { width } = useWindowDimensions();
@@ -26,6 +24,7 @@ function useGridLayout() {
 
 export default function CatalogoScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { products, loading, refetch } = useProducts(id);
@@ -83,17 +82,18 @@ export default function CatalogoScreen() {
       await supabase.from('catalogs').delete().eq('id', id);
       router.back();
     };
+    const confirmMsg = t('catalog_detail.delete_catalog_confirm', { name: catalogName });
     if (Platform.OS === 'web') {
-      if (window.confirm(`¿Eliminar "${catalogName}"? Se eliminarán también todos sus productos.`)) {
+      if (window.confirm(confirmMsg)) {
         doDelete();
       }
     } else {
       Alert.alert(
-        'Eliminar catálogo',
-        `¿Eliminar "${catalogName}"? Se eliminarán también todos sus productos.`,
+        t('catalog_detail.delete_catalog'),
+        confirmMsg,
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Eliminar', style: 'destructive', onPress: doDelete },
+          { text: t('catalog_detail.cancel'), style: 'cancel' },
+          { text: t('catalog_detail.delete'), style: 'destructive', onPress: doDelete },
         ]
       );
     }
@@ -154,21 +154,21 @@ export default function CatalogoScreen() {
         <View style={styles.cardInfo}>
           <Text variant="smallMedium" numberOfLines={2}>{item.name}</Text>
           {item.reference ? (
-            <Text variant="caption" color="ink3">Ref. {item.reference}</Text>
+            <Text variant="caption" color="ink3">{t('catalog_detail.ref_prefix', { ref: item.reference })}</Text>
           ) : null}
           {(item.familia || item.subfamilia) ? (
             <Text variant="caption" color="ink3" numberOfLines={1}>
               {[item.familia, item.subfamilia].filter(Boolean).join(' › ')}
             </Text>
           ) : null}
-          <Text variant="bodyMedium" style={{ marginTop: 2 }}>{formatEur(item.price)}</Text>
+          <Text variant="bodyMedium" style={{ marginTop: 2 }}>{formatEur(item.price, i18n.language)}</Text>
           {item.stock != null ? (
             item.stock === 0 ? (
               <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
-                <Badge label="Sin stock" variant="danger" />
+                <Badge label={t('catalog_detail.out_of_stock')} variant="danger" />
               </View>
             ) : (
-              <Text variant="caption" color="ink3">Stock: {item.stock}</Text>
+              <Text variant="caption" color="ink3">{t('catalog_detail.stock_label', { count: item.stock })}</Text>
             )
           ) : null}
         </View>
@@ -182,14 +182,14 @@ export default function CatalogoScreen() {
   return (
     <Screen>
       <TopBar
-        title={catalogName || 'Catálogo'}
+        title={catalogName || t('catalog_detail.title_fallback')}
         onBack={() => router.back()}
         actions={[
-          { icon: 'Upload', onPress: () => router.push(`/(agent)/catalogo/importar?catalogId=${id}` as any), accessibilityLabel: 'Importar CSV' },
-          { icon: 'Images', onPress: () => router.push(`/(agent)/catalogo/imagenes?catalogId=${id}` as any), accessibilityLabel: 'Subir imágenes en bloque' },
-          { icon: 'Pencil', onPress: openEdit, accessibilityLabel: 'Editar catálogo' },
-          { icon: 'Trash2', onPress: handleDeleteCatalog, accessibilityLabel: 'Eliminar catálogo' },
-          { icon: 'Plus', onPress: () => router.push(`/(agent)/producto/nuevo?catalogId=${id}` as any), accessibilityLabel: 'Nuevo producto' },
+          { icon: 'Upload', onPress: () => router.push(`/(agent)/catalogo/importar?catalogId=${id}` as any), accessibilityLabel: t('catalog_detail.import_csv') },
+          { icon: 'Images', onPress: () => router.push(`/(agent)/catalogo/imagenes?catalogId=${id}` as any), accessibilityLabel: t('catalog_detail.bulk_images') },
+          { icon: 'Pencil', onPress: openEdit, accessibilityLabel: t('catalog_detail.edit_catalog') },
+          { icon: 'Trash2', onPress: handleDeleteCatalog, accessibilityLabel: t('catalog_detail.delete_catalog') },
+          { icon: 'Plus', onPress: () => router.push(`/(agent)/producto/nuevo?catalogId=${id}` as any), accessibilityLabel: t('catalog_detail.new_product') },
         ]}
       />
 
@@ -199,7 +199,7 @@ export default function CatalogoScreen() {
           <Icon name="Search" size={16} color={colors.ink4} />
           <TextInput
             style={styles.inputEl}
-            placeholder="Buscar por nombre, ref. o EAN..."
+            placeholder={t('catalog_detail.search_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -251,10 +251,10 @@ export default function CatalogoScreen() {
       {(selectedFamilia || selectedSubfamilia || search) && (
         <View style={styles.resultsBar}>
           <Text variant="caption" color="ink3">
-            {filtered.length} producto{filtered.length !== 1 ? 's' : ''}
+            {t('catalog_detail.results_count', { count: filtered.length })}
           </Text>
           <Pressable onPress={() => { setSearch(''); setSelectedFamilia(null); setSelectedSubfamilia(null); }}>
-            <Text variant="caption" color="ink2">Limpiar filtros</Text>
+            <Text variant="caption" color="ink2">{t('catalog_detail.clear_filters')}</Text>
           </Pressable>
         </View>
       )}
@@ -263,7 +263,7 @@ export default function CatalogoScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.ink} />
       ) : filtered.length === 0 ? (
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-          {search || selectedFamilia ? 'Sin resultados' : 'Sin productos. Pulsa + para añadir uno.'}
+          {search || selectedFamilia ? t('catalog_detail.no_results') : t('catalog_detail.no_products')}
         </Text>
       ) : (
         <FlatList
@@ -283,27 +283,27 @@ export default function CatalogoScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
-              <Text variant="heading" style={{ marginBottom: space[3] }}>Editar catálogo</Text>
+              <Text variant="heading" style={{ marginBottom: space[3] }}>{t('catalog_detail.edit_catalog_title')}</Text>
 
-              <Text variant="caption" color="ink3" style={styles.modalLabel}>Nombre *</Text>
+              <Text variant="caption" color="ink3" style={styles.modalLabel}>{t('catalog_detail.name')}</Text>
               <TextInput
                 style={styles.modalInput}
                 value={editName}
                 onChangeText={setEditName}
-                placeholder="Nombre del catálogo"
+                placeholder={t('catalog_detail.name_placeholder')}
                 placeholderTextColor={colors.ink4}
               />
 
-              <Text variant="caption" color="ink3" style={styles.modalLabel}>Temporada (opcional)</Text>
+              <Text variant="caption" color="ink3" style={styles.modalLabel}>{t('catalog_detail.season')}</Text>
               <TextInput
                 style={styles.modalInput}
                 value={editSeason}
                 onChangeText={setEditSeason}
-                placeholder="Ej: SS25"
+                placeholder={t('catalog_detail.season_placeholder')}
                 placeholderTextColor={colors.ink4}
               />
 
-              <Text variant="caption" color="ink3" style={styles.modalLabel}>Estado</Text>
+              <Text variant="caption" color="ink3" style={styles.modalLabel}>{t('catalog_detail.status')}</Text>
               <View style={styles.statusRow}>
                 {(['active', 'archived'] as const).map(s => (
                   <Pressable
@@ -312,7 +312,7 @@ export default function CatalogoScreen() {
                     onPress={() => setEditStatus(s)}
                   >
                     <Text variant="smallMedium" color={editStatus === s ? 'white' : 'ink2'}>
-                      {s === 'active' ? 'Activo' : 'Archivado'}
+                      {s === 'active' ? t('catalog_detail.status_active') : t('catalog_detail.status_archived')}
                     </Text>
                   </Pressable>
                 ))}
@@ -320,13 +320,13 @@ export default function CatalogoScreen() {
 
               <View style={styles.modalActions}>
                 <Button
-                  label="Cancelar"
+                  label={t('catalog_detail.cancel')}
                   variant="secondary"
                   onPress={() => setShowEdit(false)}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  label="Guardar"
+                  label={t('catalog_detail.save')}
                   onPress={handleSaveEdit}
                   loading={savingEdit}
                   disabled={!editName.trim()}

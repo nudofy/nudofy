@@ -14,18 +14,41 @@ import { useAgentContext } from '@/contexts/AgentContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { SupportedLanguage } from '@/i18n';
+
+const RISK_PRESETS = [
+  { value: 1.2, label: 'Exigente', hint: 'Avisa antes' },
+  { value: 1.5, label: 'Equilibrado', hint: 'Recomendado' },
+  { value: 2.0, label: 'Flexible', hint: 'Avisa más tarde' },
+];
+
+const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] = [
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+  { value: 'en', label: 'English' },
+];
 
 export default function PerfilScreen() {
   const router = useRouter();
   const toast = useToast();
-  const { agent } = useAgentContext();
-  const { signOut, session } = useAuth();
+  const { agent, refreshAgent } = useAgentContext();
+  const { signOut, session, profile, setPreferredLanguage } = useAuth();
   const [editing, setEditing] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingRisk, setSavingRisk] = useState(false);
+  const [savingLanguage, setSavingLanguage] = useState(false);
+
+  async function handleSetLanguage(lang: SupportedLanguage) {
+    if (!profile || lang === profile.preferred_language) return;
+    setSavingLanguage(true);
+    const { error } = await setPreferredLanguage(lang);
+    setSavingLanguage(false);
+    if (error) toast.error(error);
+  }
 
   useEffect(() => {
     if (agent) {
@@ -46,6 +69,16 @@ export default function PerfilScreen() {
     if (error) { toast.error(error.message); return; }
     setEditing(false);
     toast.success('Perfil actualizado');
+  }
+
+  async function handleSetRiskMultiplier(value: number) {
+    if (!agent || value === agent.risk_multiplier) return;
+    setSavingRisk(true);
+    const { error } = await supabase.from('agents').update({ risk_multiplier: value }).eq('id', agent.id);
+    setSavingRisk(false);
+    if (error) { toast.error(error.message); return; }
+    refreshAgent();
+    toast.success('Sensibilidad de alertas actualizada');
   }
 
   async function handleExportData() {
@@ -187,6 +220,34 @@ export default function PerfilScreen() {
             </View>
           </View>
 
+          {/* Analítica: sensibilidad de la alerta de riesgo de fuga */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Mi cartera</Text>
+            <View style={[styles.sectionBody, { padding: space[3], gap: space[2] }]}>
+              <Text variant="body">Sensibilidad de la alerta de riesgo</Text>
+              <Text variant="caption" color="ink3">
+                Decide cuánto tiene que tardar un cliente en repetir pedido antes de que la app lo marque en rojo en "Mi cartera".
+              </Text>
+              <View style={styles.riskOptions}>
+                {RISK_PRESETS.map(preset => (
+                  <Pressable
+                    key={preset.value}
+                    style={[styles.riskChip, agent?.risk_multiplier === preset.value && styles.riskChipActive]}
+                    onPress={() => handleSetRiskMultiplier(preset.value)}
+                    disabled={savingRisk}
+                  >
+                    <Text variant="smallMedium" color={agent?.risk_multiplier === preset.value ? 'white' : 'ink2'}>
+                      {preset.label}
+                    </Text>
+                    <Text variant="caption" color={agent?.risk_multiplier === preset.value ? 'white' : 'ink3'}>
+                      {preset.hint}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
           {/* Seguridad */}
           <View style={styles.section}>
             <Text variant="caption" color="ink3" style={styles.sectionTitle}>Seguridad</Text>
@@ -199,6 +260,27 @@ export default function PerfilScreen() {
                 <Text variant="body" style={{ flex: 1 }}>Cambiar contraseña</Text>
                 <Icon name="ChevronRight" size={18} color={colors.ink4} />
               </Pressable>
+            </View>
+          </View>
+
+          {/* Idioma */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Idioma</Text>
+            <View style={[styles.sectionBody, { padding: space[3] }]}>
+              <View style={styles.riskOptions}>
+                {LANGUAGE_OPTIONS.map(option => (
+                  <Pressable
+                    key={option.value}
+                    style={[styles.riskChip, profile?.preferred_language === option.value && styles.riskChipActive]}
+                    onPress={() => handleSetLanguage(option.value)}
+                    disabled={savingLanguage}
+                  >
+                    <Text variant="smallMedium" color={profile?.preferred_language === option.value ? 'white' : 'ink2'}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           </View>
 
@@ -265,6 +347,15 @@ const styles = StyleSheet.create({
   content: { padding: space[4], gap: space[4] },
 
   section: { gap: space[2] },
+
+  riskOptions: { flexDirection: 'row', gap: space[2] },
+  riskChip: {
+    flex: 1, alignItems: 'center', gap: 2,
+    paddingVertical: space[2], paddingHorizontal: space[1],
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface2,
+  },
+  riskChipActive: { backgroundColor: colors.ink },
   sectionTitle: {
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginLeft: space[1],

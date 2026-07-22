@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -15,6 +16,7 @@ import type { IconName } from '@/components/ui/Icon';
 
 export default function MasScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
   const { profile, signOut } = useAuth();
   const { agent } = useAgentContext();
   const { suppliers } = useSuppliers();
@@ -25,17 +27,18 @@ export default function MasScreen() {
   const isCompanyAdmin = profile?.role === 'company_admin';
 
   const menuItems: { label: string; icon: IconName; route: string | null }[] = [
-    ...(isCompanyAdmin ? [{ label: 'Mi empresa', icon: 'Building2' as IconName, route: '/(agent)/mi-empresa' }] : []),
-    { label: 'Estadísticas', icon: 'ChartBar', route: '/(agent)/estadisticas' },
-    { label: 'Tarifas', icon: 'Tag', route: '/(agent)/tarifas' },
-    { label: 'Notificaciones', icon: 'Bell', route: '/(agent)/notificaciones' },
-    { label: 'Perfil y ajustes', icon: 'Settings', route: '/(agent)/perfil' },
-    { label: 'Facturas', icon: 'Receipt', route: '/(agent)/mis-facturas' },
+    ...(isCompanyAdmin ? [{ label: t('mas.my_company'), icon: 'Building2' as IconName, route: '/(agent)/mi-empresa' }] : []),
+    { label: t('mas.my_portfolio'), icon: 'Target', route: '/(agent)/analitica' },
+    { label: t('mas.stats'), icon: 'ChartBar', route: '/(agent)/estadisticas' },
+    { label: t('mas.tariffs'), icon: 'Tag', route: '/(agent)/tarifas' },
+    { label: t('mas.notifications'), icon: 'Bell', route: '/(agent)/notificaciones' },
+    { label: t('mas.profile_settings'), icon: 'Settings', route: '/(agent)/perfil' },
+    { label: t('mas.invoices'), icon: 'Receipt', route: '/(agent)/mis-facturas' },
   ];
 
   return (
     <Screen>
-      <TopBar title="Más" />
+      <TopBar title={t('mas.title')} />
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Perfil del agente */}
@@ -47,7 +50,7 @@ export default function MasScreen() {
           <View style={styles.profileInfo}>
             <Text variant="bodyMedium">{agent?.name ?? profile?.email}</Text>
             <Text variant="caption" color="ink3" style={{ marginTop: 2, textTransform: 'capitalize' }}>
-              Plan {agent?.plan ? getPlan(agent.plan).name : '—'}
+              {t('mas.plan_prefix', { plan: agent?.plan ? getPlan(agent.plan).name : '—' })}
             </Text>
           </View>
           <Icon name="ChevronRight" size={18} color={colors.ink4} />
@@ -56,17 +59,17 @@ export default function MasScreen() {
         {/* Mis proveedores */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Mis proveedores</Text>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('mas.my_suppliers')}</Text>
             <Pressable onPress={() => router.push('/(agent)/catalogos')}>
-              <Text variant="caption" color="ink2">Ver todos</Text>
+              <Text variant="caption" color="ink2">{t('mas.view_all')}</Text>
             </Pressable>
           </View>
 
           {/* Resumen */}
           <View style={styles.summaryBar}>
-            <SumItem value={suppliers.length.toString()} label="Proveedores" />
-            <SumItem value={active.toString()} label="Activos" />
-            <SumItem value={totalRefs.toString()} label="Catálogos" />
+            <SumItem value={suppliers.length.toString()} label={t('mas.suppliers_count')} />
+            <SumItem value={active.toString()} label={t('mas.active_count')} />
+            <SumItem value={totalRefs.toString()} label={t('mas.catalogs_count')} />
           </View>
 
           {/* Lista */}
@@ -79,13 +82,13 @@ export default function MasScreen() {
             onPress={() => router.push('/(agent)/proveedor/nuevo' as any)}
           >
             <Icon name="Plus" size={16} color={colors.ink2} />
-            <Text variant="smallMedium" color="ink2">Añadir proveedor</Text>
+            <Text variant="smallMedium" color="ink2">{t('mas.add_supplier')}</Text>
           </Pressable>
         </View>
 
         {/* Otras opciones */}
         <View style={styles.section}>
-          <Text variant="caption" color="ink3" style={styles.sectionTitle}>Cuenta y ajustes</Text>
+          <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('mas.account_settings')}</Text>
           <View style={styles.menuBlock}>
             {menuItems.map((item, i) => (
               <Pressable
@@ -106,7 +109,7 @@ export default function MasScreen() {
           onPress={signOut}
         >
           <Icon name="LogOut" size={18} color={colors.danger} />
-          <Text variant="bodyMedium" color="danger">Cerrar sesión</Text>
+          <Text variant="bodyMedium" color="danger">{t('mas.sign_out')}</Text>
         </Pressable>
       </ScrollView>
 
@@ -125,6 +128,7 @@ function SumItem({ value, label }: { value: string; label: string }) {
 }
 
 function SupplierRow({ supplier, onPress }: { supplier: Supplier; onPress: () => void }) {
+  const { t } = useTranslation('agent');
   return (
     <Pressable
       style={({ pressed }) => [styles.supplierRow, pressed && { opacity: 0.7 }]}
@@ -140,10 +144,10 @@ function SupplierRow({ supplier, onPress }: { supplier: Supplier; onPress: () =>
       <View style={styles.supplierBody}>
         <Text variant="bodyMedium">{supplier.name}</Text>
         <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-          {supplier.catalog_count ?? 0} catálogos
+          {t('mas.catalogs_suffix', { count: supplier.catalog_count ?? 0 })}
         </Text>
       </View>
-      <Badge label={supplier.active ? 'Activo' : 'Inactivo'} variant={supplier.active ? 'success' : 'neutral'} />
+      <Badge label={supplier.active ? t('mas.active_badge') : t('mas.inactive_badge')} variant={supplier.active ? 'success' : 'neutral'} />
     </Pressable>
   );
 }

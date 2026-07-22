@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
 import { Text, Badge } from '@/components/ui';
+import { formatEur } from '@/lib/format';
 
 interface AgentOrder {
   id: string;
@@ -17,28 +19,26 @@ interface AgentOrder {
   supplier?: { name: string };
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'neutral' | 'danger' }> = {
-  draft:             { label: 'Borrador',   variant: 'neutral'  },
-  confirmed:         { label: 'Confirmado', variant: 'warning'  },
-  proposal_sent:     { label: 'Propuesta',  variant: 'warning'  },
-  sent_to_supplier:  { label: 'Enviado',    variant: 'success'  },
-  cancelled:         { label: 'Cancelado',  variant: 'danger'   },
-};
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 export default function AdminAgentePedidosScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, i18n } = useTranslation('admin');
   const [orders, setOrders] = useState<AgentOrder[]>([]);
   const [agentName, setAgentName] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'neutral' | 'danger' }> = {
+    draft:            { label: t('agente_pedidos.status_draft'),     variant: 'neutral'  },
+    confirmed:        { label: t('agente_pedidos.status_confirmed'), variant: 'warning'  },
+    proposal_sent:    { label: t('agente_pedidos.status_proposal'),  variant: 'warning'  },
+    sent_to_supplier: { label: t('agente_pedidos.status_sent'),      variant: 'success'  },
+    cancelled:        { label: t('agente_pedidos.status_cancelled'), variant: 'danger'   },
+  };
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -51,7 +51,7 @@ export default function AdminAgentePedidosScreen() {
         .order('created_at', { ascending: false })
         .limit(100),
     ]).then(([agentRes, ordersRes]) => {
-      setAgentName((agentRes.data as any)?.name ?? 'Agente');
+      setAgentName((agentRes.data as any)?.name ?? t('agente_pedidos.default_agent_name'));
       setOrders(((ordersRes.data ?? []) as unknown) as AgentOrder[]);
       setLoading(false);
     });
@@ -60,20 +60,20 @@ export default function AdminAgentePedidosScreen() {
   return (
     <AdminShell
       activeSection="agentes"
-      title={`Pedidos · ${agentName}`}
+      title={t('agente_pedidos.title', { name: agentName })}
       onBack={() => router.back()}
     >
       {loading && (
-        <Text variant="small" color="ink3" align="center" style={styles.empty}>Cargando...</Text>
+        <Text variant="small" color="ink3" align="center" style={styles.empty}>{t('agente_pedidos.loading')}</Text>
       )}
       {!loading && orders.length === 0 && (
-        <Text variant="small" color="ink3" align="center" style={styles.empty}>Este agente no tiene pedidos.</Text>
+        <Text variant="small" color="ink3" align="center" style={styles.empty}>{t('agente_pedidos.no_orders')}</Text>
       )}
 
       {!loading && orders.length > 0 && (
         <View style={styles.card}>
           <View style={styles.tableHead}>
-            {['Nº Pedido', 'Cliente', 'Proveedor', 'Total', 'Estado', 'Fecha'].map((h, i) => (
+            {[t('agente_pedidos.col_order_num'), t('agente_pedidos.col_client'), t('agente_pedidos.col_supplier'), t('agente_pedidos.col_total'), t('agente_pedidos.col_status'), t('agente_pedidos.col_date')].map((h, i) => (
               <Text
                 key={h}
                 variant="caption"
@@ -103,7 +103,7 @@ export default function AdminAgentePedidosScreen() {
                       <Text variant="small" numberOfLines={1}>{order.supplier?.name ?? '—'}</Text>
                     </View>
                     <View style={[styles.td, { width: 110 }]}>
-                      <Text variant="smallMedium">{formatEur(order.total)}</Text>
+                      <Text variant="smallMedium">{formatEur(order.total, i18n.language)}</Text>
                     </View>
                     <View style={[styles.td, { width: 110 }]}>
                       <Badge label={status.label} variant={status.variant} />

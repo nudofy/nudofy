@@ -14,10 +14,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClientData } from '@/hooks/useClient';
 import { useToast } from '@/contexts/ToastContext';
 import type { IconName } from '@/components/ui/Icon';
+import { SupportedLanguage } from '@/i18n';
+
+const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] = [
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+  { value: 'en', label: 'English' },
+];
 
 export default function ClientPerfilScreen() {
   const toast = useToast();
-  const { signOut, session } = useAuth();
+  const { signOut, session, profile, setPreferredLanguage } = useAuth();
   const { client, agent, loading } = useClientData();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [notifPedidos, setNotifPedidos] = useState(true);
@@ -26,6 +33,15 @@ export default function ClientPerfilScreen() {
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [savingPwd, setSavingPwd] = useState(false);
+  const [savingLanguage, setSavingLanguage] = useState(false);
+
+  async function handleSetLanguage(lang: SupportedLanguage) {
+    if (!profile || lang === profile.preferred_language) return;
+    setSavingLanguage(true);
+    const { error } = await setPreferredLanguage(lang);
+    setSavingLanguage(false);
+    if (error) toast.error(error);
+  }
 
   async function handleExportData() {
     if (!client) return;
@@ -181,6 +197,24 @@ export default function ClientPerfilScreen() {
               trackColor={{ true: colors.ink, false: colors.line }}
               thumbColor={colors.white}
             />
+          </View>
+        </Section>
+
+        {/* Idioma */}
+        <Section title="Idioma">
+          <View style={styles.langOptions}>
+            {LANGUAGE_OPTIONS.map(option => (
+              <Pressable
+                key={option.value}
+                style={[styles.langChip, profile?.preferred_language === option.value && styles.langChipActive]}
+                onPress={() => handleSetLanguage(option.value)}
+                disabled={savingLanguage}
+              >
+                <Text variant="smallMedium" color={profile?.preferred_language === option.value ? 'white' : 'ink2'}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
         </Section>
 
@@ -351,6 +385,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3], paddingVertical: space[3],
     flexDirection: 'row', alignItems: 'center', gap: space[3],
   },
+
+  langOptions: { flexDirection: 'row', gap: space[2], padding: space[3] },
+  langChip: {
+    flex: 1, alignItems: 'center',
+    paddingVertical: space[2], paddingHorizontal: space[1],
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface2,
+  },
+  langChipActive: { backgroundColor: colors.ink },
 
   signOutBtn: {
     backgroundColor: colors.white,

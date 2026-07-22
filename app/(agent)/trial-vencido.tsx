@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { getPlanConfigs } from '@/lib/planConfig';
 import { colors, space, radius } from '@/theme';
@@ -11,6 +12,7 @@ const PAID_PLANS = ['basic', 'pro', 'agency'];
 
 export default function TrialVencidoScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
   const [plans, setPlans] = useState<{ id: string; name: string; price_monthly: number }[]>([]);
 
   useEffect(() => {
@@ -41,11 +43,10 @@ export default function TrialVencidoScreen() {
 
         {/* Título */}
         <Text variant="heading" align="center" style={styles.title}>
-          Tu período de prueba ha terminado
+          {t('trial.title')}
         </Text>
         <Text variant="small" color="ink3" align="center" style={styles.subtitle}>
-          Tu acceso gratuito a Nudofy ha expirado.{'\n'}
-          Para seguir gestionando tus pedidos y clientes, elige un plan de pago.
+          {t('trial.subtitle')}
         </Text>
 
         {/* Planes resumen */}
@@ -54,7 +55,7 @@ export default function TrialVencidoScreen() {
             <PlanChip
               key={p.id}
               name={p.name}
-              price={`${p.price_monthly} €/mes`}
+              price={t('trial.price_suffix', { price: p.price_monthly })}
               highlighted={i === 1}
             />
           ))}
@@ -62,19 +63,19 @@ export default function TrialVencidoScreen() {
 
         {/* CTAs */}
         <Button
-          label="Ver planes y precios"
+          label={t('trial.view_plans')}
           onPress={handleUpgrade}
           fullWidth
         />
         <Button
-          label="Cerrar sesión"
+          label={t('trial.sign_out')}
           variant="secondary"
           onPress={handleSignOut}
           fullWidth
         />
 
         <Text variant="caption" color="ink4" align="center" style={{ marginTop: space[3] }}>
-          ¿Tienes dudas? Escríbenos a{' '}
+          {t('trial.questions')}{' '}
           <Text
             variant="caption"
             color="ink2"

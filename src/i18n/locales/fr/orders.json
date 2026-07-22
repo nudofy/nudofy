@@ -1,0 +1,47 @@
+{
+  "status": {
+    "draft": "Brouillon",
+    "confirmed": "En attente",
+    "sent_to_supplier": "Envoyée",
+    "cancelled": "Annulée",
+    "proposal_sent": "Proposition envoyée"
+  },
+  "agent": {
+    "title": "Mes commandes",
+    "new_order": "Nouvelle commande",
+    "search_placeholder": "Rechercher par client, fournisseur ou n° de commande...",
+    "tab_done": "Terminées",
+    "tab_pending": "En attente",
+    "tab_cancelled": "Annulées",
+    "kpi_orders": "Commandes",
+    "kpi_revenue": "Facturé",
+    "kpi_avg_ticket": "Panier moyen",
+    "loading": "Chargement...",
+    "empty": "Aucune commande dans cette section",
+    "no_client_draft": "Pas encore de client",
+    "no_client": "Sans client",
+    "discard": "Abandonner",
+    "continue": "Continuer",
+    "resend_pdf": "Renvoyer le PDF",
+    "duplicate": "Dupliquer",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "discard_dialog_title": "Abandonner la commande",
+    "discard_dialog_body": "Voulez-vous vraiment supprimer cette commande en attente ? Cette action est irréversible."
+  },
+  "client": {
+    "title": "Mes commandes",
+    "search_placeholder": "Rechercher par n° de commande ou fournisseur...",
+    "filter_all": "Tous",
+    "filter_received": "Reçue",
+    "filter_sent": "Envoyée",
+    "filter_cancelled": "Annulée",
+    "kpi_orders": "Commandes",
+    "kpi_total": "Total",
+    "kpi_avg_ticket": "Panier moyen",
+    "loading": "Chargement...",
+    "empty": "Aucune commande dans cette section",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier"
+  }
+}

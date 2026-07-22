@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, StyleSheet, TextInput, Switch, Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
@@ -28,6 +29,7 @@ const CFG_KEYS = [
 type CfgKey = typeof CFG_KEYS[number];
 
 export default function AdminConfiguracionScreen() {
+  const { t } = useTranslation('admin');
   const toast = useToast();
   const { profile, resetPassword } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -79,25 +81,25 @@ export default function AdminConfiguracionScreen() {
     const { error } = await resetPassword(profile.email);
     setSendingReset(false);
     if (error) { toast.error(error); return; }
-    toast.success(`Hemos enviado un enlace a ${profile.email} para cambiar tu contraseña.`);
+    toast.success(t('configuracion.reset_link_sent', { email: profile.email }));
   }
 
   function handleClearCache() {
     Alert.alert(
-      'Limpiar caché global',
-      '¿Purgar la caché de esquema de la base de datos? No afecta a los datos de los usuarios.',
+      t('configuracion.clear_cache_title'),
+      t('configuracion.clear_cache_body'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('configuracion.cancel'), style: 'cancel' },
         {
-          text: 'Limpiar',
+          text: t('configuracion.clear'),
           style: 'destructive',
           onPress: async () => {
             setClearingCache(true);
             try {
               await supabase.rpc('notify_pgrst_reload' as any);
-              toast.success('Caché purgada correctamente');
+              toast.success(t('configuracion.cache_cleared'));
             } catch {
-              toast.success('Caché purgada correctamente');
+              toast.success(t('configuracion.cache_cleared'));
             } finally {
               setClearingCache(false);
             }
@@ -125,19 +127,19 @@ export default function AdminConfiguracionScreen() {
       .upsert(rows, { onConflict: 'key' });
     setSaving(false);
     if (error) {
-      toast.error('Error al guardar: ' + error.message);
+      toast.error(t('configuracion.save_error', { message: error.message }));
     } else {
-      toast.success('Configuración actualizada correctamente');
+      toast.success(t('configuracion.config_updated'));
     }
   }
 
   return (
     <AdminShell
       activeSection="configuracion"
-      title="Configuración"
+      title={t('configuracion.title')}
       rightElement={
         <Button
-          label={saving ? 'Guardando...' : loadingConfig ? 'Cargando...' : 'Guardar cambios'}
+          label={saving ? t('configuracion.saving') : loadingConfig ? t('configuracion.loading') : t('configuracion.save_changes')}
           onPress={handleSave}
           disabled={saving || loadingConfig}
           size="sm"
@@ -145,13 +147,13 @@ export default function AdminConfiguracionScreen() {
       }
     >
       {/* Mi cuenta */}
-      <ConfigCard title="Mi cuenta" icon="Lock">
-        <ConfigRow label="Email" last={false}>
+      <ConfigCard title={t('configuracion.my_account_title')} icon="Lock">
+        <ConfigRow label={t('configuracion.email')} last={false}>
           <Text variant="small" color="ink2">{profile?.email ?? '—'}</Text>
         </ConfigRow>
-        <ConfigRow label="Contraseña" last>
+        <ConfigRow label={t('configuracion.password')} last>
           <Button
-            label={sendingReset ? 'Enviando...' : 'Cambiar mi contraseña'}
+            label={sendingReset ? t('configuracion.sending') : t('configuracion.change_my_password')}
             variant="ghost"
             size="sm"
             onPress={handleChangeMyPassword}
@@ -161,8 +163,8 @@ export default function AdminConfiguracionScreen() {
       </ConfigCard>
 
       {/* Información de la plataforma */}
-      <ConfigCard title="Información de la plataforma" icon="Settings">
-        <ConfigRow label="Nombre de la app">
+      <ConfigCard title={t('configuracion.platform_info_title')} icon="Settings">
+        <ConfigRow label={t('configuracion.app_name_label')}>
           <TextInput
             style={styles.fieldInput}
             value={appName}
@@ -170,7 +172,7 @@ export default function AdminConfiguracionScreen() {
             placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="URL corporativa">
+        <ConfigRow label={t('configuracion.corporate_url_label')}>
           <TextInput
             style={styles.fieldInput}
             value={appUrl}
@@ -178,7 +180,7 @@ export default function AdminConfiguracionScreen() {
             placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="Email de soporte">
+        <ConfigRow label={t('configuracion.support_email_label')}>
           <TextInput
             style={styles.fieldInput}
             value={supportEmail}
@@ -187,14 +189,14 @@ export default function AdminConfiguracionScreen() {
             placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="Versión actual" last>
+        <ConfigRow label={t('configuracion.current_version_label')} last>
           <Badge label="v1.2.4" variant="neutral" />
         </ConfigRow>
       </ConfigCard>
 
       {/* Email y notificaciones */}
-      <ConfigCard title="Email y notificaciones" icon="Mail">
-        <ConfigRow label="Email remitente facturas">
+      <ConfigCard title={t('configuracion.email_notifications_title')} icon="Mail">
+        <ConfigRow label={t('configuracion.invoice_sender_email_label')}>
           <TextInput
             style={styles.fieldInput}
             value={emailFrom}
@@ -203,10 +205,10 @@ export default function AdminConfiguracionScreen() {
             placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="Resend API Key">
-          <Badge label="Gestionada como Edge Function secret" variant="neutral" />
+        <ConfigRow label={t('configuracion.resend_api_key_label')}>
+          <Badge label={t('configuracion.managed_as_secret')} variant="neutral" />
         </ConfigRow>
-        <ConfigRow label="Email activación cuenta">
+        <ConfigRow label={t('configuracion.activation_email_label')}>
           <Switch
             value={emailActivation}
             onValueChange={setEmailActivation}
@@ -214,7 +216,7 @@ export default function AdminConfiguracionScreen() {
             thumbColor={colors.white}
           />
         </ConfigRow>
-        <ConfigRow label="Email nueva factura" last>
+        <ConfigRow label={t('configuracion.new_invoice_email_label')} last>
           <Switch
             value={emailInvoice}
             onValueChange={setEmailInvoice}
@@ -225,14 +227,13 @@ export default function AdminConfiguracionScreen() {
       </ConfigCard>
 
       {/* Stripe */}
-      <ConfigCard title="Stripe — Pagos" icon="CreditCard">
+      <ConfigCard title={t('configuracion.stripe_payments_title')} icon="CreditCard">
         <View style={styles.cardNote}>
           <Text variant="caption" color="ink3">
-            El secret key y el webhook secret no se guardan en la base de datos ni pasan por la app.
-            Se configuran con `supabase secrets set STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=...`.
+            {t('configuracion.stripe_secret_note')}
           </Text>
         </View>
-        <ConfigRow label="Publishable Key">
+        <ConfigRow label={t('configuracion.publishable_key_label')}>
           <TextInput
             style={[styles.fieldInput, styles.fieldInputMono]}
             value={stripePk}
@@ -240,13 +241,13 @@ export default function AdminConfiguracionScreen() {
             placeholderTextColor={colors.ink4}
           />
         </ConfigRow>
-        <ConfigRow label="Secret Key">
-          <Badge label="Gestionada como Edge Function secret" variant="neutral" />
+        <ConfigRow label={t('configuracion.secret_key_label')}>
+          <Badge label={t('configuracion.managed_as_secret')} variant="neutral" />
         </ConfigRow>
-        <ConfigRow label="Webhook Secret">
-          <Badge label="Gestionada como Edge Function secret" variant="neutral" />
+        <ConfigRow label={t('configuracion.webhook_secret_label')}>
+          <Badge label={t('configuracion.managed_as_secret')} variant="neutral" />
         </ConfigRow>
-        <ConfigRow label="Modo test" last>
+        <ConfigRow label={t('configuracion.test_mode_label')} last>
           <Switch
             value={stripeTestMode}
             onValueChange={setStripeTestMode}
@@ -260,14 +261,14 @@ export default function AdminConfiguracionScreen() {
       <View style={styles.dangerCard}>
         <View style={styles.dangerHeader}>
           <Text variant="caption" color="ink3" style={styles.dangerTitle}>
-            ZONA DE PELIGRO
+            {t('configuracion.danger_zone_title')}
           </Text>
         </View>
         <View style={styles.dangerRow}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="smallMedium">Modo mantenimiento</Text>
+            <Text variant="smallMedium">{t('configuracion.maintenance_mode_label')}</Text>
             <Text variant="caption" color="ink3">
-              La app mostrará un mensaje de mantenimiento a todos los usuarios
+              {t('configuracion.maintenance_mode_desc')}
             </Text>
           </View>
           <Switch
@@ -275,11 +276,11 @@ export default function AdminConfiguracionScreen() {
             onValueChange={(val) => {
               if (val) {
                 Alert.alert(
-                  'Activar mantenimiento',
-                  '¿Activar el modo mantenimiento? Los usuarios no podrán acceder a la app.',
+                  t('configuracion.activate_maintenance_title'),
+                  t('configuracion.activate_maintenance_body'),
                   [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Activar', style: 'destructive', onPress: () => setMaintenanceMode(true) },
+                    { text: t('configuracion.cancel'), style: 'cancel' },
+                    { text: t('configuracion.activate'), style: 'destructive', onPress: () => setMaintenanceMode(true) },
                   ]
                 );
               } else {
@@ -292,13 +293,13 @@ export default function AdminConfiguracionScreen() {
         </View>
         <View style={[styles.dangerRow, styles.dangerRowLast]}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="smallMedium">Limpiar caché global</Text>
+            <Text variant="smallMedium">{t('configuracion.clear_global_cache_label')}</Text>
             <Text variant="caption" color="ink3">
-              Purga la caché de todos los usuarios
+              {t('configuracion.clear_global_cache_desc')}
             </Text>
           </View>
           <Button
-            label={clearingCache ? 'Limpiando…' : 'Limpiar'}
+            label={clearingCache ? t('configuracion.clearing') : t('configuracion.clear')}
             variant="danger"
             size="sm"
             onPress={handleClearCache}

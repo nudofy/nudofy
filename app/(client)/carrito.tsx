@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, EmptyState } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -13,11 +14,8 @@ import { useCart } from '@/contexts/CartContext';
 import { useClientData } from '@/hooks/useClient';
 import { confirmClientOrder } from '@/hooks/useClient';
 import { useToast } from '@/contexts/ToastContext';
+import { formatEur } from '@/lib/format';
 import type { Cart } from '@/contexts/CartContext';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
 
 export default function ClientCarritoScreen() {
   const router = useRouter();
@@ -42,6 +40,7 @@ export default function ClientCarritoScreen() {
 // ——— Lista de carritos abiertos ———
 function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: string) => void }) {
   const router = useRouter();
+  const { t, i18n } = useTranslation('client');
   const totalCartsAmount = carts.reduce(
     (sum, c) => sum + c.items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
     0,
@@ -49,12 +48,12 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
 
   return (
     <Screen>
-      <TopBar title="Mi carrito" onBack={() => router.back()} />
+      <TopBar title={t('cart.title')} onBack={() => router.back()} />
 
       {carts.length > 0 && (
         <View style={styles.kpiBar}>
-          <KpiItem value={carts.length.toString()} label="Carritos abiertos" />
-          <KpiItem value={formatEur(totalCartsAmount)} label="Total acumulado" />
+          <KpiItem value={carts.length.toString()} label={t('cart.open_carts')} />
+          <KpiItem value={formatEur(totalCartsAmount, i18n.language)} label={t('cart.total_accumulated')} />
         </View>
       )}
 
@@ -62,9 +61,9 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
         {carts.length === 0 && (
           <EmptyState
             icon="ShoppingCart"
-            title="Carrito vacío"
-            description="Explora el catálogo y añade productos"
-            actionLabel="Ver catálogo"
+            title={t('cart.empty_title')}
+            description={t('cart.empty_desc')}
+            actionLabel={t('home.view_catalog')}
             onAction={() => router.push('/(client)/catalogo')}
           />
         )}
@@ -90,9 +89,9 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
               </View>
               <View style={styles.cartCardFoot}>
                 <Text variant="caption" color="ink3">
-                  {cartUnits} artículos · {cart.items.length} referencias
+                  {t('cart.items_refs', { units: cartUnits, refs: cart.items.length })}
                 </Text>
-                <Text variant="bodyMedium">{formatEur(cartTotal)}</Text>
+                <Text variant="bodyMedium">{formatEur(cartTotal, i18n.language)}</Text>
               </View>
             </Pressable>
           );
@@ -110,6 +109,7 @@ function CartDetail({
 }: {
   cart: Cart; onBack: () => void; onConfirmed: (orderId: string) => void;
 }) {
+  const { t, i18n } = useTranslation('client');
   const toast = useToast();
   const { updateQty, removeItem, setCartNotes, clearCart } = useCart();
   const { client, agent } = useClientData();
@@ -154,7 +154,7 @@ function CartDetail({
           {/* Líneas */}
           <View style={styles.section}>
             <Text variant="caption" color="ink3" style={styles.sectionTitle}>
-              Artículos ({cartUnits})
+              {t('cart.articles_count', { count: cartUnits })}
             </Text>
             <View style={styles.sectionBody}>
               {cart.items.map((item, i) => (
@@ -171,11 +171,11 @@ function CartDetail({
                     )}
                     {item.reference && (
                       <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-                        Ref: {item.reference}
+                        {t('cart.ref_prefix', { ref: item.reference })}
                       </Text>
                     )}
                     <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-                      {formatEur(item.unit_price)} / ud.
+                      {t('cart.per_unit', { price: formatEur(item.unit_price, i18n.language) })}
                     </Text>
                   </View>
                   <View style={styles.lineRight}>
@@ -196,7 +196,7 @@ function CartDetail({
                         <Icon name="Plus" size={16} color={colors.ink} />
                       </Pressable>
                     </View>
-                    <Text variant="bodyMedium">{formatEur(item.unit_price * item.quantity)}</Text>
+                    <Text variant="bodyMedium">{formatEur(item.unit_price * item.quantity, i18n.language)}</Text>
                     <Pressable
                       hitSlop={8}
                       onPress={() => removeItem(cart.supplier_id, item.item_key)}
@@ -211,15 +211,15 @@ function CartDetail({
 
           {/* Notas */}
           <View style={styles.section}>
-            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Observaciones</Text>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('cart.notes_title')}</Text>
             <View style={styles.sectionBody}>
               <TextInput
                 style={styles.notesInput}
                 multiline
-                placeholder="Añade notas para este pedido..."
+                placeholder={t('cart.notes_placeholder')}
                 placeholderTextColor={colors.ink4}
                 value={cart.notes}
-                onChangeText={t => setCartNotes(cart.supplier_id, t)}
+                onChangeText={n => setCartNotes(cart.supplier_id, n)}
                 textAlignVertical="top"
               />
             </View>
@@ -228,11 +228,11 @@ function CartDetail({
           {/* Total */}
           <View style={styles.totalBlock}>
             <View style={styles.totalRow}>
-              <Text variant="bodyMedium">Total pedido</Text>
-              <Text variant="display">{formatEur(cartTotal)}</Text>
+              <Text variant="bodyMedium">{t('cart.total_order')}</Text>
+              <Text variant="display">{formatEur(cartTotal, i18n.language)}</Text>
             </View>
             <Text variant="caption" color="ink3">
-              {cartUnits} artículos · {cart.items.length} referencias
+              {t('cart.items_refs', { units: cartUnits, refs: cart.items.length })}
             </Text>
           </View>
 
@@ -241,14 +241,14 @@ function CartDetail({
             <View style={styles.agentInfo}>
               <Icon name="Info" size={16} color={colors.ink2} />
               <Text variant="small" color="ink2" style={{ flex: 1 }}>
-                Tu agente <Text variant="smallMedium">{agent.name}</Text> recibirá el pedido automáticamente.
+                {t('cart.agent_will_receive', { name: agent.name })}
               </Text>
             </View>
           )}
 
           {/* Botón confirmar */}
           <Button
-            label={confirming ? 'Enviando...' : 'Confirmar pedido'}
+            label={confirming ? t('cart.sending') : t('cart.confirm_order')}
             onPress={handleConfirm}
             loading={confirming}
             disabled={confirming || cart.items.length === 0}

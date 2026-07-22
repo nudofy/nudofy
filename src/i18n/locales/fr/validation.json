@@ -1,0 +1,14 @@
+{
+  "min_chars_one": "Minimum {{count}} caractère",
+  "min_chars_other": "Minimum {{count}} caractères",
+  "max_chars_one": "Maximum {{count}} caractère",
+  "max_chars_other": "Maximum {{count}} caractères",
+  "email_required": "L'e-mail est obligatoire",
+  "email_invalid": "E-mail invalide",
+  "password_required": "Le mot de passe est obligatoire",
+  "phone_invalid": "Téléphone invalide",
+  "nif_invalid": "SIRET/TVA au format invalide (8-9 caractères)",
+  "must_be_number": "Doit être un nombre",
+  "price_negative": "Le prix ne peut pas être négatif",
+  "vat_out_of_range": "TVA hors plage (0–100)"
+}

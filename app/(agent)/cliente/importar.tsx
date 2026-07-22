@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, Pressable, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { pickFile } from '@/lib/filePicker';
 import { readFileText, normalizeHeader } from '@/lib/csvImport';
 import Papa from 'papaparse';
@@ -15,32 +16,37 @@ import { useAgent } from '@/hooks/useAgent';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { ClientSchema, validate } from '@/lib/validation';
 
+// Claves de columna del CSV: se mantienen en español siempre — son el
+// formato de intercambio de datos, no texto de interfaz (ver COL_DESCRIPTIONS
+// para las descripciones traducidas que sí ve el usuario).
 const REQUIRED_COLS = ['nombre'];
 const OPTIONAL_COLS = ['tipo_establecimiento', 'direccion', 'nombre_fiscal', 'nif', 'persona_contacto', 'telefono', 'email', 'forma_pago'];
 const ALL_COLS = [...REQUIRED_COLS, ...OPTIONAL_COLS];
-
-const COL_DESCRIPTIONS: Record<string, string> = {
-  nombre:               'Nombre del establecimiento (obligatorio)',
-  tipo_establecimiento: 'Tipo de negocio (ej: Bar, Restaurante, Tienda)',
-  direccion:            'Dirección del establecimiento',
-  nombre_fiscal:        'Razón social o nombre fiscal',
-  nif:                  'NIF o CIF',
-  persona_contacto:     'Nombre de la persona de contacto',
-  telefono:             'Teléfono de contacto',
-  email:                'Email de contacto',
-  forma_pago:           'Condiciones de pago (ej: 30 días factura)',
-};
 
 const CSV_TEMPLATE =
   ALL_COLS.join(',') + '\n' +
   'Bar Ejemplo,Bar,Calle Mayor 1,Bar Ejemplo S.L.,B12345678,Juan Pérez,+34 600 111 222,bar@ejemplo.com,30 días factura\n' +
   'Otro Establecimiento,Restaurante,Avda. Principal 5,,,,,,Contado';
 
+const COL_DESC_KEYS: Record<string, string> = {
+  nombre:               'col_nombre_desc',
+  tipo_establecimiento: 'col_tipo_desc',
+  direccion:            'col_direccion_desc',
+  nombre_fiscal:        'col_fiscal_desc',
+  nif:                  'col_nif_desc',
+  persona_contacto:     'col_contacto_desc',
+  telefono:             'col_telefono_desc',
+  email:                'col_email_desc',
+  forma_pago:           'col_pago_desc',
+};
+
 type PreviewRow = Record<string, string>;
 type ImportResult = { name: string; ok: boolean; error?: string };
 
 export default function ImportarClientesScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
+  const { t: tv } = useTranslation('validation');
   const toast = useToast();
   const { agent } = useAgent();
   const { allowed, loading: gateLoading, requiredPlan } = useFeatureGate('csv_import');
@@ -76,15 +82,15 @@ export default function ImportarClientesScreen() {
         if (canShare) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'text/csv',
-            dialogTitle: 'Guardar plantilla CSV',
+            dialogTitle: t('client_import.share_dialog_title'),
             UTI: 'public.comma-separated-values-text',
           });
         } else {
-          toast.error('La función de compartir no está disponible en este dispositivo.');
+          toast.error(t('client_import.share_error'));
         }
       }
     } catch (e: any) {
-      toast.error(e?.message ?? 'No se pudo descargar la plantilla');
+      toast.error(e?.message ?? t('client_import.download_error'));
     }
   }
 
@@ -107,7 +113,7 @@ export default function ImportarClientesScreen() {
       });
 
       if (parsed.errors.length > 0 && parsed.data.length === 0) {
-        toast.error('Asegúrate de que es un CSV válido.');
+        toast.error(t('client_import.invalid_csv'));
         return;
       }
 
@@ -116,10 +122,10 @@ export default function ImportarClientesScreen() {
       setPreview(parsed.data.slice(0, 5));
 
       if (!cols.includes('nombre')) {
-        toast.error('Columna requerida "nombre". Columnas detectadas: ' + cols.join(', '));
+        toast.error(t('client_import.missing_column', { cols: cols.join(', ') }));
       }
     } catch (e: any) {
-      toast.error(e?.message ?? 'No se pudo leer el fichero');
+      toast.error(e?.message ?? t('client_import.read_error'));
     }
   }
 
@@ -149,11 +155,11 @@ export default function ImportarClientesScreen() {
         const rawName = row['nombre']?.trim() || '(sin nombre)';
 
         if (inserted >= remainingSlots) {
-          res.push({ name: rawName, ok: false, error: `Límite de ${clientLimit} clientes de tu plan alcanzado` });
+          res.push({ name: rawName, ok: false, error: t('client_import.limit_reached_row', { limit: clientLimit }) });
           continue;
         }
 
-        const v = validate(ClientSchema, {
+        const v = validate(ClientSchema(tv), {
           name: row['nombre'],
           fiscal_name: row['nombre_fiscal'],
           nif: row['nif'],
@@ -178,7 +184,7 @@ export default function ImportarClientesScreen() {
       setResults(res);
       setDone(true);
     } catch (e: any) {
-      toast.error(e?.message ?? 'Inténtalo de nuevo');
+      toast.error(e?.message ?? t('client_import.retry'));
     } finally {
       setImporting(false);
     }
@@ -187,16 +193,16 @@ export default function ImportarClientesScreen() {
   const okCount = results.filter(r => r.ok).length;
   const errCount = results.filter(r => !r.ok).length;
 
-  if (gateLoading) return <Screen><TopBar title="Importar clientes" onBack={() => router.back()} /></Screen>;
+  if (gateLoading) return <Screen><TopBar title={t('client_import.title')} onBack={() => router.back()} /></Screen>;
 
   if (!allowed) {
     return (
       <Screen>
-        <TopBar title="Importar clientes" onBack={() => router.back()} />
+        <TopBar title={t('client_import.title')} onBack={() => router.back()} />
         <FeatureLock
           requiredPlan={requiredPlan}
-          title={`Importar por CSV es del plan ${requiredPlan}`}
-          description="Da de alta clientes ya consolidados de una vez en lugar de crearlos uno a uno. Mejora tu plan para desbloquearlo."
+          title={t('client_import.gate_title', { plan: requiredPlan })}
+          description={t('client_import.gate_description')}
         />
       </Screen>
     );
@@ -204,21 +210,21 @@ export default function ImportarClientesScreen() {
 
   return (
     <Screen>
-      <TopBar title="Importar clientes" onBack={() => router.back()} />
+      <TopBar title={t('client_import.title')} onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Plantilla CSV */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text variant="bodyMedium">Plantilla CSV</Text>
+            <Text variant="bodyMedium">{t('client_import.csv_template')}</Text>
             <Pressable style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.7 }]} onPress={shareTemplate}>
               <Icon name="Download" size={14} color={colors.ink2} />
-              <Text variant="caption" color="ink2">Descargar</Text>
+              <Text variant="caption" color="ink2">{t('client_import.download')}</Text>
             </Pressable>
           </View>
           <Text variant="small" color="ink3">
-            Descarga la plantilla y rellena tus clientes ya existentes. Solo{' '}
-            <Text variant="smallMedium">nombre</Text> es obligatorio.
+            {t('client_import.template_hint_prefix')}{' '}
+            <Text variant="smallMedium">nombre</Text> {t('client_import.template_hint_suffix')}
           </Text>
 
           <View style={styles.colTable}>
@@ -230,11 +236,11 @@ export default function ImportarClientesScreen() {
                   </Text>
                   {REQUIRED_COLS.includes(col) && (
                     <View style={styles.reqBadge}>
-                      <Text variant="caption" color="ink2" style={styles.reqBadgeText}>obligatorio</Text>
+                      <Text variant="caption" color="ink2" style={styles.reqBadgeText}>{t('client_import.required_badge')}</Text>
                     </View>
                   )}
                 </View>
-                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{COL_DESCRIPTIONS[col]}</Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{t(`client_import.${COL_DESC_KEYS[col]}`)}</Text>
               </View>
             ))}
           </View>
@@ -243,13 +249,13 @@ export default function ImportarClientesScreen() {
         {/* Selector de fichero */}
         <Pressable style={({ pressed }) => [styles.pickBtn, pressed && { opacity: 0.7 }]} onPress={handlePickFile} disabled={importing}>
           <Icon name="FileUp" size={20} color={colors.ink2} />
-          <Text variant="bodyMedium" color="ink2">{fileName || 'Seleccionar fichero CSV'}</Text>
+          <Text variant="bodyMedium" color="ink2">{fileName || t('client_import.select_file')}</Text>
         </Pressable>
 
         {/* Preview */}
         {preview.length > 0 && !done && (
           <View style={styles.card}>
-            <Text variant="bodyMedium">Vista previa ({preview.length} filas)</Text>
+            <Text variant="bodyMedium">{t('client_import.preview_title', { count: preview.length })}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View>
                 <View style={styles.tableRow}>
@@ -268,7 +274,7 @@ export default function ImportarClientesScreen() {
             </ScrollView>
 
             <Button
-              label="Importar todos los clientes"
+              label={t('client_import.import_all')}
               onPress={handleImportFromPreview}
               loading={importing}
               disabled={!headers.includes('nombre')}
@@ -284,19 +290,19 @@ export default function ImportarClientesScreen() {
             <View style={styles.resultsHeader}>
               <View style={styles.resultStat}>
                 <Text variant="heading" color="success">{okCount}</Text>
-                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Importados</Text>
+                <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{t('client_import.imported')}</Text>
               </View>
               {errCount > 0 && (
                 <View style={[styles.resultStat, { backgroundColor: colors.dangerSoft }]}>
                   <Text variant="heading" color="danger">{errCount}</Text>
-                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>Con error</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{t('client_import.with_error')}</Text>
                 </View>
               )}
             </View>
 
             {errCount > 0 && (
               <>
-                <Text variant="smallMedium" color="danger" style={{ marginTop: space[2] }}>Filas con error:</Text>
+                <Text variant="smallMedium" color="danger" style={{ marginTop: space[2] }}>{t('client_import.error_rows')}</Text>
                 {results.filter(r => !r.ok).map((r, i) => (
                   <View key={i} style={styles.errRow}>
                     <Text variant="smallMedium">{r.name}</Text>
@@ -306,7 +312,7 @@ export default function ImportarClientesScreen() {
               </>
             )}
 
-            <Button label="Ver clientes" onPress={() => router.back()} fullWidth style={{ marginTop: space[3] }} />
+            <Button label={t('client_import.view_clients')} onPress={() => router.back()} fullWidth style={{ marginTop: space[3] }} />
           </View>
         )}
       </ScrollView>

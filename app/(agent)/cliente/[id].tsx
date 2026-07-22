@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { confirmDestructive } from '@/lib/confirm';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
@@ -14,6 +15,7 @@ import ResourceError from '@/components/ResourceError';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { ClientSchema, validate } from '@/lib/validation';
+import { formatEur } from '@/lib/format';
 import type { Client, Order } from '@/hooks/useAgent';
 
 type Tab = 'ficha' | 'pedidos' | 'notas' | 'portal';
@@ -30,6 +32,8 @@ type ClientAddress = {
 
 export default function ClienteScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
+  const { t: tv } = useTranslation('validation');
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>('ficha');
@@ -79,7 +83,7 @@ export default function ClienteScreen() {
   useEffect(() => { fetchClient(); }, [fetchClient]);
 
   async function saveAddress() {
-    if (!newAddress.label?.trim()) { toast.error('El nombre de la dirección es obligatorio'); return; }
+    if (!newAddress.label?.trim()) { toast.error(t('client_detail.address_name_required')); return; }
     const { error } = await supabase.from('client_addresses').insert({
       client_id: id,
       label: newAddress.label.trim(),
@@ -97,7 +101,7 @@ export default function ClienteScreen() {
   }
 
   async function deleteAddress(addrId: string) {
-    confirmDestructive('Eliminar dirección', '¿Eliminar esta dirección?', async () => {
+    confirmDestructive(t('client_detail.delete_address_title'), t('client_detail.delete_address_body'), async () => {
       await supabase.from('client_addresses').delete().eq('id', addrId);
       setAddresses(prev => prev.filter(a => a.id !== addrId));
     });
@@ -105,7 +109,7 @@ export default function ClienteScreen() {
 
   async function saveChanges() {
     if (!id) return;
-    const v = validate(ClientSchema, form);
+    const v = validate(ClientSchema(tv), form);
     if (!v.ok) { toast.error(v.firstError); return; }
     const { error } = await supabase.from('clients').update(v.data).eq('id', id);
     if (error) { toast.error(error.message); return; }
@@ -115,8 +119,8 @@ export default function ClienteScreen() {
 
   function handleDeleteClient() {
     confirmDestructive(
-      'Eliminar cliente',
-      `¿Eliminar a ${client?.name}? Se eliminarán también sus pedidos y direcciones.`,
+      t('client_detail.delete_client_title'),
+      t('client_detail.delete_client_body', { name: client?.name }),
       async () => {
         await supabase.from('clients').delete().eq('id', id);
         router.back();
@@ -127,9 +131,9 @@ export default function ClienteScreen() {
   if (!loading && !client) {
     return (
       <ResourceError
-        topBarTitle="Cliente"
-        title={loadError ? 'Error de conexión' : 'Cliente no encontrado'}
-        message={loadError ? 'No se pudo cargar el cliente.' : 'No existe o no tienes permisos para verlo.'}
+        topBarTitle={t('client_detail.top_bar_title')}
+        title={loadError ? t('client_detail.error_title') : t('client_detail.not_found_title')}
+        message={loadError ? t('client_detail.error_message') : t('client_detail.not_found_message')}
         detail={loadError}
         onBack={() => router.back()}
         onRetry={fetchClient}
@@ -140,9 +144,9 @@ export default function ClienteScreen() {
   if (loading || !client) {
     return (
       <Screen>
-        <TopBar title="Cliente" onBack={() => router.back()} />
+        <TopBar title={t('client_detail.top_bar_title')} onBack={() => router.back()} />
         <View style={styles.loadingWrap}>
-          <Text variant="small" color="ink3">Cargando...</Text>
+          <Text variant="small" color="ink3">{t('client_detail.loading')}</Text>
         </View>
       </Screen>
     );
@@ -151,11 +155,11 @@ export default function ClienteScreen() {
   return (
     <Screen>
       <TopBar
-        title="Ficha de cliente"
+        title={t('client_detail.title')}
         onBack={() => router.back()}
         actions={[
-          { icon: editing ? 'Check' : 'Pencil', onPress: () => editing ? saveChanges() : setEditing(true), accessibilityLabel: editing ? 'Guardar' : 'Editar' },
-          { icon: 'Trash2', onPress: handleDeleteClient, accessibilityLabel: 'Eliminar cliente' },
+          { icon: editing ? 'Check' : 'Pencil', onPress: () => editing ? saveChanges() : setEditing(true), accessibilityLabel: editing ? t('client_detail.save') : t('client_detail.edit') },
+          { icon: 'Trash2', onPress: handleDeleteClient, accessibilityLabel: t('client_detail.delete_client_label') },
         ]}
       />
 
@@ -174,21 +178,21 @@ export default function ClienteScreen() {
 
       {/* Pestañas */}
       <View style={styles.tabBar}>
-        {(['ficha', 'pedidos', 'notas', 'portal'] as Tab[]).map(t => (
-          <Pressable key={t} style={styles.tab} onPress={() => setTab(t)}>
-            <Text variant="smallMedium" color={tab === t ? 'ink' : 'ink3'}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+        {(['ficha', 'pedidos', 'notas', 'portal'] as Tab[]).map(tabKey => (
+          <Pressable key={tabKey} style={styles.tab} onPress={() => setTab(tabKey)}>
+            <Text variant="smallMedium" color={tab === tabKey ? 'ink' : 'ink3'}>
+              {t(`client_detail.tab_${tabKey}`)}
             </Text>
-            {tab === t && <View style={styles.tabIndicator} />}
+            {tab === tabKey && <View style={styles.tabIndicator} />}
           </Pressable>
         ))}
       </View>
 
       {/* Acciones rápidas */}
       <View style={styles.actionRow}>
-        <QuickAction icon="Plus" label="Nuevo pedido" onPress={() => router.push(`/(agent)/pedido/nuevo?clientId=${id}` as any)} />
-        <QuickAction icon="ClipboardList" label="Ver pedidos" onPress={() => setTab('pedidos')} />
-        <QuickAction icon="ExternalLink" label="Portal" onPress={() => setTab('portal')} />
+        <QuickAction icon="Plus" label={t('client_detail.new_order')} onPress={() => router.push(`/(agent)/pedido/nuevo?clientId=${id}` as any)} />
+        <QuickAction icon="ClipboardList" label={t('client_detail.view_orders')} onPress={() => setTab('pedidos')} />
+        <QuickAction icon="ExternalLink" label={t('client_detail.portal')} onPress={() => setTab('portal')} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -196,21 +200,21 @@ export default function ClienteScreen() {
         {/* TAB: FICHA */}
         {tab === 'ficha' && (
           <View style={styles.blocks}>
-            <DataBlock title="Datos fiscales" icon="FileText">
-              <Field label="Nombre fiscal" value={form.fiscal_name} onChangeText={v => setForm(f => ({ ...f, fiscal_name: v }))} editing={editing} />
-              <Field label="Dirección facturación" value={form.address} onChangeText={v => setForm(f => ({ ...f, address: v }))} editing={editing} />
-              <Field label="NIF / CIF" value={form.nif} onChangeText={v => setForm(f => ({ ...f, nif: v }))} editing={editing} last />
+            <DataBlock title={t('client_detail.fiscal_data')} icon="FileText">
+              <Field label={t('client_detail.fiscal_name')} value={form.fiscal_name} onChangeText={v => setForm(f => ({ ...f, fiscal_name: v }))} editing={editing} />
+              <Field label={t('client_detail.billing_address')} value={form.address} onChangeText={v => setForm(f => ({ ...f, address: v }))} editing={editing} />
+              <Field label={t('client_detail.nif')} value={form.nif} onChangeText={v => setForm(f => ({ ...f, nif: v }))} editing={editing} last />
             </DataBlock>
-            <DataBlock title="Contacto" icon="Phone">
-              <Field label="Persona de contacto" value={form.contact_name} onChangeText={v => setForm(f => ({ ...f, contact_name: v }))} editing={editing} />
-              <Field label="Teléfono" value={form.phone} onChangeText={v => setForm(f => ({ ...f, phone: v }))} editing={editing} keyboardType="phone-pad" />
-              <Field label="Email" value={form.email} onChangeText={v => setForm(f => ({ ...f, email: v }))} editing={editing} keyboardType="email-address" last />
+            <DataBlock title={t('client_detail.contact')} icon="Phone">
+              <Field label={t('client_detail.contact_name')} value={form.contact_name} onChangeText={v => setForm(f => ({ ...f, contact_name: v }))} editing={editing} />
+              <Field label={t('client_detail.phone')} value={form.phone} onChangeText={v => setForm(f => ({ ...f, phone: v }))} editing={editing} keyboardType="phone-pad" />
+              <Field label={t('client_detail.email')} value={form.email} onChangeText={v => setForm(f => ({ ...f, email: v }))} editing={editing} keyboardType="email-address" last />
             </DataBlock>
-            <DataBlock title="Perfil comercial" icon="Briefcase">
-              <Field label="Tipo establecimiento" value={form.client_type} onChangeText={v => setForm(f => ({ ...f, client_type: v }))} editing={editing} last />
+            <DataBlock title={t('client_detail.commercial_profile')} icon="Briefcase">
+              <Field label={t('client_detail.business_type')} value={form.client_type} onChangeText={v => setForm(f => ({ ...f, client_type: v }))} editing={editing} last />
             </DataBlock>
-            <DataBlock title="Condiciones comerciales" icon="CreditCard">
-              <Field label="Forma de pago" value={form.payment_method} onChangeText={v => setForm(f => ({ ...f, payment_method: v }))} editing={editing} last />
+            <DataBlock title={t('client_detail.commercial_conditions')} icon="CreditCard">
+              <Field label={t('client_detail.payment_method')} value={form.payment_method} onChangeText={v => setForm(f => ({ ...f, payment_method: v }))} editing={editing} last />
               <TarifaSelectorRow
                 tariffs={tariffs}
                 value={(form as any).tariff_id ?? null}
@@ -223,14 +227,14 @@ export default function ClienteScreen() {
             <View style={styles.block}>
               <View style={styles.blockHeader}>
                 <Icon name="MapPin" size={16} color={colors.ink3} />
-                <Text variant="caption" color="ink3" style={styles.blockTitle}>Direcciones de envío</Text>
+                <Text variant="caption" color="ink3" style={styles.blockTitle}>{t('client_detail.shipping_addresses')}</Text>
                 <Pressable onPress={() => setAddingAddress(true)} style={{ marginLeft: 'auto' }} hitSlop={8}>
-                  <Text variant="smallMedium" color="brand">+ Añadir</Text>
+                  <Text variant="smallMedium" color="brand">{t('client_detail.add')}</Text>
                 </Pressable>
               </View>
 
               {addresses.length === 0 && !addingAddress && (
-                <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[5] }}>Sin direcciones añadidas</Text>
+                <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[5] }}>{t('client_detail.no_addresses')}</Text>
               )}
 
               {addresses.map((addr, idx) => (
@@ -238,7 +242,7 @@ export default function ClienteScreen() {
                   <View style={{ flex: 1, gap: 2 }}>
                     <View style={styles.addrLabelRow}>
                       <Text variant="bodyMedium">{addr.label}</Text>
-                      {addr.is_default && <Badge label="Principal" variant="brand" />}
+                      {addr.is_default && <Badge label={t('client_detail.default_badge')} variant="brand" />}
                     </View>
                     {addr.address && <Text variant="small" color="ink3">{addr.address}</Text>}
                     {(addr.city || addr.postal_code) && (
@@ -254,16 +258,16 @@ export default function ClienteScreen() {
 
               {addingAddress && (
                 <View style={styles.addrForm}>
-                  <TextInput style={styles.input} placeholder="Nombre (ej: Tienda Central) *" placeholderTextColor={colors.ink4} value={newAddress.label ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, label: v }))} />
-                  <TextInput style={styles.input} placeholder="Dirección" placeholderTextColor={colors.ink4} value={newAddress.address ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, address: v }))} />
+                  <TextInput style={styles.input} placeholder={t('client_detail.addr_name_placeholder')} placeholderTextColor={colors.ink4} value={newAddress.label ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, label: v }))} />
+                  <TextInput style={styles.input} placeholder={t('client_detail.addr_address_placeholder')} placeholderTextColor={colors.ink4} value={newAddress.address ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, address: v }))} />
                   <View style={{ flexDirection: 'row', gap: space[2] }}>
-                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="C.P." placeholderTextColor={colors.ink4} value={newAddress.postal_code ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, postal_code: v }))} keyboardType="numeric" />
-                    <TextInput style={[styles.input, { flex: 2 }]} placeholder="Ciudad" placeholderTextColor={colors.ink4} value={newAddress.city ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, city: v }))} />
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder={t('client_detail.addr_zip_placeholder')} placeholderTextColor={colors.ink4} value={newAddress.postal_code ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, postal_code: v }))} keyboardType="numeric" />
+                    <TextInput style={[styles.input, { flex: 2 }]} placeholder={t('client_detail.addr_city_placeholder')} placeholderTextColor={colors.ink4} value={newAddress.city ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, city: v }))} />
                   </View>
-                  <TextInput style={styles.input} placeholder="Notas (horario, acceso...)" placeholderTextColor={colors.ink4} value={newAddress.notes ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, notes: v }))} />
+                  <TextInput style={styles.input} placeholder={t('client_detail.addr_notes_placeholder')} placeholderTextColor={colors.ink4} value={newAddress.notes ?? ''} onChangeText={v => setNewAddress(p => ({ ...p, notes: v }))} />
                   <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[1] }}>
-                    <Button label="Cancelar" variant="secondary" size="sm" onPress={() => { setAddingAddress(false); setNewAddress({}); }} style={{ flex: 1 }} />
-                    <Button label="Guardar" size="sm" onPress={saveAddress} style={{ flex: 1 }} />
+                    <Button label={t('client_detail.cancel')} variant="secondary" size="sm" onPress={() => { setAddingAddress(false); setNewAddress({}); }} style={{ flex: 1 }} />
+                    <Button label={t('client_detail.save')} size="sm" onPress={saveAddress} style={{ flex: 1 }} />
                   </View>
                 </View>
               )}
@@ -275,7 +279,7 @@ export default function ClienteScreen() {
         {tab === 'pedidos' && (
           <View style={styles.blocks}>
             {orders.length === 0 && (
-              <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[6] }}>Sin pedidos aún</Text>
+              <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[6] }}>{t('client_detail.no_orders_yet')}</Text>
             )}
             {orders.map(o => (
               <Pressable
@@ -285,10 +289,10 @@ export default function ClienteScreen() {
               >
                 <View style={{ flex: 1, gap: 1 }}>
                   {o.order_number && <Text variant="caption" color="ink3">{o.order_number}</Text>}
-                  <Text variant="small" color="ink3">{(o as any).supplier?.name} · {new Date(o.created_at).toLocaleDateString('es-ES')}</Text>
+                  <Text variant="small" color="ink3">{(o as any).supplier?.name} · {new Date(o.created_at).toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES')}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: space[1] }}>
-                  <Text variant="bodyMedium">{o.total.toFixed(2)} €</Text>
+                  <Text variant="bodyMedium">{formatEur(o.total, i18n.language)}</Text>
                   <StatusBadge status={o.status} />
                 </View>
               </Pressable>
@@ -302,12 +306,12 @@ export default function ClienteScreen() {
             <TextInput
               style={styles.notesInput}
               multiline
-              placeholder="Añade notas sobre este cliente..."
+              placeholder={t('client_detail.notes_placeholder')}
               placeholderTextColor={colors.ink4}
               value={form.notes ?? ''}
               onChangeText={v => setForm(f => ({ ...f, notes: v }))}
             />
-            <Button label="Guardar notas" onPress={saveChanges} fullWidth />
+            <Button label={t('client_detail.save_notes')} onPress={saveChanges} fullWidth />
           </View>
         )}
 
@@ -320,13 +324,14 @@ export default function ClienteScreen() {
 }
 
 function PortalTab({ client }: { client: Client }) {
+  const { t } = useTranslation('agent');
   const toast = useToast();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function sendInvite() {
     if (!client.email?.trim()) {
-      toast.error('Este cliente no tiene email registrado. Añádelo en la ficha antes de invitarlo.');
+      toast.error(t('client_detail.no_email_error'));
       return;
     }
     setSending(true);
@@ -353,11 +358,11 @@ function PortalTab({ client }: { client: Client }) {
       }
       setSent(true);
       const msg = json?.type === 'recovery'
-        ? `Email enviado a ${client.email} para restablecer su contraseña`
-        : `Email enviado a ${client.email} con sus credenciales`;
+        ? t('client_detail.email_sent_recovery', { email: client.email })
+        : t('client_detail.email_sent_credentials', { email: client.email });
       toast.success(msg);
     } catch (e: any) {
-      toast.error(e?.message ?? 'Error inesperado. Inténtalo de nuevo.');
+      toast.error(e?.message ?? t('client_detail.unexpected_error'));
     } finally {
       setSending(false);
     }
@@ -366,22 +371,22 @@ function PortalTab({ client }: { client: Client }) {
   return (
     <View style={styles.blocks}>
       <View style={styles.portalCard}>
-        <Text variant="heading">Acceso al portal del cliente</Text>
+        <Text variant="heading">{t('client_detail.portal_access_title')}</Text>
         <Text variant="small" color="ink3">
           {client.email
-            ? `El cliente recibirá un enlace en ${client.email} para acceder al portal y ver sus catálogos.`
-            : 'Añade un email al cliente para poder enviarle la invitación.'}
+            ? t('client_detail.portal_access_desc_with_email', { email: client.email })
+            : t('client_detail.portal_access_desc_no_email')}
         </Text>
 
         {sent && (
           <View style={styles.inviteSentBox}>
             <Icon name="CircleCheck" size={16} color={colors.success} />
-            <Text variant="small" color="success">Invitación enviada a {client.email}</Text>
+            <Text variant="small" color="success">{t('client_detail.invitation_sent', { email: client.email })}</Text>
           </View>
         )}
 
         <Button
-          label={sent ? 'Reenviar invitación' : 'Enviar invitación'}
+          label={sent ? t('client_detail.resend_invite') : t('client_detail.send_invite')}
           variant={sent ? 'secondary' : 'primary'}
           icon="Mail"
           onPress={sendInvite}
@@ -409,6 +414,7 @@ type SupplierAccessRow = {
 };
 
 function PortalAccessSection({ clientId }: { clientId: string }) {
+  const { t } = useTranslation('agent');
   const toast = useToast();
   const [rows, setRows] = useState<SupplierAccessRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -520,9 +526,9 @@ function PortalAccessSection({ clientId }: { clientId: string }) {
   if (rows.length === 0) {
     return (
       <View style={styles.portalCard}>
-        <Text variant="heading">Acceso a catálogos</Text>
+        <Text variant="heading">{t('client_detail.catalog_access_title')}</Text>
         <Text variant="small" color="ink3">
-          Aún no tienes proveedores. Crea un proveedor antes de configurar el acceso del cliente.
+          {t('client_detail.no_suppliers_yet_desc')}
         </Text>
       </View>
     );
@@ -530,9 +536,9 @@ function PortalAccessSection({ clientId }: { clientId: string }) {
 
   return (
     <View style={styles.portalCard}>
-      <Text variant="heading">Acceso a catálogos</Text>
+      <Text variant="heading">{t('client_detail.catalog_access_title')}</Text>
       <Text variant="small" color="ink3" style={{ marginBottom: space[2] }}>
-        Decide qué proveedores y catálogos puede ver este cliente en su portal.
+        {t('client_detail.catalog_access_desc')}
       </Text>
 
       {rows.map((row, idx) => (
@@ -545,10 +551,10 @@ function PortalAccessSection({ clientId }: { clientId: string }) {
               <Text variant="bodyMedium">{row.supplier_name}</Text>
               <Text variant="caption" color="ink3">
                 {!row.enabled
-                  ? 'Sin acceso'
+                  ? t('client_detail.no_access')
                   : row.scope === 'all'
-                    ? `Todos los catálogos (${row.catalogs.length})`
-                    : `${row.selectedCatalogIds.size} de ${row.catalogs.length} catálogos`}
+                    ? t('client_detail.all_catalogs_count', { count: row.catalogs.length })
+                    : t('client_detail.some_catalogs_count', { selected: row.selectedCatalogIds.size, total: row.catalogs.length })}
               </Text>
             </View>
             <Switch
@@ -568,7 +574,7 @@ function PortalAccessSection({ clientId }: { clientId: string }) {
                   style={[styles.scopeBtn, row.scope === 'all' && styles.scopeBtnActive]}
                 >
                   <Text variant="caption" color={row.scope === 'all' ? 'brand' : 'ink2'}>
-                    Todos
+                    {t('client_detail.all')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -576,7 +582,7 @@ function PortalAccessSection({ clientId }: { clientId: string }) {
                   style={[styles.scopeBtn, row.scope === 'specific' && styles.scopeBtnActive]}
                 >
                   <Text variant="caption" color={row.scope === 'specific' ? 'brand' : 'ink2'}>
-                    Solo algunos
+                    {t('client_detail.specific')}
                   </Text>
                 </Pressable>
               </View>
@@ -584,7 +590,7 @@ function PortalAccessSection({ clientId }: { clientId: string }) {
               {row.scope === 'specific' && (
                 <View style={{ gap: space[1] + 2 }}>
                   {row.catalogs.length === 0 && (
-                    <Text variant="caption" color="ink4">Este proveedor no tiene catálogos.</Text>
+                    <Text variant="caption" color="ink4">{t('client_detail.no_catalogs_for_supplier')}</Text>
                   )}
                   {row.catalogs.map(cat => {
                     const checked = row.selectedCatalogIds.has(cat.id);
@@ -617,13 +623,14 @@ function TarifaSelectorRow({ tariffs, value, editing, onChange }: {
   editing: boolean;
   onChange: (v: string | null) => void;
 }) {
-  const selected = tariffs.find(t => t.id === value);
-  const label = selected?.name ?? 'Sin tarifa (precio base)';
+  const { t } = useTranslation('agent');
+  const selected = tariffs.find(tf => tf.id === value);
+  const label = selected?.name ?? t('client_detail.no_tariff');
 
   if (!editing) {
     return (
       <View style={[styles.fieldRow]}>
-        <Text variant="small" color="ink3" style={{ minWidth: 120 }}>Tarifa</Text>
+        <Text variant="small" color="ink3" style={{ minWidth: 120 }}>{t('client_detail.tariff')}</Text>
         <Text variant="smallMedium" color={selected ? 'ink' : 'ink4'} align="right" style={{ flex: 1 }}>
           {label}
         </Text>
@@ -634,9 +641,9 @@ function TarifaSelectorRow({ tariffs, value, editing, onChange }: {
   if (tariffs.length === 0) {
     return (
       <View style={[styles.fieldRow]}>
-        <Text variant="small" color="ink3" style={{ minWidth: 120 }}>Tarifa</Text>
+        <Text variant="small" color="ink3" style={{ minWidth: 120 }}>{t('client_detail.tariff')}</Text>
         <Text variant="caption" color="ink4" align="right" style={{ flex: 1 }}>
-          Aún no tienes tarifas. Créalas en Más → Tarifas.
+          {t('client_detail.no_tariffs_yet')}
         </Text>
       </View>
     );
@@ -644,7 +651,7 @@ function TarifaSelectorRow({ tariffs, value, editing, onChange }: {
 
   return (
     <View style={[styles.fieldRow, { flexDirection: 'column', alignItems: 'stretch', gap: space[2] }]}>
-      <Text variant="small" color="ink3">Tarifa</Text>
+      <Text variant="small" color="ink3">{t('client_detail.tariff')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space[1] + 2 }}>
         <Pressable
           onPress={() => onChange(null)}
@@ -655,21 +662,21 @@ function TarifaSelectorRow({ tariffs, value, editing, onChange }: {
           ]}
         >
           <Text variant="caption" color={value == null ? 'brand' : 'ink2'}>
-            Sin tarifa
+            {t('client_detail.no_tariff_short')}
           </Text>
         </Pressable>
-        {tariffs.map(t => (
+        {tariffs.map(tf => (
           <Pressable
-            key={t.id}
-            onPress={() => onChange(t.id)}
+            key={tf.id}
+            onPress={() => onChange(tf.id)}
             style={({ pressed }) => [
               tarifaStyles.chip,
-              value === t.id && tarifaStyles.chipActive,
+              value === tf.id && tarifaStyles.chipActive,
               pressed && { opacity: 0.7 },
             ]}
           >
-            <Text variant="caption" color={value === t.id ? 'brand' : 'ink2'}>
-              {t.name}
+            <Text variant="caption" color={value === tf.id ? 'brand' : 'ink2'}>
+              {tf.name}
             </Text>
           </Pressable>
         ))}

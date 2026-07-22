@@ -5,6 +5,7 @@ import {
   View, StyleSheet, Pressable, Switch, ScrollView,
   Modal, TextInput, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
@@ -62,6 +63,7 @@ const FREE_KEYS = ['free', 'free_pro'];
 const isFree = (id: string) => FREE_KEYS.includes(id);
 
 export default function AdminPlanesScreen() {
+  const { t } = useTranslation('admin');
   const toast = useToast();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function AdminPlanesScreen() {
       .select('*')
       .order('sort_order');
     if (error) {
-      toast.error('No se pudieron cargar los planes');
+      toast.error(t('planes.load_error'));
     } else if (data) {
       setPlans(data as Plan[]);
     }
@@ -88,11 +90,11 @@ export default function AdminPlanesScreen() {
 
   async function savePlan() {
     if (!editing) return;
-    if (!editing.name.trim()) { toast.error('El nombre es obligatorio'); return; }
+    if (!editing.name.trim()) { toast.error(t('planes.name_required_error')); return; }
     setSaving(true);
 
     if (isNew) {
-      if (!newId.trim()) { toast.error('El ID del plan es obligatorio'); setSaving(false); return; }
+      if (!newId.trim()) { toast.error(t('planes.id_required_error')); setSaving(false); return; }
       const { error } = await supabase.from('plans').insert({ ...editing, id: newId.trim().toLowerCase().replace(/\s+/g, '_') });
       if (error) { toast.error(error.message); setSaving(false); return; }
     } else {
@@ -118,7 +120,7 @@ export default function AdminPlanesScreen() {
         is_active: editing.is_active,
         sort_order: editing.sort_order,
       }).eq('id', editing.id);
-      if (error) { toast.error('No se pudo guardar el plan.'); setSaving(false); return; }
+      if (error) { toast.error(t('planes.save_error')); setSaving(false); return; }
     }
 
     setSaving(false);
@@ -126,7 +128,7 @@ export default function AdminPlanesScreen() {
     setIsNew(false);
     setNewId('');
     fetchPlans();
-    toast.success(isNew ? 'Plan creado' : 'Plan actualizado');
+    toast.success(isNew ? t('planes.plan_created') : t('planes.plan_updated'));
   }
 
   async function toggleActive(plan: Plan) {
@@ -134,22 +136,22 @@ export default function AdminPlanesScreen() {
       .from('plans')
       .update({ is_active: !plan.is_active })
       .eq('id', plan.id);
-    if (error) { toast.error('No se pudo actualizar'); return; }
-    toast.success(plan.is_active ? 'Plan desactivado' : 'Plan activado');
+    if (error) { toast.error(t('planes.update_error')); return; }
+    toast.success(plan.is_active ? t('planes.plan_deactivated') : t('planes.plan_activated'));
     fetchPlans();
   }
 
   function confirmDelete(plan: Plan) {
     Alert.alert(
-      'Eliminar plan',
-      `¿Eliminar "${plan.name}"? Los agentes que lo tengan asignado no se verán afectados, pero no se podrá asignar a nuevos agentes.`,
+      t('planes.delete_plan_title'),
+      t('planes.delete_plan_body', { name: plan.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('planes.cancel'), style: 'cancel' },
         {
-          text: 'Eliminar', style: 'destructive', onPress: async () => {
+          text: t('planes.delete'), style: 'destructive', onPress: async () => {
             const { error } = await supabase.from('plans').delete().eq('id', plan.id);
             if (error) { toast.error(error.message); return; }
-            toast.success('Plan eliminado');
+            toast.success(t('planes.plan_deleted'));
             fetchPlans();
           }
         },
@@ -193,21 +195,21 @@ export default function AdminPlanesScreen() {
   }
 
   function priceLabel(plan: Plan) {
-    if (plan.price_monthly == null) return 'A medida';
-    if (plan.price_monthly === 0) return 'Gratis';
-    return `${plan.price_monthly} €/mes`;
+    if (plan.price_monthly == null) return t('planes.custom_price');
+    if (plan.price_monthly === 0) return t('planes.free_price');
+    return t('planes.price_per_month', { price: plan.price_monthly });
   }
 
   return (
-    <AdminShell activeSection="planes" title="Planes">
+    <AdminShell activeSection="planes" title={t('planes.title')}>
       {/* Botón nuevo plan */}
       <View style={styles.toolbar}>
-        <Button label="+ Nuevo plan" onPress={openNew} size="sm" />
+        <Button label={t('planes.new_plan')} onPress={openNew} size="sm" />
       </View>
 
       {loading ? (
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-          Cargando planes...
+          {t('planes.loading')}
         </Text>
       ) : (
         <View style={styles.list}>
@@ -219,22 +221,22 @@ export default function AdminPlanesScreen() {
                     label={plan.name}
                     variant={isFree(plan.id) ? 'success' : 'neutral'}
                   />
-                  {plan.highlighted && <Badge label="Destacado" variant="warning" />}
-                  {!plan.is_public && <Badge label="Interno" variant="neutral" />}
-                  {!plan.is_active && <Badge label="Inactivo" variant="danger" />}
+                  {plan.highlighted && <Badge label={t('planes.highlighted')} variant="warning" />}
+                  {!plan.is_public && <Badge label={t('planes.internal')} variant="neutral" />}
+                  {!plan.is_active && <Badge label={t('planes.inactive')} variant="danger" />}
                   <Text variant="smallMedium">{priceLabel(plan)}</Text>
                 </View>
                 <View style={styles.rowMeta}>
                   <Text variant="caption" color="ink3">
-                    {plan.max_clients != null ? `${plan.max_clients} clientes` : 'Clientes ilimitados'}
+                    {plan.max_clients != null ? t('planes.clients_count', { count: plan.max_clients }) : t('planes.unlimited_clients')}
                   </Text>
                   <Text variant="caption" color="ink4">·</Text>
                   <Text variant="caption" color="ink3">
-                    {plan.max_products != null ? `${plan.max_products} productos` : 'Productos ilimitados'}
+                    {plan.max_products != null ? t('planes.products_count', { count: plan.max_products }) : t('planes.unlimited_products')}
                   </Text>
                   <Text variant="caption" color="ink4">·</Text>
                   <Text variant="caption" color="ink3">
-                    {plan.max_orders_month != null ? `${plan.max_orders_month} pedidos/mes` : 'Pedidos ilimitados'}
+                    {plan.max_orders_month != null ? t('planes.orders_count', { count: plan.max_orders_month }) : t('planes.unlimited_orders')}
                   </Text>
                 </View>
               </View>
@@ -280,31 +282,31 @@ export default function AdminPlanesScreen() {
         >
           <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
-              <Text variant="bodyMedium">{isNew ? 'Nuevo plan' : `Editar — ${editing?.name}`}</Text>
+              <Text variant="bodyMedium">{isNew ? t('planes.new_plan_modal_title') : t('planes.edit_plan_modal_title', { name: editing?.name })}</Text>
               <Pressable
                 onPress={() => { setEditing(null); setIsNew(false); }}
                 hitSlop={8}
                 style={({ pressed }) => [pressed && { opacity: 0.6 }]}
               >
-                <Text variant="smallMedium" color="ink2">Cancelar</Text>
+                <Text variant="smallMedium" color="ink2">{t('planes.cancel')}</Text>
               </Pressable>
             </View>
 
             <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalBody}>
               {isNew && (
-                <FormGroup label="ID del plan" hint="Único, sin espacios (ej: basic, pro_plus)">
+                <FormGroup label={t('planes.plan_id_label')} hint={t('planes.plan_id_hint')}>
                   <TextInput
                     style={styles.input}
                     value={newId}
                     onChangeText={v => setNewId(v.toLowerCase().replace(/\s+/g, '_'))}
-                    placeholder="ej: pro_plus"
+                    placeholder={t('planes.plan_id_placeholder')}
                     placeholderTextColor={colors.ink4}
                     autoCapitalize="none"
                   />
                 </FormGroup>
               )}
 
-              <FormGroup label="Nombre">
+              <FormGroup label={t('planes.name_label')}>
                 <TextInput
                   style={styles.input}
                   value={editing?.name ?? ''}
@@ -313,7 +315,7 @@ export default function AdminPlanesScreen() {
                 />
               </FormGroup>
 
-              <FormGroup label="Tagline" hint="Frase corta bajo el nombre">
+              <FormGroup label={t('planes.tagline_label')} hint={t('planes.tagline_hint')}>
                 <TextInput
                   style={styles.input}
                   value={editing?.tagline ?? ''}
@@ -323,17 +325,17 @@ export default function AdminPlanesScreen() {
               </FormGroup>
 
               <View style={styles.formRow}>
-                <FormGroup label="Precio (€/mes)" hint="Vacío = a medida">
+                <FormGroup label={t('planes.price_label')} hint={t('planes.price_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('price_monthly')}
                     keyboardType="decimal-pad"
-                    placeholder="A medida"
+                    placeholder={t('planes.custom_price')}
                     onChangeText={v => updateNum('price_monthly', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
-                <FormGroup label="Extra/agente (€)" hint="Solo Empresa">
+                <FormGroup label={t('planes.extra_agent_label')} hint={t('planes.extra_agent_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('price_extra_agent')}
@@ -346,22 +348,22 @@ export default function AdminPlanesScreen() {
               </View>
 
               <View style={styles.formRow}>
-                <FormGroup label="Máx. clientes" hint="Vacío = ilimitado">
+                <FormGroup label={t('planes.max_clients_label')} hint={t('planes.unlimited_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('max_clients')}
                     keyboardType="number-pad"
-                    placeholder="Ilimitado"
+                    placeholder={t('planes.unlimited_placeholder')}
                     onChangeText={v => updateNum('max_clients', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
-                <FormGroup label="Máx. proveedores" hint="Vacío = ilimitado">
+                <FormGroup label={t('planes.max_suppliers_label')} hint={t('planes.unlimited_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('max_suppliers')}
                     keyboardType="number-pad"
-                    placeholder="Ilimitado"
+                    placeholder={t('planes.unlimited_placeholder')}
                     onChangeText={v => updateNum('max_suppliers', v)}
                     placeholderTextColor={colors.ink4}
                   />
@@ -369,12 +371,12 @@ export default function AdminPlanesScreen() {
               </View>
 
               <View style={styles.formRow}>
-                <FormGroup label="Máx. productos" hint="Vacío = ilimitado">
+                <FormGroup label={t('planes.max_products_label')} hint={t('planes.unlimited_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('max_products')}
                     keyboardType="number-pad"
-                    placeholder="Ilimitado"
+                    placeholder={t('planes.unlimited_placeholder')}
                     onChangeText={v => updateNum('max_products', v)}
                     placeholderTextColor={colors.ink4}
                   />
@@ -382,17 +384,17 @@ export default function AdminPlanesScreen() {
               </View>
 
               <View style={styles.formRow}>
-                <FormGroup label="Máx. pedidos/mes" hint="Vacío = ilimitado">
+                <FormGroup label={t('planes.max_orders_label')} hint={t('planes.unlimited_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('max_orders_month')}
                     keyboardType="number-pad"
-                    placeholder="Ilimitado"
+                    placeholder={t('planes.unlimited_placeholder')}
                     onChangeText={v => updateNum('max_orders_month', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
-                <FormGroup label="Agentes incluidos" hint="De serie en el precio base">
+                <FormGroup label={t('planes.agents_included_label')} hint={t('planes.agents_included_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('agents_included')}
@@ -402,12 +404,12 @@ export default function AdminPlanesScreen() {
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
-                <FormGroup label="Máx. agentes" hint="Vacío = ilimitado">
+                <FormGroup label={t('planes.max_agents_label')} hint={t('planes.unlimited_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('max_agents')}
                     keyboardType="number-pad"
-                    placeholder="Ilimitado"
+                    placeholder={t('planes.unlimited_placeholder')}
                     onChangeText={v => updateNum('max_agents', v)}
                     placeholderTextColor={colors.ink4}
                   />
@@ -415,17 +417,17 @@ export default function AdminPlanesScreen() {
               </View>
 
               <View style={styles.formRow}>
-                <FormGroup label="Máx. catálogos" hint="Vacío = ilimitado">
+                <FormGroup label={t('planes.max_catalogs_label')} hint={t('planes.unlimited_hint')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('max_catalogs')}
                     keyboardType="number-pad"
-                    placeholder="Ilimitado"
+                    placeholder={t('planes.unlimited_placeholder')}
                     onChangeText={v => updateNum('max_catalogs', v)}
                     placeholderTextColor={colors.ink4}
                   />
                 </FormGroup>
-                <FormGroup label="Días de trial">
+                <FormGroup label={t('planes.trial_days_label')}>
                   <TextInput
                     style={styles.input}
                     value={numVal('trial_days') || '15'}
@@ -436,7 +438,7 @@ export default function AdminPlanesScreen() {
                 </FormGroup>
               </View>
 
-              <FormGroup label="Orden (sort)" hint="Número menor = aparece antes">
+              <FormGroup label={t('planes.sort_order_label')} hint={t('planes.sort_order_hint')}>
                 <TextInput
                   style={styles.input}
                   value={numVal('sort_order') || '99'}
@@ -446,7 +448,7 @@ export default function AdminPlanesScreen() {
                 />
               </FormGroup>
 
-              <FormGroup label="Características" hint="Una por línea — bullets en la web">
+              <FormGroup label={t('planes.features_label')} hint={t('planes.features_hint')}>
                 <TextInput
                   style={[styles.input, styles.textarea]}
                   value={(editing?.features ?? []).join('\n')}
@@ -459,7 +461,7 @@ export default function AdminPlanesScreen() {
                 />
               </FormGroup>
 
-              <FormGroup label="Texto del botón (CTA)">
+              <FormGroup label={t('planes.cta_label')}>
                 <TextInput
                   style={styles.input}
                   value={editing?.cta_label ?? ''}
@@ -468,12 +470,12 @@ export default function AdminPlanesScreen() {
                 />
               </FormGroup>
 
-              <FormGroup label="URL del botón (CTA)">
+              <FormGroup label={t('planes.cta_href_label')}>
                 <TextInput
                   style={styles.input}
                   value={editing?.cta_href ?? ''}
                   onChangeText={v => update('cta_href', v)}
-                  placeholder="/contacto o https://app.nudofy.com/registro?plan=..."
+                  placeholder={t('planes.cta_href_placeholder')}
                   placeholderTextColor={colors.ink4}
                   autoCapitalize="none"
                 />
@@ -481,20 +483,20 @@ export default function AdminPlanesScreen() {
 
               <View style={styles.toggleGroup}>
                 <ToggleRow
-                  label="Activo"
-                  hint="Si está apagado, no se puede asignar a nuevos agentes"
+                  label={t('planes.toggle_active_label')}
+                  hint={t('planes.toggle_active_hint')}
                   value={!!editing?.is_active}
                   onChange={v => update('is_active', v)}
                 />
                 <ToggleRow
-                  label="Visible en /precios"
-                  hint="Si está apagado, no se muestra en la web pública"
+                  label={t('planes.toggle_public_label')}
+                  hint={t('planes.toggle_public_hint')}
                   value={!!editing?.is_public}
                   onChange={v => update('is_public', v)}
                 />
                 <ToggleRow
-                  label="Destacado"
-                  hint="Marca el plan como 'Más popular' en la web"
+                  label={t('planes.toggle_highlighted_label')}
+                  hint={t('planes.toggle_highlighted_hint')}
                   value={!!editing?.highlighted}
                   onChange={v => update('highlighted', v)}
                 />
@@ -503,13 +505,13 @@ export default function AdminPlanesScreen() {
 
             <View style={styles.modalFooter}>
               <Button
-                label="Cancelar"
+                label={t('planes.cancel')}
                 variant="secondary"
                 onPress={() => { setEditing(null); setIsNew(false); }}
                 fullWidth
               />
               <Button
-                label={saving ? 'Guardando...' : isNew ? 'Crear plan' : 'Guardar'}
+                label={saving ? t('planes.saving') : isNew ? t('planes.create_plan') : t('planes.save')}
                 onPress={savePlan}
                 disabled={saving}
                 fullWidth

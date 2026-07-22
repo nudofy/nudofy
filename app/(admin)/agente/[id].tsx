@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Pressable, Alert, TextInput, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgentDetail, useAdminAgents } from '@/hooks/useAdmin';
 import { colors, space, radius } from '@/theme';
@@ -10,30 +11,32 @@ import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 import { useToast } from '@/contexts/ToastContext';
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-
-const PLAN_META: Record<string, { label: string; price: string; free?: boolean }> = {
-  free:        { label: 'Free',         price: 'Gratis',   free: true },
-  free_pro:    { label: 'Free Pro',     price: 'Gratis',   free: true },
-  basic:       { label: 'Básico',       price: '15 €/mes' },
-  pro:         { label: 'Pro',           price: '35 €/mes' },
-  agency:      { label: 'Agencia',       price: '75 €/mes' },
-};
-
 const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency'] as const;
-
-const DURATIONS = [
-  { label: '15 días', days: 15 },
-  { label: '1 mes',   days: 30 },
-  { label: 'Ilimitado', days: null },
-];
 
 export default function AdminAgenteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, i18n } = useTranslation('admin');
   const toast = useToast();
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  const PLAN_META: Record<string, { label: string; price: string; free?: boolean }> = {
+    free:     { label: t('agente_detail.plan_free'),    price: t('agente_detail.free_price'), free: true },
+    free_pro: { label: t('agente_detail.plan_free_pro'), price: t('agente_detail.free_price'), free: true },
+    basic:    { label: t('shared.plan_basic'), price: '15 €/mes' },
+    pro:      { label: t('shared.plan_pro'),   price: '35 €/mes' },
+    agency:   { label: t('shared.plan_agency'), price: '75 €/mes' },
+  };
+
+  const DURATIONS = [
+    { label: t('agente_detail.duration_15'), days: 15 },
+    { label: t('agente_detail.duration_1month'), days: 30 },
+    { label: t('agente_detail.duration_unlimited'), days: null },
+  ];
   const { agent, clientCount, orderCount, supplierCount, loading, refetch } = useAdminAgentDetail(id);
   const { updateAgentPlan, toggleAgentActive, updateAgentData, deleteAgent } = useAdminAgents();
   const [changingPlan, setChangingPlan] = useState(false);
@@ -47,9 +50,9 @@ export default function AdminAgenteDetailScreen() {
   const [savingPassword, setSavingPassword] = useState(false);
 
   async function handleChangePassword() {
-    if (newPassword.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
-    if (newPassword !== confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
-    if (!agent?.user_id) { toast.error('El agente no tiene usuario asociado'); return; }
+    if (newPassword.length < 6) { toast.error(t('agente_detail.min_chars_error')); return; }
+    if (newPassword !== confirmPassword) { toast.error(t('agente_detail.passwords_mismatch')); return; }
+    if (!agent?.user_id) { toast.error(t('agente_detail.no_user_error')); return; }
     setSavingPassword(true);
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/reset-user-password`, {
@@ -63,8 +66,8 @@ export default function AdminAgenteDetailScreen() {
     });
     const json = await res.json();
     setSavingPassword(false);
-    if (!res.ok || json.error) { toast.error(json.error ?? 'Error al cambiar contraseña'); return; }
-    toast.success('Contraseña actualizada');
+    if (!res.ok || json.error) { toast.error(json.error ?? t('agente_detail.password_change_error')); return; }
+    toast.success(t('agente_detail.password_updated'));
     setShowPasswordModal(false);
     setNewPassword('');
     setConfirmPassword('');
@@ -92,16 +95,16 @@ export default function AdminAgenteDetailScreen() {
     });
     setSaving(false);
     if (error) { toast.error(error); return; }
-    toast.success('Agente actualizado');
+    toast.success(t('agente_detail.agent_updated'));
     setEditing(false);
     refetch?.();
   }
 
   if (loading || !agent) {
     return (
-      <AdminShell activeSection="agentes" title="Cargando..." onBack={() => router.back()}>
+      <AdminShell activeSection="agentes" title={t('agente_detail.loading_title')} onBack={() => router.back()}>
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-          Cargando agente...
+          {t('agente_detail.loading_body')}
         </Text>
       </AdminShell>
     );
@@ -128,7 +131,7 @@ export default function AdminAgenteDetailScreen() {
       toast.error(error);
       return;
     }
-    toast.success('Plan actualizado');
+    toast.success(t('agente_detail.plan_updated'));
     setChangingPlan(false);
     setSelectedPlan(null);
     refetch?.();
@@ -136,12 +139,12 @@ export default function AdminAgenteDetailScreen() {
 
   function handleToggleActive() {
     Alert.alert(
-      agent!.active ? 'Desactivar agente' : 'Activar agente',
-      `¿${agent!.active ? 'Desactivar' : 'Activar'} la cuenta de ${agent!.name}?`,
+      agent!.active ? t('agente_detail.deactivate_agent_title') : t('agente_detail.activate_agent_title'),
+      t('agente_detail.confirm_toggle_account', { action: agent!.active ? t('agente_detail.deactivate') : t('agente_detail.activate'), name: agent!.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('shared.cancel'), style: 'cancel' },
         {
-          text: agent!.active ? 'Desactivar' : 'Activar',
+          text: agent!.active ? t('agente_detail.deactivate') : t('agente_detail.activate'),
           style: agent!.active ? 'destructive' : 'default',
           onPress: () => toggleAgentActive(agent!.id, !agent!.active),
         },
@@ -161,25 +164,25 @@ export default function AdminAgenteDetailScreen() {
           </Text>
           <View style={styles.agentMeta}>
             <Badge label={plan.label} variant="neutral" />
-            <Badge label={agent.active ? 'Activo' : 'Inactivo'} variant={agent.active ? 'success' : 'neutral'} />
-            <Text variant="caption" color="ink4">Alta: {formatDate(agent.created_at)}</Text>
+            <Badge label={agent.active ? t('shared.active') : t('shared.inactive')} variant={agent.active ? 'success' : 'neutral'} />
+            <Text variant="caption" color="ink4">{t('agente_detail.signup_label', { date: formatDate(agent.created_at) })}</Text>
           </View>
         </View>
       </View>
 
       {/* KPIs */}
       <View style={styles.kpiGrid}>
-        <KpiMini label="Clientes" value={clientCount.toString()} />
-        <KpiMini label="Pedidos totales" value={orderCount.toString()} />
-        <KpiMini label="Proveedores" value={supplierCount.toString()} />
-        <KpiMini label="Plan actual" value={plan.price} />
+        <KpiMini label={t('agente_detail.kpi_clients')} value={clientCount.toString()} />
+        <KpiMini label={t('agente_detail.kpi_total_orders')} value={orderCount.toString()} />
+        <KpiMini label={t('agente_detail.kpi_suppliers')} value={supplierCount.toString()} />
+        <KpiMini label={t('agente_detail.kpi_current_plan')} value={plan.price} />
       </View>
 
       {/* Datos + Plan */}
       <View style={styles.rowCards}>
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
-            <Text variant="bodyMedium">Datos del agente</Text>
+            <Text variant="bodyMedium">{t('agente_detail.agent_data_title')}</Text>
             <Pressable
               onPress={() => editing ? handleSaveData() : setEditing(true)}
               hitSlop={8}
@@ -187,29 +190,29 @@ export default function AdminAgenteDetailScreen() {
               style={({ pressed }) => [pressed && { opacity: 0.6 }]}
             >
               <Text variant="smallMedium" color="ink2">
-                {saving ? 'Guardando...' : editing ? 'Guardar' : 'Editar'}
+                {saving ? t('agente_detail.saving') : editing ? t('agente_detail.save') : t('agente_detail.edit')}
               </Text>
             </Pressable>
           </View>
           {editing ? (
             <View>
-              <EditField label="Nombre" value={editName} onChange={setEditName} />
-              <EditField label="Email" value={agent.email} editable={false} />
-              <EditField label="Teléfono" value={editPhone} onChange={setEditPhone} keyboardType="phone-pad" last />
+              <EditField label={t('agente_detail.name')} value={editName} onChange={setEditName} />
+              <EditField label={t('agente_detail.email')} value={agent.email} editable={false} />
+              <EditField label={t('agente_detail.phone')} value={editPhone} onChange={setEditPhone} keyboardType="phone-pad" last />
             </View>
           ) : (
             <View>
-              <FieldRow label="Nombre" value={agent.name} />
-              <FieldRow label="Email" value={agent.email} />
-              <FieldRow label="Teléfono" value={agent.phone ?? '—'} />
-              <FieldRow label="ID" value={agent.id} mono />
-              <FieldRow label="Usuario ID" value={agent.user_id} mono last />
+              <FieldRow label={t('agente_detail.name')} value={agent.name} />
+              <FieldRow label={t('agente_detail.email')} value={agent.email} />
+              <FieldRow label={t('agente_detail.phone')} value={agent.phone ?? '—'} />
+              <FieldRow label={t('agente_detail.id_label')} value={agent.id} mono />
+              <FieldRow label={t('agente_detail.user_id_label')} value={agent.user_id} mono last />
             </View>
           )}
           {editing && (
             <View style={{ padding: space[3], paddingTop: 0 }}>
               <Pressable onPress={() => setEditing(false)} hitSlop={8}>
-                <Text variant="small" color="ink3" align="center">Cancelar</Text>
+                <Text variant="small" color="ink3" align="center">{t('shared.cancel')}</Text>
               </Pressable>
             </View>
           )}
@@ -217,20 +220,20 @@ export default function AdminAgenteDetailScreen() {
 
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
-            <Text variant="bodyMedium">Plan actual</Text>
+            <Text variant="bodyMedium">{t('agente_detail.current_plan_title')}</Text>
             <Pressable
               onPress={() => setChangingPlan(!changingPlan)}
               hitSlop={8}
               style={({ pressed }) => [pressed && { opacity: 0.6 }]}
             >
               <Text variant="smallMedium" color="ink2">
-                {changingPlan ? 'Cancelar' : 'Cambiar plan'}
+                {changingPlan ? t('shared.cancel') : t('agente_detail.change_plan')}
               </Text>
             </Pressable>
           </View>
-          <FieldRow label="Plan" value={plan.label} />
-          <FieldRow label="Precio" value={plan.price} />
-          <FieldRow label="Estado pago" value="Al día" last />
+          <FieldRow label={t('agente_detail.plan_label')} value={plan.label} />
+          <FieldRow label={t('agente_detail.price_label')} value={plan.price} />
+          <FieldRow label={t('agente_detail.payment_status')} value={t('agente_detail.up_to_date')} last />
 
           {changingPlan && (
             <View style={styles.planSelector}>
@@ -251,7 +254,7 @@ export default function AdminAgenteDetailScreen() {
                     <Text variant="smallMedium">{pm.label}</Text>
                     <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{pm.price}</Text>
                     {isActive && (
-                      <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>actual</Text>
+                      <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>{t('agente_detail.current_badge')}</Text>
                     )}
                   </Pressable>
                 );
@@ -260,7 +263,7 @@ export default function AdminAgenteDetailScreen() {
               {selectedPlan && PLAN_META[selectedPlan].free && (
                 <View style={{ width: '100%', marginTop: space[1] }}>
                   <Text variant="small" color="ink2" style={{ marginBottom: space[2] }}>
-                    Duración del acceso gratuito
+                    {t('agente_detail.free_access_duration')}
                   </Text>
                   <View style={styles.durationRow}>
                     {DURATIONS.map(d => (
@@ -284,11 +287,11 @@ export default function AdminAgenteDetailScreen() {
               {selectedPlan && (
                 <View style={{ width: '100%', marginTop: space[2] }}>
                   <Button
-                    label={`Confirmar — ${PLAN_META[selectedPlan].label}${
+                    label={t('agente_detail.confirm_plan', { plan: `${PLAN_META[selectedPlan].label}${
                       PLAN_META[selectedPlan].free && selectedDuration
                         ? ` (${DURATIONS.find(d => d.days === selectedDuration)?.label})`
-                        : PLAN_META[selectedPlan].free ? ' (Ilimitado)' : ''
-                    }`}
+                        : PLAN_META[selectedPlan].free ? t('agente_detail.unlimited_suffix') : ''
+                    }` })}
                     onPress={confirmPlanChange}
                     fullWidth
                   />
@@ -302,31 +305,31 @@ export default function AdminAgenteDetailScreen() {
       {/* Acciones */}
       <View style={styles.dangerCard}>
         <Text variant="caption" color="ink3" style={styles.dangerTitle}>
-          ACCIONES DE CUENTA
+          {t('agente_detail.account_actions_title')}
         </Text>
         <View style={styles.dangerActions}>
           <Button
-            label={agent.active ? 'Desactivar cuenta' : 'Activar cuenta'}
+            label={agent.active ? t('agente_detail.deactivate_account') : t('agente_detail.activate_account')}
             variant="secondary"
             onPress={handleToggleActive}
           />
-          <Button label="Cambiar contraseña" variant="secondary" onPress={() => setShowPasswordModal(true)} />
-          <Button label="Ver pedidos" variant="secondary" onPress={() => router.push(`/(admin)/agente/${agent.id}/pedidos` as any)} />
+          <Button label={t('agente_detail.change_password')} variant="secondary" onPress={() => setShowPasswordModal(true)} />
+          <Button label={t('agente_detail.view_orders')} variant="secondary" onPress={() => router.push(`/(admin)/agente/${agent.id}/pedidos` as any)} />
           <Button
-            label="Eliminar agente"
+            label={t('agente_detail.delete_agent')}
             variant="secondary"
             onPress={() => Alert.alert(
-              'Eliminar agente',
-              `¿Eliminar definitivamente la cuenta de ${agent.name}? Esta acción no se puede deshacer.`,
+              t('agente_detail.delete_agent'),
+              t('agente_detail.delete_agent_body', { name: agent.name }),
               [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: t('shared.cancel'), style: 'cancel' },
                 {
-                  text: 'Eliminar',
+                  text: t('shared.delete'),
                   style: 'destructive',
                   onPress: async () => {
                     const { error } = await deleteAgent(agent!.id);
                     if (error) { toast.error(error); return; }
-                    toast.success('Agente eliminado');
+                    toast.success(t('agente_detail.agent_deleted'));
                     router.back();
                   },
                 },
@@ -342,18 +345,18 @@ export default function AdminAgenteDetailScreen() {
           <Pressable style={styles.modalOverlay} onPress={() => setShowPasswordModal(false)}>
             <Pressable style={styles.modal} onPress={e => e.stopPropagation()}>
               <View style={styles.modalHeader}>
-                <Text variant="bodyMedium">Cambiar contraseña</Text>
+                <Text variant="bodyMedium">{t('agente_detail.change_password')}</Text>
                 <Pressable onPress={() => setShowPasswordModal(false)} hitSlop={8}>
                   <Text variant="small" color="ink3">✕</Text>
                 </Pressable>
               </View>
               <ScrollView style={{ padding: space[4] }} showsVerticalScrollIndicator={false}>
                 <Text variant="small" color="ink3" style={{ marginBottom: space[3] }}>
-                  Nueva contraseña para {agent.name}
+                  {t('agente_detail.new_password_for', { name: agent.name })}
                 </Text>
                 <TextInput
                   style={styles.pwInput}
-                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  placeholder={t('agente_detail.new_password_placeholder')}
                   placeholderTextColor={colors.ink4}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -362,7 +365,7 @@ export default function AdminAgenteDetailScreen() {
                 />
                 <TextInput
                   style={[styles.pwInput, { marginTop: space[2] }]}
-                  placeholder="Confirmar contraseña"
+                  placeholder={t('agente_detail.confirm_password_placeholder')}
                   placeholderTextColor={colors.ink4}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -370,7 +373,7 @@ export default function AdminAgenteDetailScreen() {
                   autoCapitalize="none"
                 />
                 <Button
-                  label="Guardar contraseña"
+                  label={t('agente_detail.save_password')}
                   onPress={handleChangePassword}
                   loading={savingPassword}
                   fullWidth

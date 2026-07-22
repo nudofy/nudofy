@@ -1,12 +1,14 @@
 // Mis facturas — historial de suscripción del agente
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { shareFile } from '@/lib/sharing';
 import { supabase } from '@/lib/supabase';
 import { useAgentContext } from '@/contexts/AgentContext';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
+import { formatEur } from '@/lib/format';
 
 interface AgentInvoice {
   id: string;
@@ -21,12 +23,6 @@ interface AgentInvoice {
   pdf_url?: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' }> = {
-  paid:    { label: 'Pagada',    variant: 'success' },
-  pending: { label: 'Pendiente', variant: 'warning' },
-  overdue: { label: 'Vencida',   variant: 'danger'  },
-};
-
 /** Formatea el slug/id de plan con el nombre almacenado en Supabase si está disponible.
  *  Como fallback, humaniza el slug (basic → Basic) para no mostrar IDs crudos. */
 function formatPlanLabel(plan: string, planNames: Record<string, string>): string {
@@ -35,17 +31,19 @@ function formatPlanLabel(plan: string, planNames: Record<string, string>): strin
   return plan.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-
-
 export default function MisFacturasScreen() {
+  const { t, i18n } = useTranslation('agent');
   const { agent } = useAgentContext();
+  const STATUS_META: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' }> = {
+    paid:    { label: t('invoices.status_paid'),    variant: 'success' },
+    pending: { label: t('invoices.status_pending'), variant: 'warning' },
+    overdue: { label: t('invoices.status_overdue'), variant: 'danger'  },
+  };
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
+  }
   const [invoices, setInvoices] = useState<AgentInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -83,15 +81,15 @@ export default function MisFacturasScreen() {
 
   return (
     <Screen>
-      <TopBar title="Mis facturas" />
+      <TopBar title={t('invoices.title')} />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {loading && (
-          <Text variant="small" color="ink3" align="center" style={styles.empty}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.empty}>{t('invoices.loading')}</Text>
         )}
         {!loading && invoices.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={styles.empty}>
-            No tienes facturas aún. Aparecerán aquí cuando actives un plan de pago.
+            {t('invoices.no_invoices')}
           </Text>
         )}
 
@@ -113,18 +111,18 @@ export default function MisFacturasScreen() {
                     <Text variant="caption" color="ink4">{formatDate(inv.created_at)}</Text>
                   </View>
                   <View style={styles.rowRight}>
-                    <Text variant="bodyMedium">{formatEur(inv.total)}</Text>
+                    <Text variant="bodyMedium">{formatEur(inv.total, i18n.language)}</Text>
                     <Badge label={status.label} variant={status.variant} />
                     {inv.pdf_url ? (
                       <Button
-                        label={generatingId === inv.id ? '...' : 'Descargar'}
+                        label={generatingId === inv.id ? '...' : t('invoices.download')}
                         variant="secondary"
                         size="sm"
                         onPress={() => handleDownload(inv)}
                         disabled={generatingId === inv.id}
                       />
                     ) : (
-                      <Text variant="caption" color="ink4">Sin PDF</Text>
+                      <Text variant="caption" color="ink4">{t('invoices.no_pdf')}</Text>
                     )}
                   </View>
                 </View>

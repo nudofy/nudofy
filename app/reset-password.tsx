@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { colors, radius, space, typography } from '@/theme';
 import { Button, Icon, Screen, Text } from '@/components/ui';
@@ -22,6 +23,7 @@ function parseHashParams(url: string): Record<string, string> {
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
 
   const [status, setStatus] = useState<Status>('loading');
   const [password, setPassword] = useState('');
@@ -88,18 +90,18 @@ export default function ResetPasswordScreen() {
   async function handleSave() {
     setError(null);
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
+      setError(t('reset_password.min_length_error'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('reset_password.mismatch_error'));
       return;
     }
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ password });
     setSaving(false);
     if (error) {
-      setError('No se pudo actualizar la contraseña. Pide un nuevo enlace.');
+      setError(t('reset_password.update_error'));
       return;
     }
     setStatus('success');
@@ -110,7 +112,7 @@ export default function ResetPasswordScreen() {
     return (
       <Screen background="brand" edges={['top']}>
         <View style={styles.center}>
-          <Text variant="body" color="white" align="center">Verificando enlace...</Text>
+          <Text variant="body" color="white" align="center">{t('reset_password.verifying_link')}</Text>
         </View>
       </Screen>
     );
@@ -132,12 +134,12 @@ export default function ResetPasswordScreen() {
               <Icon name="CircleAlert" size={32} color={colors.danger} />
             </View>
             <Text variant="heading" align="center" style={{ marginBottom: space[2] }}>
-              Enlace caducado
+              {t('reset_password.expired_title')}
             </Text>
             <Text variant="small" color="ink3" align="center" style={{ marginBottom: space[6] }}>
-              Este enlace ya no es válido. Vuelve a la app y solicita un nuevo enlace de recuperación.
+              {t('reset_password.expired_body')}
             </Text>
-            <Button label="Volver al inicio" onPress={() => router.replace('/')} fullWidth />
+            <Button label={t('reset_password.back_to_home')} onPress={() => router.replace('/')} fullWidth />
           </View>
         </ScrollView>
       </Screen>
@@ -162,12 +164,12 @@ export default function ResetPasswordScreen() {
               </View>
             </View>
             <Text variant="heading" align="center" style={{ marginBottom: space[2] }}>
-              ¡Contraseña actualizada!
+              {t('reset_password.success_title')}
             </Text>
             <Text variant="small" color="ink3" align="center" style={{ marginBottom: space[6] }}>
-              Ya puedes entrar con tu nueva contraseña.
+              {t('reset_password.success_body')}
             </Text>
-            <Button label="Entrar a la app" onPress={() => router.replace('/')} fullWidth />
+            <Button label={t('reset_password.enter_app')} onPress={() => router.replace('/')} fullWidth />
           </View>
         </ScrollView>
       </Screen>
@@ -195,9 +197,9 @@ export default function ResetPasswordScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text variant="heading" style={{ marginBottom: 4 }}>Nueva contraseña</Text>
+            <Text variant="heading" style={{ marginBottom: 4 }}>{t('reset_password.title')}</Text>
             <Text variant="small" color="ink3" style={{ marginBottom: space[6] }}>
-              Elige una contraseña segura para tu cuenta
+              {t('reset_password.subtitle')}
             </Text>
 
             {error && (
@@ -208,12 +210,12 @@ export default function ResetPasswordScreen() {
             )}
 
             {/* Nueva contraseña */}
-            <Text variant="caption" color="ink3" style={styles.fieldLabel}>NUEVA CONTRASEÑA</Text>
+            <Text variant="caption" color="ink3" style={styles.fieldLabel}>{t('reset_password.new_password_label')}</Text>
             <View style={[styles.field, focus === 'password' && styles.fieldFocus]}>
               <Icon name="Lock" size={18} color={focus === 'password' ? colors.brand : colors.ink4} />
               <TextInput
                 style={styles.input}
-                placeholder="Mínimo 8 caracteres"
+                placeholder={t('reset_password.new_password_placeholder')}
                 placeholderTextColor={colors.ink4}
                 value={password}
                 onChangeText={v => { setPassword(v); setError(null); }}
@@ -225,7 +227,7 @@ export default function ResetPasswordScreen() {
                 onBlur={() => setFocus(null)}
               />
               <Button
-                label={showPassword ? 'Ocultar' : 'Mostrar'}
+                label={showPassword ? t('reset_password.hide') : t('reset_password.show')}
                 variant="ghost"
                 onPress={() => setShowPassword(!showPassword)}
                 style={{ paddingHorizontal: space[2] }}
@@ -234,13 +236,13 @@ export default function ResetPasswordScreen() {
 
             {/* Confirmar contraseña */}
             <Text variant="caption" color="ink3" style={[styles.fieldLabel, { marginTop: space[3] }]}>
-              CONFIRMAR CONTRASEÑA
+              {t('reset_password.confirm_password_label')}
             </Text>
             <View style={[styles.field, focus === 'confirm' && styles.fieldFocus]}>
               <Icon name="Lock" size={18} color={focus === 'confirm' ? colors.brand : colors.ink4} />
               <TextInput
                 style={styles.input}
-                placeholder="Repite la contraseña"
+                placeholder={t('reset_password.confirm_password_placeholder')}
                 placeholderTextColor={colors.ink4}
                 value={confirmPassword}
                 onChangeText={v => { setConfirmPassword(v); setError(null); }}
@@ -255,7 +257,7 @@ export default function ResetPasswordScreen() {
             </View>
 
             <Button
-              label="Guardar contraseña"
+              label={t('reset_password.save_password')}
               onPress={handleSave}
               loading={saving}
               fullWidth

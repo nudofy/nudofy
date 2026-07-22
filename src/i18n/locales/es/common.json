@@ -1,0 +1,9 @@
+{
+  "app_name": "Nudofy",
+  "profile_load_error": {
+    "title": "No hemos podido cargar tu cuenta",
+    "body": "Comprueba tu conexión a internet e inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "logout": "Cerrar sesión"
+  }
+}

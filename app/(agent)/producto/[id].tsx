@@ -4,18 +4,16 @@ import {
   View, ScrollView, StyleSheet, Image, FlatList, Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import ResourceError from '@/components/ResourceError';
 import { supabase } from '@/lib/supabase';
+import { formatEur } from '@/lib/format';
 import type { Product, ProductImage } from '@/hooks/useAgent';
 
 const { width } = Dimensions.get('window');
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
 
 function DataRow({ label, value, last }: { label: string; value: string | number | undefined | null; last?: boolean }) {
   if (value == null || value === '') return null;
@@ -33,6 +31,7 @@ type VariantFull = { id: string; attributes: Record<string, string>; reference?:
 
 export default function ProductoScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [extraImages, setExtraImages] = useState<ProductImage[]>([]);
@@ -108,9 +107,9 @@ export default function ProductoScreen() {
   if (loaded && !product) {
     return (
       <ResourceError
-        topBarTitle="Producto"
-        title={loadError ? 'Error de conexión' : 'Producto no encontrado'}
-        message={loadError ? 'No se pudo cargar el producto.' : 'No existe o no tienes permisos para verlo.'}
+        topBarTitle={t('product_detail.top_bar_title')}
+        title={loadError ? t('product_detail.error_title') : t('product_detail.not_found_title')}
+        message={loadError ? t('product_detail.error_message') : t('product_detail.not_found_message')}
         detail={loadError}
         onBack={() => router.back()}
         onRetry={fetchProduct}
@@ -121,8 +120,8 @@ export default function ProductoScreen() {
   if (!product) {
     return (
       <Screen>
-        <TopBar title="Producto" onBack={() => router.back()} />
-        <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>Cargando...</Text>
+        <TopBar title={t('product_detail.top_bar_title')} onBack={() => router.back()} />
+        <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>{t('product_detail.loading')}</Text>
       </Screen>
     );
   }
@@ -133,8 +132,8 @@ export default function ProductoScreen() {
 
   function handleDeleteProduct() {
     confirmDestructive(
-      'Eliminar producto',
-      `¿Eliminar "${product!.name}"?`,
+      t('product_detail.delete_title'),
+      t('product_detail.delete_body', { name: product!.name }),
       async () => {
         await supabase.from('products').delete().eq('id', id);
         router.back();
@@ -147,11 +146,11 @@ export default function ProductoScreen() {
   return (
     <Screen>
       <TopBar
-        title={subtitle || 'Producto'}
+        title={subtitle || t('product_detail.top_bar_title')}
         onBack={() => router.back()}
         actions={[
-          { icon: 'Pencil', onPress: () => router.push(`/(agent)/producto/editar?id=${id}` as any), accessibilityLabel: 'Editar producto' },
-          { icon: 'Trash2', onPress: handleDeleteProduct, accessibilityLabel: 'Eliminar producto' },
+          { icon: 'Pencil', onPress: () => router.push(`/(agent)/producto/editar?id=${id}` as any), accessibilityLabel: t('product_detail.edit') },
+          { icon: 'Trash2', onPress: handleDeleteProduct, accessibilityLabel: t('product_detail.delete') },
         ]}
       />
 
@@ -193,15 +192,15 @@ export default function ProductoScreen() {
         <View style={styles.infoBlock}>
           <Text variant="title">{product.name}</Text>
           <View style={styles.refRow}>
-            {product.reference ? <Text variant="caption" color="ink3">Ref. {product.reference}</Text> : null}
+            {product.reference ? <Text variant="caption" color="ink3">{t('product_detail.ref_prefix', { ref: product.reference })}</Text> : null}
             {product.reference && product.barcode ? <View style={styles.sep} /> : null}
-            {product.barcode ? <Text variant="caption" color="ink3">EAN: {product.barcode}</Text> : null}
+            {product.barcode ? <Text variant="caption" color="ink3">{t('product_detail.ean_prefix', { code: product.barcode })}</Text> : null}
           </View>
-          <Text variant="display" style={{ marginTop: space[3] }}>{formatEur(product.price)}</Text>
-          <Text variant="caption" color="ink3">Precio de tarifa · IVA no incluido</Text>
+          <Text variant="display" style={{ marginTop: space[3] }}>{formatEur(product.price, i18n.language)}</Text>
+          <Text variant="caption" color="ink3">{t('product_detail.price_note')}</Text>
           {product.pvpr != null && (
             <Text variant="small" color="ink3" style={{ marginTop: space[1] }}>
-              PVPR: {formatEur(product.pvpr)}
+              {t('product_detail.pvpr_label', { price: formatEur(product.pvpr, i18n.language) })}
             </Text>
           )}
         </View>
@@ -209,29 +208,29 @@ export default function ProductoScreen() {
         {/* Descripción */}
         {product.description ? (
           <View style={styles.descBlock}>
-            <Text variant="caption" color="ink3" style={styles.sectionLabel}>Descripción</Text>
+            <Text variant="caption" color="ink3" style={styles.sectionLabel}>{t('product_detail.description_label')}</Text>
             <Text variant="small" color="ink2" style={{ lineHeight: 20 }}>{product.description}</Text>
           </View>
         ) : null}
 
         {/* Detalles adicionales */}
         <View style={styles.detailsBlock}>
-          <Text variant="caption" color="ink3" style={styles.sectionLabel}>Detalles</Text>
+          <Text variant="caption" color="ink3" style={styles.sectionLabel}>{t('product_detail.details_label')}</Text>
           <View style={styles.detailsCard}>
-            <DataRow label="Referencia 2" value={product.reference_2} />
-            <DataRow label="Familia" value={product.familia} />
-            <DataRow label="Subfamilia" value={product.subfamilia} />
-            <DataRow label="Medidas" value={product.measures} />
-            <DataRow label="Stock" value={product.stock} />
-            <DataRow label="Caja estándar" value={product.standard_box != null ? `${product.standard_box} uds.` : null} />
-            <DataRow label="Unidades mínimas" value={product.min_units != null ? `${product.min_units} uds.` : null} last />
+            <DataRow label={t('product_detail.reference2_label')} value={product.reference_2} />
+            <DataRow label={t('product_detail.family_label')} value={product.familia} />
+            <DataRow label={t('product_detail.subfamily_label')} value={product.subfamilia} />
+            <DataRow label={t('product_detail.measures_label')} value={product.measures} />
+            <DataRow label={t('product_detail.stock_label')} value={product.stock} />
+            <DataRow label={t('product_detail.standard_box_label')} value={product.standard_box != null ? t('product_detail.units_suffix', { count: product.standard_box }) : null} />
+            <DataRow label={t('product_detail.min_units_label')} value={product.min_units != null ? t('product_detail.units_suffix', { count: product.min_units }) : null} last />
           </View>
         </View>
 
         {/* Atributos y variantes */}
         {attributes.length > 0 && (
           <View style={styles.detailsBlock}>
-            <Text variant="caption" color="ink3" style={styles.sectionLabel}>Atributos</Text>
+            <Text variant="caption" color="ink3" style={styles.sectionLabel}>{t('product_detail.attributes_label')}</Text>
             <View style={styles.detailsCard}>
               {attributes.map((attr, ai) => (
                 <View key={attr.id} style={[styles.attrRow, ai < attributes.length - 1 && styles.dataRowBorder]}>
@@ -252,7 +251,7 @@ export default function ProductoScreen() {
         {variants.length > 0 && (
           <View style={[styles.detailsBlock, { paddingBottom: space[8] }]}>
             <Text variant="caption" color="ink3" style={styles.sectionLabel}>
-              Variantes ({variants.length})
+              {t('product_detail.variants_label', { count: variants.length })}
             </Text>
             <View style={styles.detailsCard}>
               {variants.map((v, vi) => {
@@ -263,9 +262,9 @@ export default function ProductoScreen() {
                     <Text variant="smallMedium">{label}</Text>
                     {hasExtra && (
                       <View style={styles.variantMeta}>
-                        {v.reference ? <Text variant="caption" color="ink3">Ref: {v.reference}</Text> : null}
-                        {v.barcode ? <Text variant="caption" color="ink3">EAN: {v.barcode}</Text> : null}
-                        {v.stock != null ? <Text variant="caption" color="ink3">Stock: {v.stock}</Text> : null}
+                        {v.reference ? <Text variant="caption" color="ink3">{t('product_detail.variant_ref', { ref: v.reference })}</Text> : null}
+                        {v.barcode ? <Text variant="caption" color="ink3">{t('product_detail.variant_ean', { code: v.barcode })}</Text> : null}
+                        {v.stock != null ? <Text variant="caption" color="ink3">{t('product_detail.variant_stock', { count: v.stock })}</Text> : null}
                       </View>
                     )}
                   </View>

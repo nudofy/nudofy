@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { pickFiles as pickFilesUtil } from '@/lib/filePicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
@@ -52,6 +53,7 @@ function nameWithoutExt(filename: string): string {
 
 export default function CatalogoImagenesScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
   const toast = useToast();
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
 
@@ -118,7 +120,7 @@ export default function CatalogoImagenesScreen() {
 
   async function uploadOne(pick: Pick): Promise<Result> {
     if (!pick.productId) {
-      return { fileName: pick.name, ok: false, error: 'Sin producto asociado' };
+      return { fileName: pick.name, ok: false, error: t('catalog_images.no_product_error') };
     }
     try {
       const resizedUri = await resizeForUpload(pick.uri);
@@ -156,14 +158,14 @@ export default function CatalogoImagenesScreen() {
 
       return { fileName: pick.name, ok: true, productName: pick.productName ?? '' };
     } catch (e: any) {
-      return { fileName: pick.name, ok: false, error: e?.message ?? 'Error desconocido' };
+      return { fileName: pick.name, ok: false, error: e?.message ?? t('catalog_images.unknown_error') };
     }
   }
 
   async function uploadAll() {
     const toUpload = picks.filter(p => p.productId);
     if (toUpload.length === 0) {
-      toast.error('No hay imágenes con producto asociado');
+      toast.error(t('catalog_images.no_matched_error'));
       return;
     }
     setUploading(true);
@@ -177,8 +179,8 @@ export default function CatalogoImagenesScreen() {
     setResults(out);
     setUploading(false);
     const okCount = out.filter(r => r.ok).length;
-    if (okCount > 0) toast.success(`${okCount} imágenes subidas`);
-    if (okCount < out.length) toast.error(`${out.length - okCount} imágenes fallaron`);
+    if (okCount > 0) toast.success(t('catalog_images.uploaded_success', { count: okCount }));
+    if (okCount < out.length) toast.error(t('catalog_images.uploaded_fail', { count: out.length - okCount }));
     // Refrescar lista de productos para que image_url quede actualizado en futuras selecciones
     if (catalogId) {
       const { data } = await supabase
@@ -193,7 +195,7 @@ export default function CatalogoImagenesScreen() {
   if (loadingProducts) {
     return (
       <Screen>
-        <TopBar title="Subir imágenes" onBack={() => router.back()} />
+        <TopBar title={t('catalog_images.title_fallback')} onBack={() => router.back()} />
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.ink} />
       </Screen>
     );
@@ -201,23 +203,22 @@ export default function CatalogoImagenesScreen() {
 
   return (
     <Screen>
-      <TopBar title={catalogName ? `Imágenes · ${catalogName}` : 'Subir imágenes'} onBack={() => router.back()} />
+      <TopBar title={catalogName ? t('catalog_images.title_with_name', { name: catalogName }) : t('catalog_images.title_fallback')} onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Explicación */}
         <View style={styles.help}>
           <Icon name="Info" size={18} color={colors.brand} />
           <Text variant="small" color="ink2" style={{ flex: 1 }}>
-            Selecciona varias imágenes a la vez. La app las asocia automáticamente con
-            tus productos comparando el <Text variant="smallMedium">nombre del archivo</Text> con
-            la <Text variant="smallMedium">referencia</Text> (o referencia secundaria / EAN).
-            Por ejemplo, <Text variant="smallMedium">A11SP.jpg</Text> se asocia al producto con referencia <Text variant="smallMedium">A11SP</Text>.
+            {t('catalog_images.help_prefix')} <Text variant="smallMedium">{t('catalog_images.help_filename')}</Text> {t('catalog_images.help_with')}{' '}
+            <Text variant="smallMedium">{t('catalog_images.help_reference')}</Text> {t('catalog_images.help_suffix')}{' '}
+            <Text variant="smallMedium">A11SP.jpg</Text> {t('catalog_images.help_associates')} <Text variant="smallMedium">A11SP</Text>.
           </Text>
         </View>
 
         {/* Botón seleccionar */}
         <Button
-          label={picks.length > 0 ? `Cambiar selección (${picks.length})` : 'Seleccionar imágenes'}
+          label={picks.length > 0 ? t('catalog_images.change_selection', { count: picks.length }) : t('catalog_images.select_images')}
           icon="Plus"
           onPress={pickFiles}
           variant={picks.length > 0 ? 'secondary' : 'primary'}
@@ -227,8 +228,8 @@ export default function CatalogoImagenesScreen() {
         {/* Resumen */}
         {picks.length > 0 && (
           <View style={styles.summary}>
-            <Badge label={`${matchedCount} con producto`} variant={matchedCount > 0 ? 'success' : 'neutral'} />
-            {unmatchedCount > 0 && <Badge label={`${unmatchedCount} sin match`} variant="warning" />}
+            <Badge label={t('catalog_images.matched_count', { count: matchedCount })} variant={matchedCount > 0 ? 'success' : 'neutral'} />
+            {unmatchedCount > 0 && <Badge label={t('catalog_images.unmatched_count', { count: unmatchedCount })} variant="warning" />}
           </View>
         )}
 
@@ -244,7 +245,7 @@ export default function CatalogoImagenesScreen() {
                 </Text>
               ) : (
                 <Text variant="caption" color="warning">
-                  Sin producto con referencia &quot;{pick.matchKey}&quot;
+                  {t('catalog_images.no_product_ref', { key: pick.matchKey })}
                 </Text>
               )}
             </View>
@@ -261,8 +262,8 @@ export default function CatalogoImagenesScreen() {
         {matchedCount > 0 && (
           <Button
             label={uploading
-              ? `Subiendo ${progress.done}/${progress.total}…`
-              : `Subir ${matchedCount} imágenes`}
+              ? t('catalog_images.uploading_progress', { done: progress.done, total: progress.total })
+              : t('catalog_images.upload_count', { count: matchedCount })}
             icon="Upload"
             onPress={uploadAll}
             loading={uploading}
@@ -274,7 +275,7 @@ export default function CatalogoImagenesScreen() {
         {/* Resultados */}
         {results.length > 0 && (
           <View style={styles.results}>
-            <Text variant="bodyMedium" style={{ marginBottom: space[2] }}>Resultado</Text>
+            <Text variant="bodyMedium" style={{ marginBottom: space[2] }}>{t('catalog_images.results_title')}</Text>
             {results.map((r, i) => (
               <View key={i} style={styles.resultRow}>
                 <Icon

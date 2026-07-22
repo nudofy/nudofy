@@ -1,0 +1,14 @@
+{
+  "min_chars_one": "Mínimo {{count}} carácter",
+  "min_chars_other": "Mínimo {{count}} caracteres",
+  "max_chars_one": "Máximo {{count}} carácter",
+  "max_chars_other": "Máximo {{count}} caracteres",
+  "email_required": "El email es obligatorio",
+  "email_invalid": "Email inválido",
+  "password_required": "La contraseña es obligatoria",
+  "phone_invalid": "Teléfono inválido",
+  "nif_invalid": "NIF/CIF con formato inválido (8-9 caracteres)",
+  "must_be_number": "Debe ser un número",
+  "price_negative": "El precio no puede ser negativo",
+  "vat_out_of_range": "IVA fuera de rango (0–100)"
+}

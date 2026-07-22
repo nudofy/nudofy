@@ -1,0 +1,47 @@
+{
+  "status": {
+    "draft": "Borrador",
+    "confirmed": "Pendiente",
+    "sent_to_supplier": "Enviado",
+    "cancelled": "Cancelado",
+    "proposal_sent": "Propuesta enviada"
+  },
+  "agent": {
+    "title": "Mis pedidos",
+    "new_order": "Nuevo pedido",
+    "search_placeholder": "Buscar por cliente, proveedor o nº pedido...",
+    "tab_done": "Realizados",
+    "tab_pending": "Pendientes",
+    "tab_cancelled": "Cancelados",
+    "kpi_orders": "Pedidos",
+    "kpi_revenue": "Facturado",
+    "kpi_avg_ticket": "Ticket medio",
+    "loading": "Cargando...",
+    "empty": "Sin pedidos en esta sección",
+    "no_client_draft": "Sin cliente aún",
+    "no_client": "Sin cliente",
+    "discard": "Descartar",
+    "continue": "Continuar",
+    "resend_pdf": "Reenviar PDF",
+    "duplicate": "Duplicar",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "discard_dialog_title": "Descartar pedido",
+    "discard_dialog_body": "¿Seguro que quieres eliminar este pedido pendiente? No se podrá recuperar."
+  },
+  "client": {
+    "title": "Mis pedidos",
+    "search_placeholder": "Buscar por nº pedido o proveedor...",
+    "filter_all": "Todos",
+    "filter_received": "Recibido",
+    "filter_sent": "Enviado",
+    "filter_cancelled": "Cancelado",
+    "kpi_orders": "Pedidos",
+    "kpi_total": "Total",
+    "kpi_avg_ticket": "Ticket medio",
+    "loading": "Cargando...",
+    "empty": "Sin pedidos en esta sección",
+    "today": "Hoy",
+    "yesterday": "Ayer"
+  }
+}

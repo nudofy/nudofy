@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { Platform } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import i18n, { SupportedLanguage, toSupportedLanguage } from '@/i18n';
 
 type UserRole = 'nudofy_admin' | 'company_admin' | 'agent' | 'client';
 
@@ -10,6 +11,7 @@ interface UserProfile {
   email: string;
   role: UserRole;
   name?: string;
+  preferred_language: SupportedLanguage;
 }
 
 interface AuthContextType {
@@ -22,6 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  setPreferredLanguage: (lang: SupportedLanguage) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -65,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileError(false);
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, role, name')
+      .select('id, email, role, name, preferred_language')
       .eq('id', userId)
       .single();
 
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data as UserProfile);
       setProfileError(false);
       setLoading(false);
+      i18n.changeLanguage(toSupportedLanguage(data.preferred_language));
     } else if (error?.code === 'PGRST116') {
       // Fila no encontrada — usuario sin perfil, cerrar sesión.
       console.warn('[AuthContext] Perfil no encontrado, cerrando sesión');
@@ -105,12 +109,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: 'Usuario o contraseña incorrectos' };
+    if (error) return { error: i18n.t('auth:errors.invalid_credentials') };
     return { error: null };
   }
 
   async function signOut() {
     await supabase.auth.signOut();
+  }
+
+  async function setPreferredLanguage(lang: SupportedLanguage) {
+    if (!user) return { error: 'No hay sesión activa' };
+
+    const previous = profile?.preferred_language;
+    setProfile(p => (p ? { ...p, preferred_language: lang } : p));
+    i18n.changeLanguage(lang);
+
+    const { error } = await supabase
+      .from('users')
+      .update({ preferred_language: lang })
+      .eq('id', user.id);
+
+    if (error) {
+      // Revertir el cambio optimista si falló el guardado.
+      setProfile(p => (p ? { ...p, preferred_language: previous ?? p.preferred_language } : p));
+      if (previous) i18n.changeLanguage(previous);
+      return { error: 'No se pudo guardar el idioma' };
+    }
+    return { error: null };
   }
 
   async function resetPassword(email: string) {
@@ -124,15 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) {
       if (error.status === 429 || /rate limit/i.test(error.message ?? '')) {
-        return { error: 'Ya se ha enviado un enlace hace poco. Espera un minuto e inténtalo de nuevo.' };
+        return { error: i18n.t('auth:errors.reset_rate_limited') };
       }
-      return { error: 'No se pudo enviar el email de recuperación' };
+      return { error: i18n.t('auth:errors.reset_failed') };
     }
     return { error: null };
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, profileError, retryProfile, signIn, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, profileError, retryProfile, signIn, signOut, resetPassword, setPreferredLanguage }}>
       {children}
     </AuthContext.Provider>
   );

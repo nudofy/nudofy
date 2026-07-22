@@ -5,6 +5,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -19,6 +20,8 @@ import { resizeForUpload } from '@/lib/imageResize';
 
 export default function NuevoProductoScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
+  const { t: tv } = useTranslation('validation');
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
   const { createProduct } = useProducts(catalogId);
   const toast = useToast();
@@ -46,9 +49,9 @@ export default function NuevoProductoScreen() {
   const canSave = name.trim().length > 0 && price.trim().length > 0;
 
   async function pickImage() {
-    if (images.length >= 10) { toast.warning('Máximo 10 imágenes por producto'); return; }
+    if (images.length >= 10) { toast.warning(t('product_form.max_images_warning')); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { toast.error('Necesitamos acceso a tu galería'); return; }
+    if (status !== 'granted') { toast.error(t('product_form.gallery_permission_error')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -78,7 +81,7 @@ export default function NuevoProductoScreen() {
 
   async function handleSave() {
     if (!canSave) return;
-    const v = validate(ProductSchema, {
+    const v = validate(ProductSchema(tv), {
       name,
       reference,
       price,
@@ -155,10 +158,10 @@ export default function NuevoProductoScreen() {
         );
       }
 
-      toast.success('Producto creado');
+      toast.success(t('product_form.created_toast'));
       router.back();
     } catch (e: any) {
-      toast.error(e?.message ?? 'Inténtalo de nuevo');
+      toast.error(e?.message ?? t('product_form.retry'));
     } finally {
       setSaving(false);
     }
@@ -167,22 +170,22 @@ export default function NuevoProductoScreen() {
   return (
     <Screen>
       <TopBar
-        title="Nuevo producto"
+        title={t('product_form.title_new')}
         onBack={() => router.back()}
-        actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: 'Guardar', disabled: !canSave || saving }]}
+        actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: t('product_form.save'), disabled: !canSave || saving }]}
       />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {/* Imágenes */}
-          <Section title="Imágenes" trailing={<Text variant="caption" color="ink3">{images.length}/10</Text>}>
+          <Section title={t('product_form.images_section')} trailing={<Text variant="caption" color="ink3">{images.length}/10</Text>}>
             <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagesRow}>
               {images.map((uri, i) => (
                 <View key={i} style={styles.imageThumbWrap}>
                   <Image source={{ uri }} style={styles.imageThumb} />
                   {i === 0 && (
                     <View style={styles.imgPrincipalBadge}>
-                      <Text variant="caption" color="white" style={styles.imgPrincipalText}>Principal</Text>
+                      <Text variant="caption" color="white" style={styles.imgPrincipalText}>{t('product_form.principal_badge')}</Text>
                     </View>
                   )}
                   <Pressable style={styles.imageRemove} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
@@ -193,49 +196,49 @@ export default function NuevoProductoScreen() {
               {images.length < 10 && (
                 <Pressable style={({ pressed }) => [styles.imageAdd, pressed && { opacity: 0.7 }]} onPress={pickImage}>
                   <Icon name="Camera" size={20} color={colors.ink3} />
-                  <Text variant="caption" color="ink3">Añadir</Text>
+                  <Text variant="caption" color="ink3">{t('product_form.add')}</Text>
                 </Pressable>
               )}
             </ScrollView>
           </Section>
 
           {/* Identificación */}
-          <Section title="Identificación">
-            <Field label="Nombre *" value={name} onChangeText={setName} placeholder="Nombre del producto" />
-            <Field label="Referencia" value={reference} onChangeText={setReference} placeholder="REF-001" />
-            <Field label="Referencia 2" value={reference2} onChangeText={setReference2} placeholder="REF-ALT-001" />
-            <Field label="EAN / Código de barras" value={barcode} onChangeText={setBarcode} placeholder="8400000000000" keyboardType="numeric" />
-            <Field label="Familia" value={familia} onChangeText={setFamilia} placeholder="Ej: Juguetes, Alimentación..." />
-            <Field label="Subfamilia" value={subfamilia} onChangeText={setSubfamilia} placeholder="Ej: Puzzles, Snacks..." last />
+          <Section title={t('product_form.identification_section')}>
+            <Field label={t('product_form.name')} value={name} onChangeText={setName} placeholder={t('product_form.name_placeholder')} />
+            <Field label={t('product_form.reference')} value={reference} onChangeText={setReference} placeholder={t('product_form.reference_placeholder')} />
+            <Field label={t('product_form.reference2')} value={reference2} onChangeText={setReference2} placeholder={t('product_form.reference2_placeholder')} />
+            <Field label={t('product_form.barcode')} value={barcode} onChangeText={setBarcode} placeholder={t('product_form.barcode_placeholder')} keyboardType="numeric" />
+            <Field label={t('product_form.family')} value={familia} onChangeText={setFamilia} placeholder={t('product_form.family_placeholder')} />
+            <Field label={t('product_form.subfamily')} value={subfamilia} onChangeText={setSubfamilia} placeholder={t('product_form.subfamily_placeholder')} last />
           </Section>
 
           {/* Precios */}
-          <Section title="Precios">
-            <Field label="Precio (€) *" value={price} onChangeText={setPrice} placeholder="0,00" keyboardType="decimal-pad" />
-            <Field label="PVPR (€)" value={pvpr} onChangeText={setPvpr} placeholder="Precio venta recomendado" keyboardType="decimal-pad" />
+          <Section title={t('product_form.prices_section')}>
+            <Field label={t('product_form.price')} value={price} onChangeText={setPrice} placeholder={t('product_form.price_placeholder')} keyboardType="decimal-pad" />
+            <Field label={t('product_form.pvpr')} value={pvpr} onChangeText={setPvpr} placeholder={t('product_form.pvpr_placeholder')} keyboardType="decimal-pad" />
             <IvaSelector value={vatRate} onChange={setVatRate} />
           </Section>
 
           {/* Detalles */}
-          <Section title="Detalles">
-            <Field label="Descripción" value={description} onChangeText={setDescription} placeholder="Descripción del producto" multiline />
-            <Field label="Medidas" value={measures} onChangeText={setMeasures} placeholder="Ej: 10x20x5 cm" last />
+          <Section title={t('product_form.details_section')}>
+            <Field label={t('product_form.description')} value={description} onChangeText={setDescription} placeholder={t('product_form.description_placeholder')} multiline />
+            <Field label={t('product_form.measures')} value={measures} onChangeText={setMeasures} placeholder={t('product_form.measures_placeholder')} last />
           </Section>
 
           {/* Logística */}
-          <Section title="Logística">
-            <Field label="Stock" value={stock} onChangeText={setStock} placeholder="0" keyboardType="numeric" />
-            <Field label="Caja estándar (uds.)" value={standardBox} onChangeText={setStandardBox} placeholder="12" keyboardType="numeric" />
-            <Field label="Unidades mínimas" value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" last />
+          <Section title={t('product_form.logistics_section')}>
+            <Field label={t('product_form.stock')} value={stock} onChangeText={setStock} placeholder="0" keyboardType="numeric" />
+            <Field label={t('product_form.standard_box')} value={standardBox} onChangeText={setStandardBox} placeholder={t('product_form.standard_box_placeholder')} keyboardType="numeric" />
+            <Field label={t('product_form.min_units')} value={minUnits} onChangeText={setMinUnits} placeholder="1" keyboardType="numeric" last />
           </Section>
 
           {/* Atributos */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text variant="caption" color="ink3" style={styles.sectionTitle}>ATRIBUTOS</Text>
+              <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('product_form.attributes_section')}</Text>
             </View>
             <Text variant="small" color="ink3" style={{ paddingHorizontal: space[1], marginBottom: space[2] }}>
-              Añade variantes del producto como Talla, Color o Tamaño. Al hacer un pedido se podrá elegir la opción.
+              {t('product_form.attributes_hint_new')}
             </Text>
             <AttributesEditor
               attributes={attributeDrafts}
@@ -243,12 +246,12 @@ export default function NuevoProductoScreen() {
               onAttributesChange={setAttributeDrafts}
               onVariantsChange={setVariantDrafts}
               maxAttributes={variantsMatrixAllowed ? undefined : 1}
-              upgradeHint="Tu plan permite 1 atributo por producto (talla o color). Mejora tu plan para combinarlos en matriz."
+              upgradeHint={t('product_form.attributes_upgrade_hint')}
             />
           </View>
 
           <Button
-            label="Guardar producto"
+            label={t('product_form.save_product')}
             onPress={handleSave}
             loading={saving}
             disabled={!canSave}
@@ -261,18 +264,17 @@ export default function NuevoProductoScreen() {
   );
 }
 
-const IVA_OPTIONS: { label: string; value: number | null }[] = [
-  { label: '21%', value: 21 },
-  { label: '10%', value: 10 },
-  { label: '4%', value: 4 },
-  { label: '0%', value: 0 },
-  { label: 'Exento', value: null },
-];
+const IVA_VALUES: (number | null)[] = [21, 10, 4, 0, null];
 
 function IvaSelector({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
+  const { t } = useTranslation('agent');
+  const IVA_OPTIONS: { label: string; value: number | null }[] = IVA_VALUES.map(v => ({
+    label: v == null ? t('product_form.vat_exempt') : `${v}%`,
+    value: v,
+  }));
   return (
     <View style={[styles.field, styles.fieldLast]}>
-      <Text variant="caption" color="ink3" style={{ marginBottom: 4 }}>IVA</Text>
+      <Text variant="caption" color="ink3" style={{ marginBottom: 4 }}>{t('product_form.vat')}</Text>
       <View style={styles.ivaPills}>
         {IVA_OPTIONS.map(opt => {
           const active = value === opt.value;

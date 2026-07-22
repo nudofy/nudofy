@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
@@ -13,13 +14,10 @@ import { useToast } from '@/contexts/ToastContext';
 import { useCompanyAgents } from '@/hooks/useAdmin';
 import type { AdminAgent } from '@/hooks/useAdmin';
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 function ModalInvitar({
   visible, onClose, onInvite,
 }: { visible: boolean; onClose: () => void; onInvite: (d: { name: string; email: string; phone?: string }) => Promise<{ error?: string | null }> }) {
+  const { t } = useTranslation('agent');
   const toast = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,7 +28,7 @@ function ModalInvitar({
 
   async function handleSave() {
     if (!name.trim() || !email.trim()) {
-      toast.error('Nombre y email son obligatorios.');
+      toast.error(t('my_company.name_email_required'));
       return;
     }
     setSaving(true);
@@ -47,25 +45,25 @@ function ModalInvitar({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
-            <Text variant="title">Invitar agente</Text>
+            <Text variant="title">{t('my_company.invite_agent')}</Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Icon name="X" size={20} color={colors.ink2} />
             </Pressable>
           </View>
           <View style={styles.modalBody}>
-            <FormField label="Nombre *">
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Ana García" placeholderTextColor={colors.ink4} />
+            <FormField label={t('my_company.name')}>
+              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={t('my_company.name_example')} placeholderTextColor={colors.ink4} />
             </FormField>
-            <FormField label="Email *">
-              <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="ana@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
+            <FormField label={t('my_company.email')}>
+              <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder={t('my_company.email_example')} placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
             </FormField>
-            <FormField label="Teléfono (opcional)">
-              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+34 600 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
+            <FormField label={t('my_company.phone_optional')}>
+              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder={t('my_company.phone_example')} placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
             </FormField>
           </View>
           <View style={styles.modalFooter}>
-            <Button label="Cancelar" variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
-            <Button label="Invitar" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
+            <Button label={t('my_company.cancel')} variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
+            <Button label={t('my_company.invite')} onPress={handleSave} loading={saving} style={{ flex: 1 }} />
           </View>
         </Pressable>
       </Pressable>
@@ -85,16 +83,22 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
 
 export default function MiEmpresaScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const toast = useToast();
   const { agents, loading, toggleAgentActive, inviteAgent, planLimits } = useCompanyAgents();
   const [showInvite, setShowInvite] = useState(false);
 
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
   async function handleToggle(agent: AdminAgent) {
     confirmDestructive(
-      agent.active ? 'Desactivar agente' : 'Activar agente',
-      `¿${agent.active ? 'Desactivar' : 'Activar'} a ${agent.name}?`,
+      agent.active ? t('my_company.deactivate_agent') : t('my_company.activate_agent'),
+      t('my_company.confirm_toggle', { action: agent.active ? t('my_company.deactivate') : t('my_company.activate'), name: agent.name }),
       () => toggleAgentActive(agent.id, !agent.active),
-      agent.active ? 'Desactivar' : 'Activar'
+      agent.active ? t('my_company.deactivate') : t('my_company.activate')
     );
   }
 
@@ -104,21 +108,22 @@ export default function MiEmpresaScreen() {
     const isExtra = max !== null && agents.length >= max;
 
     if (isExtra && priceExtra && priceExtra > 0) {
-      const msg = `Tu plan incluye ${max} agente${max === 1 ? '' : 's'}. Este agente extra tendrá un coste de ${priceExtra} €/mes adicionales.`;
+      const agentWord = max === 1 ? t('my_company.agent_count_one') : t('my_company.agent_count_other');
+      const msg = t('my_company.extra_agent_msg', { max, agentWord, price: priceExtra });
       if (Platform.OS === 'web') {
-        if (!window.confirm(`Agente adicional\n\n${msg}`)) return { error: null };
+        if (!window.confirm(`${t('my_company.extra_agent_title')}\n\n${msg}`)) return { error: null };
         const result = await inviteAgent(data);
-        if (!result.error) toast.success('Invitación enviada por email');
+        if (!result.error) toast.success(t('my_company.invite_sent'));
         return result;
       }
       return new Promise<{ error?: string | null }>((resolve) => {
-        Alert.alert('Agente adicional', msg, [
-          { text: 'Cancelar', style: 'cancel', onPress: () => resolve({ error: null }) },
+        Alert.alert(t('my_company.extra_agent_title'), msg, [
+          { text: t('my_company.cancel'), style: 'cancel', onPress: () => resolve({ error: null }) },
           {
-            text: 'Confirmar y invitar',
+            text: t('my_company.confirm_and_invite'),
             onPress: async () => {
               const result = await inviteAgent(data);
-              if (!result.error) toast.success('Invitación enviada por email');
+              if (!result.error) toast.success(t('my_company.invite_sent'));
               resolve(result);
             },
           },
@@ -127,42 +132,48 @@ export default function MiEmpresaScreen() {
     }
 
     const result = await inviteAgent(data);
-    if (!result.error) toast.success('Invitación enviada por email');
+    if (!result.error) toast.success(t('my_company.invite_sent'));
     return result;
   }
 
   return (
     <Screen>
       <TopBar
-        title="Mi empresa"
+        title={t('my_company.title')}
         onBack={() => router.back()}
-        actions={[{ icon: 'UserPlus', onPress: () => setShowInvite(true), accessibilityLabel: 'Invitar agente' }]}
+        actions={[{ icon: 'UserPlus', onPress: () => setShowInvite(true), accessibilityLabel: t('my_company.invite_agent') }]}
       />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.summary}>
           <Text variant="heading">{agents.length}</Text>
           <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-            {agents.length === 1 ? 'agente' : 'agentes'}
+            {agents.length === 1 ? t('my_company.agent_count_one') : t('my_company.agent_count_other')}
           </Text>
           {planLimits?.maxAgents != null && (
             <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>
               {agents.length <= planLimits.maxAgents
-                ? `${agents.length} / ${planLimits.maxAgents} incluidos en el plan`
-                : `${planLimits.maxAgents} incluidos · ${agents.length - planLimits.maxAgents} extra${planLimits.priceExtraAgent ? ` (+${(agents.length - planLimits.maxAgents) * planLimits.priceExtraAgent} €/mes)` : ''}`}
+                ? t('my_company.included_in_plan', { count: agents.length, max: planLimits.maxAgents })
+                : t('my_company.extra_summary', {
+                    max: planLimits.maxAgents,
+                    extra: agents.length - planLimits.maxAgents,
+                    priceExtra: planLimits.priceExtraAgent
+                      ? t('my_company.extra_price_suffix', { amount: (agents.length - planLimits.maxAgents) * planLimits.priceExtraAgent })
+                      : '',
+                  })}
             </Text>
           )}
         </View>
 
         {loading ? (
-          <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[6] }}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={{ paddingVertical: space[6] }}>{t('my_company.loading')}</Text>
         ) : agents.length === 0 ? (
           <View style={styles.empty}>
             <Icon name="Users" size={32} color={colors.ink4} />
             <Text variant="body" color="ink3" align="center" style={{ marginTop: space[2] }}>
-              Aún no tienes agentes en tu empresa.
+              {t('my_company.no_agents')}
             </Text>
-            <Button label="Invitar primer agente" onPress={() => setShowInvite(true)} style={{ marginTop: space[3] }} />
+            <Button label={t('my_company.invite_first')} onPress={() => setShowInvite(true)} style={{ marginTop: space[3] }} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -175,12 +186,12 @@ export default function MiEmpresaScreen() {
                   {agent.phone ? (
                     <Text variant="caption" color="ink3" numberOfLines={1}>{agent.phone}</Text>
                   ) : null}
-                  <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>Alta {formatDate(agent.created_at)}</Text>
+                  <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>{t('my_company.created_label', { date: formatDate(agent.created_at) })}</Text>
                 </View>
                 <View style={styles.rowActions}>
-                  <Badge label={agent.active ? 'Activo' : 'Inactivo'} variant={agent.active ? 'success' : 'neutral'} />
+                  <Badge label={agent.active ? t('my_company.active_badge') : t('my_company.inactive_badge')} variant={agent.active ? 'success' : 'neutral'} />
                   <Button
-                    label={agent.active ? 'Desactivar' : 'Activar'}
+                    label={agent.active ? t('my_company.deactivate') : t('my_company.activate')}
                     variant="secondary"
                     size="sm"
                     onPress={() => handleToggle(agent)}

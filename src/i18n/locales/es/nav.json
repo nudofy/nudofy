@@ -1,0 +1,27 @@
+{
+  "agent_tabs": {
+    "home": "Inicio",
+    "clientes": "Clientes",
+    "proveedores": "Proveedores",
+    "pedidos": "Pedidos",
+    "mas": "Más"
+  },
+  "client_tabs": {
+    "inicio": "Inicio",
+    "catalogo": "Catálogo",
+    "pedidos": "Pedidos",
+    "perfil": "Mi perfil"
+  },
+  "admin_nav": {
+    "dashboard": "Dashboard",
+    "agentes": "Agentes",
+    "planes": "Planes",
+    "facturacion": "Facturación",
+    "configuracion": "Configuración"
+  },
+  "admin": {
+    "principal": "Principal",
+    "administracion": "Administración",
+    "admin_fallback": "Admin"
+  }
+}

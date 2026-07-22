@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, space, radius } from '@/theme';
 import { Text, Icon } from '@/components/ui';
@@ -13,12 +14,12 @@ import type { IconName } from '@/components/ui/Icon';
 
 export type AdminSection = 'dashboard' | 'agentes' | 'planes' | 'facturacion' | 'configuracion';
 
-const NAV_ITEMS: { key: AdminSection; label: string; icon: IconName; route: string }[] = [
-  { key: 'dashboard',     label: 'Dashboard',      icon: 'LayoutDashboard', route: '/(admin)/dashboard'     },
-  { key: 'agentes',       label: 'Agentes',         icon: 'Users',           route: '/(admin)/agentes'       },
-  { key: 'planes',        label: 'Planes',          icon: 'Sparkles',        route: '/(admin)/planes'        },
-  { key: 'facturacion',   label: 'Facturación',     icon: 'Receipt',         route: '/(admin)/facturacion'   },
-  { key: 'configuracion', label: 'Configuración',   icon: 'Settings',        route: '/(admin)/configuracion' },
+const NAV_ITEMS: { key: AdminSection; labelKey: string; icon: IconName; route: string }[] = [
+  { key: 'dashboard',     labelKey: 'admin_nav.dashboard',     icon: 'LayoutDashboard', route: '/(admin)/dashboard'     },
+  { key: 'agentes',       labelKey: 'admin_nav.agentes',       icon: 'Users',           route: '/(admin)/agentes'       },
+  { key: 'planes',        labelKey: 'admin_nav.planes',        icon: 'Sparkles',        route: '/(admin)/planes'        },
+  { key: 'facturacion',   labelKey: 'admin_nav.facturacion',   icon: 'Receipt',         route: '/(admin)/facturacion'   },
+  { key: 'configuracion', labelKey: 'admin_nav.configuracion', icon: 'Settings',        route: '/(admin)/configuracion' },
 ];
 
 interface Props {
@@ -31,6 +32,7 @@ interface Props {
 
 export default function AdminShell({ activeSection, title, rightElement, onBack, children }: Props) {
   const router = useRouter();
+  const { t } = useTranslation('nav');
   const { profile, signOut } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 900;
@@ -60,7 +62,9 @@ export default function AdminShell({ activeSection, title, rightElement, onBack,
   const initials = (profile?.name ?? profile?.email ?? 'NX')
     .split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
-  const sectionLabel = NAV_ITEMS.find(n => n.key === activeSection)?.label ?? title ?? '';
+  const sectionLabel = NAV_ITEMS.find(n => n.key === activeSection)?.labelKey
+    ? t(NAV_ITEMS.find(n => n.key === activeSection)!.labelKey)
+    : title ?? '';
 
   const sidebarContent = (
     <>
@@ -71,7 +75,7 @@ export default function AdminShell({ activeSection, title, rightElement, onBack,
           </View>
           <View>
             <Text variant="bodyMedium">Nudofy</Text>
-            <Text variant="caption" color="ink3">Administración</Text>
+            <Text variant="caption" color="ink3">{t('admin.administracion')}</Text>
           </View>
         </View>
         {!isDesktop && (
@@ -86,7 +90,7 @@ export default function AdminShell({ activeSection, title, rightElement, onBack,
       </View>
 
       <View style={styles.drawerNav}>
-        <Text variant="caption" color="ink3" style={styles.navSectionLabel}>Principal</Text>
+        <Text variant="caption" color="ink3" style={styles.navSectionLabel}>{t('admin.principal')}</Text>
         {NAV_ITEMS.map(item => {
           const active = activeSection === item.key;
           return (
@@ -104,7 +108,7 @@ export default function AdminShell({ activeSection, title, rightElement, onBack,
                 variant={active ? 'smallMedium' : 'small'}
                 color={active ? 'ink' : 'ink2'}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Text>
             </Pressable>
           );
@@ -116,7 +120,7 @@ export default function AdminShell({ activeSection, title, rightElement, onBack,
           <Text variant="caption" color="white" style={{ fontWeight: '600' }}>{initials}</Text>
         </View>
         <Text variant="small" color="ink2" style={{ flex: 1 }} numberOfLines={1}>
-          {profile?.name ?? 'Admin'}
+          {profile?.name ?? t('admin.admin_fallback')}
         </Text>
         <Pressable
           onPress={signOut}

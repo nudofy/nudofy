@@ -2,36 +2,39 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { useAdminKPIs, useAdminAgents } from '@/hooks/useAdmin';
 import { colors, space, radius } from '@/theme';
 import { Text, Icon, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 const MONTHS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 const BAR_HEIGHTS = [30, 45, 40, 55, 50, 60, 58, 65, 70, 75, 80, 100];
 
-const PLAN_LABELS: Record<string, string> = {
-  basic:       'Básico',
-  pro:         'Pro',
-  agency:      'Agencia',
-};
-
 export default function AdminDashboardScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('admin');
   const { kpis, planDistribution, error: kpisError } = useAdminKPIs();
   const { agents, loading: agentsLoading } = useAdminAgents();
   const maxRev = Math.max(...planDistribution.map(p => p.rev), 1);
 
   const recentAgents = agents.slice(0, 5);
+  const PLAN_LABELS: Record<string, string> = {
+    basic: t('shared.plan_basic'),
+    pro: t('shared.plan_pro'),
+    agency: t('shared.plan_agency'),
+  };
+
+  function formatEur(n: number) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return n.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
+  }
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
 
   return (
     <AdminShell activeSection="dashboard">
@@ -45,28 +48,28 @@ export default function AdminDashboardScreen() {
       {/* KPIs */}
       <View style={styles.kpiGrid}>
         <KpiCard
-          label="Ingresos mensuales"
+          label={t('dashboard.monthly_revenue')}
           value={formatEur(kpis.mrr)}
-          delta={`+${kpis.mrrDelta.toFixed(0)}% vs mes anterior`}
+          delta={t('dashboard.vs_last_month', { percent: kpis.mrrDelta.toFixed(0) })}
           trend="up"
           accent
         />
         <KpiCard
-          label="Agentes activos"
+          label={t('dashboard.active_agents')}
           value={kpis.activeAgents.toString()}
-          delta={`+${kpis.agentsDelta} nuevos este mes`}
+          delta={t('dashboard.new_this_month', { count: kpis.agentsDelta })}
           trend="up"
         />
         <KpiCard
-          label="Pedidos generados"
+          label={t('dashboard.orders_generated')}
           value={kpis.ordersThisMonth.toString()}
-          delta="Este mes"
+          delta={t('dashboard.this_month')}
           trend="neutral"
         />
         <KpiCard
-          label="Pagos pendientes"
+          label={t('dashboard.pending_payments')}
           value={kpis.pendingPayments.toString()}
-          delta={kpis.pendingPayments > 0 ? `${kpis.pendingPayments} agentes con cuota vencida` : 'Todo al día'}
+          delta={kpis.pendingPayments > 0 ? t('dashboard.agents_overdue', { count: kpis.pendingPayments }) : t('dashboard.all_up_to_date')}
           trend={kpis.pendingPayments === 0 ? 'up' : 'down'}
         />
       </View>
@@ -76,7 +79,7 @@ export default function AdminDashboardScreen() {
         {/* Bar chart */}
         <View style={[styles.card, { flex: 1.3 }]}>
           <View style={styles.cardHeader}>
-            <Text variant="bodyMedium">Evolución de ingresos</Text>
+            <Text variant="bodyMedium">{t('dashboard.revenue_evolution')}</Text>
           </View>
           <View style={styles.chartArea}>
             {MONTHS.map((m, i) => (
@@ -95,27 +98,27 @@ export default function AdminDashboardScreen() {
             ))}
           </View>
           <View style={styles.chartFooter}>
-            <ChartStat value={formatEur(kpis.mrr)} label="Este mes" />
-            <ChartStat value={formatEur(kpis.mrrLastMonth)} label="Mes anterior" />
-            <ChartStat value={formatEur(kpis.mrrYearTotal)} label="Acumulado año" />
+            <ChartStat value={formatEur(kpis.mrr)} label={t('dashboard.this_month')} />
+            <ChartStat value={formatEur(kpis.mrrLastMonth)} label={t('dashboard.last_month')} />
+            <ChartStat value={formatEur(kpis.mrrYearTotal)} label={t('dashboard.year_total')} />
           </View>
         </View>
 
         {/* Por plan */}
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
-            <Text variant="bodyMedium">Ingresos por plan</Text>
+            <Text variant="bodyMedium">{t('dashboard.revenue_by_plan')}</Text>
           </View>
           {planDistribution.length === 0 ? (
             <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-              Sin datos
+              {t('dashboard.no_data')}
             </Text>
           ) : planDistribution.map((p, i) => (
             <View key={p.plan} style={[styles.planRow, i === planDistribution.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={{ width: 90 }}>
                 <Text variant="smallMedium">{p.name}</Text>
                 <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-                  {p.agents} ag · {p.price} €/mes
+                  {t('dashboard.plan_agents_price', { count: p.agents, price: p.price })}
                 </Text>
               </View>
               <View style={styles.planBarWrap}>
@@ -132,25 +135,25 @@ export default function AdminDashboardScreen() {
       {/* Tabla agentes recientes */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text variant="bodyMedium">Últimos agentes registrados</Text>
+          <Text variant="bodyMedium">{t('dashboard.recent_agents_title')}</Text>
           <Pressable
             onPress={() => router.push('/(admin)/agentes')}
             hitSlop={8}
             style={({ pressed }) => [styles.cardLink, pressed && { opacity: 0.6 }]}
           >
-            <Text variant="smallMedium" color="ink2">Ver todos</Text>
+            <Text variant="smallMedium" color="ink2">{t('dashboard.view_all')}</Text>
             <Icon name="ArrowRight" size={16} color={colors.ink2} />
           </Pressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View>
             <View style={styles.tableHead}>
-              {['Agente', 'Plan', 'Alta', 'Estado'].map(h => (
+              {[t('dashboard.col_agent'), t('dashboard.col_plan'), t('dashboard.col_signup'), t('dashboard.col_status')].map((h, hi) => (
                 <Text
                   key={h}
                   variant="caption"
                   color="ink3"
-                  style={[styles.th, h === 'Agente' ? { width: 200 } : { width: 120 }]}
+                  style={[styles.th, hi === 0 ? { width: 200 } : { width: 120 }]}
                 >
                   {h.toUpperCase()}
                 </Text>
@@ -158,12 +161,12 @@ export default function AdminDashboardScreen() {
             </View>
             {agentsLoading && (
               <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-                Cargando...
+                {t('shared.loading')}
               </Text>
             )}
             {!agentsLoading && recentAgents.length === 0 && (
               <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-                Sin agentes registrados
+                {t('dashboard.no_agents')}
               </Text>
             )}
             {recentAgents.map((agent, i) => (
@@ -186,14 +189,14 @@ export default function AdminDashboardScreen() {
                   </View>
                 </View>
                 <View style={[styles.td, { width: 120 }]}>
-                  <Badge label={PLAN_LABELS[agent.plan] ?? 'Básico'} variant="neutral" />
+                  <Badge label={PLAN_LABELS[agent.plan] ?? t('shared.plan_basic')} variant="neutral" />
                 </View>
                 <View style={[styles.td, { width: 120 }]}>
                   <Text variant="small" color="ink2">{formatDate(agent.created_at)}</Text>
                 </View>
                 <View style={[styles.td, { width: 120 }]}>
                   <Badge
-                    label={agent.active ? 'Activo' : 'Inactivo'}
+                    label={agent.active ? t('shared.active') : t('shared.inactive')}
                     variant={agent.active ? 'success' : 'neutral'}
                   />
                 </View>

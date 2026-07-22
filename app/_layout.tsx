@@ -3,6 +3,7 @@ import { Platform, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
+import { I18nextProvider, useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { NetworkProvider } from '@/contexts/NetworkContext';
@@ -10,6 +11,7 @@ import NetworkBanner from '@/components/NetworkBanner';
 import { supabase } from '@/lib/supabase';
 import { initSentry, setSentryUser, clearSentryUser } from '@/lib/sentry';
 import { registerPushToken, unregisterPushToken } from '@/lib/pushNotifications';
+import i18n from '@/i18n';
 
 // Inicializar Sentry al arrancar la app
 initSentry();
@@ -50,6 +52,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 
 function RootLayoutNav() {
   const { session, profile, loading, profileError, retryProfile } = useAuth();
+  const { t } = useTranslation('common');
   const segments = useSegments();
   const router = useRouter();
 
@@ -110,15 +113,15 @@ function RootLayoutNav() {
   if (session && profileError) {
     return (
       <View style={styles.errorScreen}>
-        <Text style={styles.errorTitle}>No hemos podido cargar tu cuenta</Text>
+        <Text style={styles.errorTitle}>{t('profile_load_error.title')}</Text>
         <Text style={styles.errorBody}>
-          Comprueba tu conexión a internet e inténtalo de nuevo.
+          {t('profile_load_error.body')}
         </Text>
         <Pressable style={styles.retryBtn} onPress={retryProfile}>
-          <Text style={styles.retryBtnText}>Reintentar</Text>
+          <Text style={styles.retryBtnText}>{t('profile_load_error.retry')}</Text>
         </Pressable>
         <Pressable style={styles.logoutBtn} onPress={() => supabase.auth.signOut()}>
-          <Text style={styles.logoutBtnText}>Cerrar sesión</Text>
+          <Text style={styles.logoutBtnText}>{t('profile_load_error.logout')}</Text>
         </Pressable>
       </View>
     );
@@ -141,15 +144,17 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <NetworkProvider>
-        <AuthProvider>
-          <ToastProvider>
-            <RootLayoutNav />
-          </ToastProvider>
-        </AuthProvider>
-      </NetworkProvider>
-    </SafeAreaProvider>
+    <I18nextProvider i18n={i18n}>
+      <SafeAreaProvider>
+        <NetworkProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <RootLayoutNav />
+            </ToastProvider>
+          </AuthProvider>
+        </NetworkProvider>
+      </SafeAreaProvider>
+    </I18nextProvider>
   );
 }
 

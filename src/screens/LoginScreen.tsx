@@ -17,6 +17,7 @@ function openUrl(url: string, sameTab = false) {
   }
 }
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { colors, radius, space, typography } from '@/theme';
@@ -26,6 +27,7 @@ const IS_WEB = Platform.OS === 'web';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
   const { signIn, resetPassword } = useAuth();
   const toast = useToast();
   const { width } = useWindowDimensions();
@@ -40,7 +42,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
-      setError('Introduce tu email y contraseña');
+      setError(t('errors.missing_credentials'));
       return;
     }
     setLoading(true);
@@ -56,20 +58,20 @@ export default function LoginScreen() {
 
   async function handleForgot() {
     if (!email.trim()) {
-      toast.info('Introduce tu email y vuelve a pulsar "¿Olvidaste?"');
+      toast.info(t('forgot.missing_email'));
       return;
     }
     const { error } = await resetPassword(email.trim());
     if (error) toast.error(error);
-    else toast.success(`Enlace de recuperación enviado a ${email.trim()}`);
+    else toast.success(t('forgot.success', { email: email.trim() }));
   }
 
   // ── Formulario compartido ──────────────────────────────────────────────────
   const form = (
     <>
-      <Text variant="heading" style={styles.cardTitle}>Bienvenido</Text>
+      <Text variant="heading" style={styles.cardTitle}>{t('login.title')}</Text>
       <Text variant="small" color="ink3" style={styles.cardSubtitle}>
-        Accede con tus credenciales para continuar
+        {t('login.subtitle')}
       </Text>
 
       {error && (
@@ -80,7 +82,7 @@ export default function LoginScreen() {
       )}
 
       {/* Email */}
-      <Text variant="caption" color="ink3" style={styles.fieldLabel}>CORREO ELECTRÓNICO</Text>
+      <Text variant="caption" color="ink3" style={styles.fieldLabel}>{t('login.email_label')}</Text>
       <View style={[
         styles.field,
         focus === 'email' && styles.fieldFocus,
@@ -89,7 +91,7 @@ export default function LoginScreen() {
         <Icon name="Mail" size={18} color={focus === 'email' ? colors.brand : colors.ink4} />
         <TextInput
           style={styles.input}
-          placeholder="tu@email.com"
+          placeholder={t('login.email_placeholder')}
           placeholderTextColor={colors.ink4}
           value={email}
           onChangeText={(v) => { setEmail(v); setError(null); }}
@@ -104,10 +106,10 @@ export default function LoginScreen() {
 
       {/* Password */}
       <View style={styles.passwordLabelRow}>
-        <Text variant="caption" color="ink3" style={styles.fieldLabel}>CONTRASEÑA</Text>
+        <Text variant="caption" color="ink3" style={styles.fieldLabel}>{t('login.password_label')}</Text>
         <Pressable onPress={handleForgot} hitSlop={8}>
           <Text variant="caption" color="brand" style={{ fontWeight: '600' }}>
-            ¿Olvidaste?
+            {t('login.forgot')}
           </Text>
         </Pressable>
       </View>
@@ -137,13 +139,13 @@ export default function LoginScreen() {
           style={styles.showToggle}
         >
           <Text variant="caption" color="ink2" style={{ fontWeight: '600' }}>
-            {showPassword ? 'Ocultar' : 'Mostrar'}
+            {showPassword ? t('login.hide') : t('login.show')}
           </Text>
         </Pressable>
       </View>
 
       <Button
-        label="Entrar"
+        label={t('login.submit')}
         onPress={handleLogin}
         loading={loading}
         fullWidth
@@ -153,11 +155,11 @@ export default function LoginScreen() {
       {/* Footer dentro de la card */}
       <View style={styles.footer}>
         <Pressable onPress={() => Linking.openURL('https://nudofy.com/quienes-somos')} hitSlop={6}>
-          <Text variant="small" color="ink3">Quiénes somos</Text>
+          <Text variant="small" color="ink3">{t('login.about')}</Text>
         </Pressable>
         <View style={styles.dot} />
         <Pressable onPress={() => Linking.openURL('mailto:info@nudofy.com')} hitSlop={6}>
-          <Text variant="small" color="ink3">Contacto</Text>
+          <Text variant="small" color="ink3">{t('login.contact')}</Text>
         </Pressable>
         <View style={styles.dot} />
         <Pressable onPress={() => Linking.openURL('https://nudofy.com')} hitSlop={6}>
@@ -197,7 +199,7 @@ export default function LoginScreen() {
               />
             </View>
             <Text style={styles.brandName} allowFontScaling={false}>nudofy</Text>
-            <Text style={styles.brandTagline}>Catálogos y ventas para agentes comerciales</Text>
+            <Text style={styles.brandTagline}>{t('login.tagline')}</Text>
           </View>
 
           {/* Formulario */}
@@ -235,7 +237,7 @@ export default function LoginScreen() {
             </View>
             <Text style={styles.brandName} allowFontScaling={false}>nudofy</Text>
             <Text style={styles.brandTagline}>
-              Catálogos y ventas para agentes comerciales
+              {t('login.tagline')}
             </Text>
           </View>
 

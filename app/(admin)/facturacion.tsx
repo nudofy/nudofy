@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import {
   View, StyleSheet, Pressable, ScrollView, TextInput, Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { pickFile } from '@/lib/filePicker';
 import { supabase } from '@/lib/supabase';
 import AdminShell from '@/components/AdminShell';
@@ -12,31 +13,35 @@ import { colors, space, radius } from '@/theme';
 import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-const STATUS_META: Record<string, { variant: 'success' | 'warning' | 'danger' | 'neutral'; label: string }> = {
-  paid:    { variant: 'success',  label: 'Pagada'    },
-  pending: { variant: 'warning',  label: 'Pendiente' },
-  overdue: { variant: 'danger',   label: 'Vencida'   },
-};
-
 function formatPlanLabel(plan: string): string {
   return plan.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-const FLOW_STEPS = [
-  { n: '1', title: 'Stripe genera cobro', sub: 'El 1 de cada mes Stripe intenta el cargo automático' },
-  { n: '2', title: 'Email Resend', sub: 'Se envía la factura por email al agente' },
-  { n: '3', title: 'Actualiza BD', sub: 'El webhook de Stripe actualiza el estado en Supabase' },
-];
-
 export default function AdminFacturacionScreen() {
+  const { t, i18n } = useTranslation('admin');
+
+  function formatEur(n: number) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  const STATUS_META: Record<string, { variant: 'success' | 'warning' | 'danger' | 'neutral'; label: string }> = {
+    paid:    { variant: 'success',  label: t('facturacion.status_paid')    },
+    pending: { variant: 'warning',  label: t('facturacion.status_pending') },
+    overdue: { variant: 'danger',   label: t('facturacion.status_overdue') },
+  };
+
+  const FLOW_STEPS = [
+    { n: '1', title: t('facturacion.flow_1_title'), sub: t('facturacion.flow_1_sub') },
+    { n: '2', title: t('facturacion.flow_2_title'), sub: t('facturacion.flow_2_sub') },
+    { n: '3', title: t('facturacion.flow_3_title'), sub: t('facturacion.flow_3_sub') },
+  ];
+
   const { invoices, loading, markAsPaid, refetch } = useAdminInvoices();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -83,7 +88,7 @@ export default function AdminFacturacionScreen() {
         .from('invoices')
         .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
 
-      if (!urlData?.signedUrl) throw new Error('No se pudo generar la URL');
+      if (!urlData?.signedUrl) throw new Error(t('facturacion.upload_url_error'));
 
       // Guardar la URL en la factura
       await supabase
@@ -93,7 +98,7 @@ export default function AdminFacturacionScreen() {
 
       refetch?.();
     } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'No se pudo subir el PDF');
+      Alert.alert(t('shared.error_title'), e.message ?? t('facturacion.upload_pdf_error'));
     } finally {
       setUploadingId(null);
     }
@@ -101,28 +106,28 @@ export default function AdminFacturacionScreen() {
 
   function handleMarkPaid(inv: AdminInvoice) {
     Alert.alert(
-      'Marcar como pagada',
-      `¿Marcar la factura ${inv.invoice_number ?? inv.id.slice(0, 8)} como pagada?`,
+      t('facturacion.mark_paid_title'),
+      t('facturacion.mark_paid_body', { invoice: inv.invoice_number ?? inv.id.slice(0, 8) }),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: () => markAsPaid(inv.id) },
+        { text: t('facturacion.cancel'), style: 'cancel' },
+        { text: t('facturacion.confirm'), onPress: () => markAsPaid(inv.id) },
       ]
     );
   }
 
   return (
-    <AdminShell activeSection="facturacion" title="Facturación">
+    <AdminShell activeSection="facturacion" title={t('facturacion.title')}>
       {/* KPIs */}
       <View style={styles.kpiRow}>
-        <KpiCard label="Cobrado este mes" value={formatEur(totalPaid)} tone="success" />
-        <KpiCard label="Pendiente" value={formatEur(totalPending)} tone="warning" />
-        <KpiCard label="Vencido" value={formatEur(totalOverdue)} tone="danger" />
+        <KpiCard label={t('facturacion.kpi_paid_this_month')} value={formatEur(totalPaid)} tone="success" />
+        <KpiCard label={t('facturacion.kpi_pending')} value={formatEur(totalPending)} tone="warning" />
+        <KpiCard label={t('facturacion.kpi_overdue')} value={formatEur(totalOverdue)} tone="danger" />
       </View>
 
       {/* Flujo */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text variant="bodyMedium">Flujo de cobro automático</Text>
+          <Text variant="bodyMedium">{t('facturacion.flow_title')}</Text>
         </View>
         <View style={styles.flowRow}>
           {FLOW_STEPS.map(step => (
@@ -145,7 +150,7 @@ export default function AdminFacturacionScreen() {
           <Icon name="Search" size={16} color={colors.ink3} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar por agente o nº factura..."
+            placeholder={t('facturacion.search_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -162,12 +167,12 @@ export default function AdminFacturacionScreen() {
                 variant="smallMedium"
                 style={{ color: statusFilter === s ? colors.white : colors.ink2 }}
               >
-                {s === 'all' ? 'Todas' : STATUS_META[s]?.label}
+                {s === 'all' ? t('facturacion.filter_all') : STATUS_META[s]?.label}
               </Text>
             </Pressable>
           ))}
         </View>
-        <Text variant="caption" color="ink3">{filtered.length} facturas</Text>
+        <Text variant="caption" color="ink3">{t('facturacion.invoices_count', { count: filtered.length })}</Text>
       </View>
 
       {/* Tabla */}
@@ -175,7 +180,7 @@ export default function AdminFacturacionScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View>
             <View style={styles.tableHead}>
-              {['Agente', 'Factura', 'Plan', 'Período', 'Importe', 'Estado', 'Acciones'].map((h, i) => (
+              {[t('facturacion.col_agent'), t('facturacion.col_invoice'), t('facturacion.col_plan'), t('facturacion.col_period'), t('facturacion.col_amount'), t('facturacion.col_status'), t('facturacion.col_actions')].map((h, i) => (
                 <Text
                   key={h}
                   variant="caption"
@@ -187,10 +192,10 @@ export default function AdminFacturacionScreen() {
               ))}
             </View>
             {loading && (
-              <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+              <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('facturacion.loading')}</Text>
             )}
             {!loading && filtered.length === 0 && (
-              <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Sin facturas</Text>
+              <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('facturacion.no_invoices')}</Text>
             )}
             {filtered.map((inv, i) => {
               const status = STATUS_META[inv.status] ?? STATUS_META.pending;
@@ -231,7 +236,7 @@ export default function AdminFacturacionScreen() {
                   </View>
                   <View style={[styles.td, { width: 180, flexDirection: 'row', gap: space[1] }]}>
                     <Button
-                      label={uploadingId === inv.id ? '...' : (inv as any).pdf_url ? '✓ PDF' : 'Subir PDF'}
+                      label={uploadingId === inv.id ? '...' : (inv as any).pdf_url ? t('facturacion.pdf_uploaded') : t('facturacion.upload_pdf')}
                       variant="secondary"
                       size="sm"
                       onPress={() => handleUploadPdf(inv)}
@@ -239,7 +244,7 @@ export default function AdminFacturacionScreen() {
                     />
                     {inv.status !== 'paid' && (
                       <Button
-                        label="Marcar pagada"
+                        label={t('facturacion.mark_paid')}
                         variant="secondary"
                         size="sm"
                         onPress={() => handleMarkPaid(inv)}

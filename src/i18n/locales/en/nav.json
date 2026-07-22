@@ -1,0 +1,27 @@
+{
+  "agent_tabs": {
+    "home": "Home",
+    "clientes": "Clients",
+    "proveedores": "Suppliers",
+    "pedidos": "Orders",
+    "mas": "More"
+  },
+  "client_tabs": {
+    "inicio": "Home",
+    "catalogo": "Catalog",
+    "pedidos": "Orders",
+    "perfil": "My profile"
+  },
+  "admin_nav": {
+    "dashboard": "Dashboard",
+    "agentes": "Agents",
+    "planes": "Plans",
+    "facturacion": "Billing",
+    "configuracion": "Settings"
+  },
+  "admin": {
+    "principal": "Main",
+    "administracion": "Administration",
+    "admin_fallback": "Admin"
+  }
+}

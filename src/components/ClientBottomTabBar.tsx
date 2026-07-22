@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space } from '@/theme';
 import { Text, Icon } from '@/components/ui';
 import type { IconName } from '@/components/ui/Icon';
@@ -12,16 +13,17 @@ interface Props {
   activeTab: ClientTab;
 }
 
-const TABS: { key: ClientTab; label: string; route: string; icon: IconName }[] = [
-  { key: 'inicio',   label: 'Inicio',    route: '/(client)/home',     icon: 'House' },
-  { key: 'catalogo', label: 'Catálogo',  route: '/(client)/catalogo', icon: 'LayoutGrid' },
-  { key: 'pedidos',  label: 'Pedidos',   route: '/(client)/pedidos',  icon: 'ClipboardList' },
-  { key: 'perfil',   label: 'Mi perfil', route: '/(client)/perfil',   icon: 'User' },
+const TABS: { key: ClientTab; labelKey: string; route: string; icon: IconName }[] = [
+  { key: 'inicio',   labelKey: 'client_tabs.inicio',   route: '/(client)/home',     icon: 'House' },
+  { key: 'catalogo', labelKey: 'client_tabs.catalogo', route: '/(client)/catalogo', icon: 'LayoutGrid' },
+  { key: 'pedidos',  labelKey: 'client_tabs.pedidos',  route: '/(client)/pedidos',  icon: 'ClipboardList' },
+  { key: 'perfil',   labelKey: 'client_tabs.perfil',   route: '/(client)/perfil',   icon: 'User' },
 ];
 
 export default function ClientBottomTabBar({ activeTab }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('nav');
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, space[1]) }]}>
@@ -45,7 +47,7 @@ export default function ClientBottomTabBar({ activeTab }: Props) {
               allowFontScaling={false}
               style={[styles.label, { color: isActive ? colors.brand : colors.ink4 }]}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </Text>
           </Pressable>
         );

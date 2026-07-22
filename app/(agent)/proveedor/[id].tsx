@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
@@ -19,6 +20,7 @@ import type { Supplier, Catalog } from '@/hooks/useAgent';
 
 export default function ProveedorScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('agent');
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
@@ -53,9 +55,9 @@ export default function ProveedorScreen() {
   if (loaded && !supplier) {
     return (
       <ResourceError
-        topBarTitle="Proveedor"
-        title={loadError ? 'Error de conexión' : 'Proveedor no encontrado'}
-        message={loadError ? 'No se pudo cargar el proveedor.' : 'No existe o no tienes permisos para verlo.'}
+        topBarTitle={t('supplier_detail.top_bar_title')}
+        title={loadError ? t('supplier_detail.error_title') : t('supplier_detail.not_found_title')}
+        message={loadError ? t('supplier_detail.error_message') : t('supplier_detail.not_found_message')}
         detail={loadError}
         onBack={() => router.back()}
         onRetry={fetchSupplier}
@@ -66,9 +68,9 @@ export default function ProveedorScreen() {
   function handleOpenNewCatalog() {
     if (!canAddCatalog) {
       Alert.alert(
-        'Límite alcanzado',
-        `Tu plan permite un máximo de ${catalogLimit} catálogos (${catalogUsageLabel}). Actualiza tu plan para crear más.`,
-        [{ text: 'Entendido' }]
+        t('supplier_detail.limit_title'),
+        t('supplier_detail.limit_body', { limit: catalogLimit, usage: catalogUsageLabel }),
+        [{ text: t('supplier_detail.understood') }]
       );
       return;
     }
@@ -88,7 +90,7 @@ export default function ProveedorScreen() {
     setCatalogName('');
     setCatalogSeason('');
     setShowNewCatalog(false);
-    toast.success('Catálogo creado');
+    toast.success(t('supplier_detail.catalog_created'));
   }
 
   function openReorder() {
@@ -104,13 +106,13 @@ export default function ProveedorScreen() {
     await Promise.all(updates);
     setSavingOrder(false);
     setReordering(false);
-    toast.success('Orden guardado');
+    toast.success(t('supplier_detail.order_saved'));
   }
 
   function handleDeleteSupplier() {
     confirmDestructive(
-      'Eliminar proveedor',
-      `¿Eliminar a ${supplier?.name}? Se eliminarán también sus catálogos y productos.`,
+      t('supplier_detail.delete_supplier'),
+      t('supplier_detail.delete_supplier_body', { name: supplier?.name }),
       async () => {
         await supabase.from('suppliers').delete().eq('id', id);
         router.back();
@@ -124,10 +126,10 @@ export default function ProveedorScreen() {
         title={supplier?.name ?? '...'}
         onBack={() => router.back()}
         actions={[
-          { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: 'Reordenar catálogos' },
-          { icon: 'Pencil', onPress: () => router.push(`/(agent)/proveedor/editar?id=${id}` as any), accessibilityLabel: 'Editar proveedor' },
-          { icon: 'Trash2', onPress: handleDeleteSupplier, accessibilityLabel: 'Eliminar proveedor' },
-          { icon: 'Plus', onPress: handleOpenNewCatalog, accessibilityLabel: 'Nuevo catálogo' },
+          { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: t('supplier_detail.reorder_catalogs') },
+          { icon: 'Pencil', onPress: () => router.push(`/(agent)/proveedor/editar?id=${id}` as any), accessibilityLabel: t('supplier_detail.edit_supplier') },
+          { icon: 'Trash2', onPress: handleDeleteSupplier, accessibilityLabel: t('supplier_detail.delete_supplier') },
+          { icon: 'Plus', onPress: handleOpenNewCatalog, accessibilityLabel: t('supplier_detail.new_catalog') },
         ]}
       />
 
@@ -144,7 +146,7 @@ export default function ProveedorScreen() {
           <View style={{ flex: 1 }}>
             <Text variant="bodyMedium">{supplier.name}</Text>
             <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-              {catalogs.length} catálogo{catalogs.length !== 1 ? 's' : ''}
+              {t('supplier_detail.catalog_count', { count: catalogs.length })}
             </Text>
           </View>
         </View>
@@ -153,11 +155,11 @@ export default function ProveedorScreen() {
       {/* Lista de catálogos */}
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {loading && (
-          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('supplier_detail.loading')}</Text>
         )}
         {!loading && catalogs.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-            Sin catálogos. Pulsa + para crear uno.
+            {t('supplier_detail.no_catalogs')}
           </Text>
         )}
         {catalogs.map(catalog => (
@@ -173,9 +175,9 @@ export default function ProveedorScreen() {
       <Modal visible={reordering} animationType="slide" onRequestClose={() => setReordering(false)}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <View style={styles.reorderHeader}>
-            <Text variant="heading">Reordenar catálogos</Text>
+            <Text variant="heading">{t('supplier_detail.reorder_catalogs')}</Text>
             <Text variant="small" color="ink3" style={{ marginTop: 4 }}>
-              Mantén pulsado y arrastra para reordenar
+              {t('supplier_detail.reorder_hint')}
             </Text>
           </View>
           <DraggableFlatList
@@ -194,21 +196,21 @@ export default function ProveedorScreen() {
                     <Text variant="bodyMedium">{item.name}</Text>
                     {item.season && <Text variant="caption" color="ink3">{item.season}</Text>}
                   </View>
-                  <Badge label={item.status === 'active' ? 'Activo' : 'Archivado'} variant={item.status === 'active' ? 'success' : 'neutral'} />
+                  <Badge label={item.status === 'active' ? t('supplier_detail.status_active') : t('supplier_detail.status_archived')} variant={item.status === 'active' ? 'success' : 'neutral'} />
                 </Pressable>
               </ScaleDecorator>
             )}
           />
           <View style={styles.reorderFooter}>
             <Pressable style={[styles.footerBtn, styles.footerBtnSecondary]} onPress={() => setReordering(false)}>
-              <Text variant="bodyMedium" color="ink2">Cancelar</Text>
+              <Text variant="bodyMedium" color="ink2">{t('supplier_detail.cancel')}</Text>
             </Pressable>
             <Pressable
               style={[styles.footerBtn, styles.footerBtnPrimary, savingOrder && { opacity: 0.6 }]}
               onPress={saveOrder}
               disabled={savingOrder}
             >
-              <Text variant="bodyMedium" color="white">{savingOrder ? 'Guardando…' : 'Guardar orden'}</Text>
+              <Text variant="bodyMedium" color="white">{savingOrder ? t('supplier_detail.saving') : t('supplier_detail.save_order')}</Text>
             </Pressable>
           </View>
         </GestureHandlerRootView>
@@ -219,35 +221,35 @@ export default function ProveedorScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
-              <Text variant="heading" style={{ marginBottom: space[3] }}>Nuevo catálogo</Text>
+              <Text variant="heading" style={{ marginBottom: space[3] }}>{t('supplier_detail.new_catalog_title')}</Text>
 
-              <Text variant="caption" color="ink3" style={styles.modalLabel}>Nombre *</Text>
+              <Text variant="caption" color="ink3" style={styles.modalLabel}>{t('supplier_detail.name')}</Text>
               <TextInput
                 style={styles.modalInput}
                 value={catalogName}
                 onChangeText={setCatalogName}
-                placeholder="Ej: Colección Primavera 2025"
+                placeholder={t('supplier_detail.name_placeholder')}
                 placeholderTextColor={colors.ink4}
               />
 
-              <Text variant="caption" color="ink3" style={styles.modalLabel}>Temporada (opcional)</Text>
+              <Text variant="caption" color="ink3" style={styles.modalLabel}>{t('supplier_detail.season')}</Text>
               <TextInput
                 style={styles.modalInput}
                 value={catalogSeason}
                 onChangeText={setCatalogSeason}
-                placeholder="Ej: SS25"
+                placeholder={t('supplier_detail.season_placeholder')}
                 placeholderTextColor={colors.ink4}
               />
 
               <View style={styles.modalActions}>
                 <Button
-                  label="Cancelar"
+                  label={t('supplier_detail.cancel')}
                   variant="secondary"
                   onPress={() => { setShowNewCatalog(false); setCatalogName(''); setCatalogSeason(''); }}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  label="Crear catálogo"
+                  label={t('supplier_detail.create_catalog')}
                   onPress={handleCreateCatalog}
                   loading={savingCatalog}
                   disabled={!catalogName.trim()}
@@ -263,8 +265,10 @@ export default function ProveedorScreen() {
 }
 
 function CatalogCard({ catalog, onPress }: { catalog: Catalog; onPress: () => void }) {
+  const { t, i18n } = useTranslation('agent');
   const isActive = catalog.status === 'active';
-  const date = new Date(catalog.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+  const date = new Date(catalog.created_at).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <Pressable style={({ pressed }) => [styles.catCard, pressed && { opacity: 0.7 }]} onPress={onPress}>
@@ -274,12 +278,12 @@ function CatalogCard({ catalog, onPress }: { catalog: Catalog; onPress: () => vo
       <View style={styles.catBody}>
         <Text variant="bodyMedium">{catalog.name}</Text>
         <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-          {catalog.season ? `${catalog.season} · ` : ''}Creado el {date}
+          {catalog.season ? `${catalog.season} · ` : ''}{t('supplier_detail.created_on', { date })}
         </Text>
       </View>
       <View style={styles.catRight}>
-        <Text variant="caption" color="ink3">{catalog.product_count ?? 0} refs.</Text>
-        <Badge label={isActive ? 'Activo' : 'Archivado'} variant={isActive ? 'success' : 'neutral'} />
+        <Text variant="caption" color="ink3">{t('supplier_detail.refs_count', { count: catalog.product_count ?? 0 })}</Text>
+        <Badge label={isActive ? t('supplier_detail.status_active') : t('supplier_detail.status_archived')} variant={isActive ? 'success' : 'neutral'} />
       </View>
       <Icon name="ChevronRight" size={18} color={colors.ink4} />
     </Pressable>

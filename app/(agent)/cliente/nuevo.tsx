@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button } from '@/components/ui';
 import { useClients } from '@/hooks/useAgent';
@@ -14,6 +15,8 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function NuevoClienteScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
+  const { t: tv } = useTranslation('validation');
   const { createClient } = useClients();
   const toast = useToast();
   const { canAddClient, clientCount, clientLimit } = usePlanLimits();
@@ -37,52 +40,52 @@ export default function NuevoClienteScreen() {
 
   async function handleCreate() {
     if (!canAddClient) {
-      toast.error(`Has alcanzado el límite de ${clientLimit} clientes de tu plan. Actualiza tu plan para añadir más.`);
+      toast.error(t('client_form.limit_reached', { limit: clientLimit }));
       return;
     }
-    const v = validate(ClientSchema, form);
+    const v = validate(ClientSchema(tv), form);
     if (!v.ok) { toast.error(v.firstError); return; }
     setLoading(true);
     const { error } = await createClient(v.data as any);
     setLoading(false);
     if (error) { toast.error(error); return; }
-    toast.success('Cliente creado');
+    toast.success(t('client_form.created_toast'));
     router.back();
   }
 
   return (
     <Screen>
       <TopBar
-        title="Nuevo cliente"
+        title={t('client_form.title_new')}
         onBack={() => router.back()}
-        actions={[{ icon: 'Check', onPress: handleCreate, accessibilityLabel: 'Guardar' }]}
+        actions={[{ icon: 'Check', onPress: handleCreate, accessibilityLabel: t('client_form.save') }]}
       />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Section title="Datos del establecimiento">
-            <FormField label="Nombre *" value={form.name} onChangeText={set('name')} placeholder="Nombre del establecimiento" />
-            <FormField label="Tipo de establecimiento" value={form.client_type} onChangeText={set('client_type')} placeholder="Tipo de negocio" />
-            <FormField label="Dirección" value={form.address} onChangeText={set('address')} placeholder="Dirección" last />
+          <Section title={t('client_form.section_establishment')}>
+            <FormField label={t('client_form.name')} value={form.name} onChangeText={set('name')} placeholder={t('client_form.name_placeholder')} />
+            <FormField label={t('client_form.business_type')} value={form.client_type} onChangeText={set('client_type')} placeholder={t('client_form.business_type_placeholder')} />
+            <FormField label={t('client_form.address')} value={form.address} onChangeText={set('address')} placeholder={t('client_form.address_placeholder')} last />
           </Section>
 
-          <Section title="Datos fiscales">
-            <FormField label="Nombre fiscal" value={form.fiscal_name} onChangeText={set('fiscal_name')} placeholder="Nombre fiscal o razón social" />
-            <FormField label="NIF / CIF" value={form.nif} onChangeText={set('nif')} placeholder="NIF o CIF" last />
+          <Section title={t('client_form.section_fiscal')}>
+            <FormField label={t('client_form.fiscal_name')} value={form.fiscal_name} onChangeText={set('fiscal_name')} placeholder={t('client_form.fiscal_name_placeholder')} />
+            <FormField label={t('client_form.nif')} value={form.nif} onChangeText={set('nif')} placeholder={t('client_form.nif_placeholder')} last />
           </Section>
 
-          <Section title="Contacto">
-            <FormField label="Persona de contacto" value={form.contact_name} onChangeText={set('contact_name')} placeholder="Nombre del contacto" />
-            <FormField label="Teléfono" value={form.phone} onChangeText={set('phone')} placeholder="+34 91 234 56 78" keyboardType="phone-pad" />
-            <FormField label="Email" value={form.email} onChangeText={set('email')} placeholder="contacto@establecimiento.com" keyboardType="email-address" last />
+          <Section title={t('client_form.section_contact')}>
+            <FormField label={t('client_form.contact_name')} value={form.contact_name} onChangeText={set('contact_name')} placeholder={t('client_form.contact_name_placeholder')} />
+            <FormField label={t('client_form.phone')} value={form.phone} onChangeText={set('phone')} placeholder={t('client_form.phone_placeholder')} keyboardType="phone-pad" />
+            <FormField label={t('client_form.email')} value={form.email} onChangeText={set('email')} placeholder={t('client_form.email_placeholder')} keyboardType="email-address" last />
           </Section>
 
-          <Section title="Condiciones comerciales">
-            <FormField label="Forma de pago" value={form.payment_method} onChangeText={set('payment_method')} placeholder="30 días factura" last />
+          <Section title={t('client_form.section_commercial')}>
+            <FormField label={t('client_form.payment_method')} value={form.payment_method} onChangeText={set('payment_method')} placeholder={t('client_form.payment_method_placeholder')} last />
           </Section>
 
           <Button
-            label="Guardar cliente"
+            label={t('client_form.save_client')}
             onPress={handleCreate}
             loading={loading}
             fullWidth

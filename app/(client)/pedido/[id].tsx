@@ -6,23 +6,15 @@ import {
 } from 'react-native';
 import { printAndShare } from '@/lib/pdf';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import StatusBadge from '@/components/StatusBadge';
 import { supabase } from '@/lib/supabase';
 import { useClientData } from '@/hooks/useClient';
 import { useToast } from '@/contexts/ToastContext';
+import { formatEur } from '@/lib/format';
 import type { IconName } from '@/components/ui/Icon';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) +
-    ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
 
 interface OrderDetail {
   id: string;
@@ -46,9 +38,17 @@ interface OrderItemDetail {
 
 export default function ClientPedidoDetailScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('client');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { agent } = useClientData();
   const toast = useToast();
+
+  function formatDateTime(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    const d = new Date(iso);
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) +
+      ' · ' + d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  }
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [items, setItems] = useState<OrderItemDetail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +166,7 @@ export default function ClientPedidoDetailScreen() {
 
       await printAndShare({ html, filename: `pedido-${order.order_number ?? order.id.slice(0, 8)}.pdf`, dialogTitle: `Pedido ${order.order_number ?? ''}` });
     } catch (e: any) {
-      toast.error(e?.message ?? 'Error generando el PDF');
+      toast.error(e?.message ?? t('order_detail.pdf_error'));
     } finally {
       setGeneratingPdf(false);
     }
@@ -191,13 +191,13 @@ export default function ClientPedidoDetailScreen() {
       );
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data?.error ?? 'Error generando el ZIP');
+        toast.error(data?.error ?? t('order_detail.zip_error'));
         return;
       }
       await Linking.openURL(data.url);
-      toast.success(`ZIP con ${data.count} imágenes listo`);
+      toast.success(t('order_detail.zip_success', { count: data.count }));
     } catch (e: any) {
-      toast.error(e?.message ?? 'Error inesperado');
+      toast.error(e?.message ?? t('order_detail.unexpected_error'));
     } finally {
       setGeneratingZip(false);
     }
@@ -206,9 +206,9 @@ export default function ClientPedidoDetailScreen() {
   if (loading || !order) {
     return (
       <Screen>
-        <TopBar title="Pedido" onBack={() => router.back()} />
+        <TopBar title={t('order_detail.top_bar_title')} onBack={() => router.back()} />
         <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>
-          Cargando...
+          {t('order_detail.loading')}
         </Text>
       </Screen>
     );
@@ -218,7 +218,7 @@ export default function ClientPedidoDetailScreen() {
 
   return (
     <Screen>
-      <TopBar title="Pedido" onBack={() => router.back()} />
+      <TopBar title={t('order_detail.top_bar_title')} onBack={() => router.back()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Cabecera del estado */}
@@ -231,35 +231,35 @@ export default function ClientPedidoDetailScreen() {
         </View>
 
         {/* Proveedor */}
-        <DataBlock title="Proveedor">
-          <DataRow label="Proveedor" value={(order as any).supplier?.name ?? '—'} />
-          <DataRow label="Catálogo" value={(order as any).catalog?.name ?? '—'} />
+        <DataBlock title={t('order_detail.supplier_title')}>
+          <DataRow label={t('order_detail.supplier_label')} value={(order as any).supplier?.name ?? '—'} />
+          <DataRow label={t('order_detail.catalog_label')} value={(order as any).catalog?.name ?? '—'} />
           {(order as any).supplier?.conditions && (
-            <DataRow label="Condiciones" value={(order as any).supplier.conditions} last />
+            <DataRow label={t('order_detail.conditions_label')} value={(order as any).supplier.conditions} last />
           )}
         </DataBlock>
 
         {/* Líneas */}
-        <DataBlock title="Artículos">
+        <DataBlock title={t('order_detail.items_title')}>
           {items.map((item, i) => (
             <DataRow
               key={item.id}
               label={(item as any).product?.name ?? '—'}
-              value={`x${item.quantity} · ${formatEur(item.total)}`}
+              value={`x${item.quantity} · ${formatEur(item.total, i18n.language)}`}
               last={i === items.length - 1}
             />
           ))}
         </DataBlock>
 
         {/* Totales */}
-        <DataBlock title="Total">
-          <DataRow label={`Subtotal (${totalUnits} uds.)`} value={formatEur(order.total)} />
-          <DataRow label="Total pedido" value={formatEur(order.total)} bold last />
+        <DataBlock title={t('order_detail.total_title')}>
+          <DataRow label={t('order_detail.subtotal_label', { count: totalUnits })} value={formatEur(order.total, i18n.language)} />
+          <DataRow label={t('order_detail.total_order_label')} value={formatEur(order.total, i18n.language)} bold last />
         </DataBlock>
 
         {order.notes && (
           <View style={styles.section}>
-            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Observaciones</Text>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('order_detail.notes_label')}</Text>
             <View style={styles.notesCard}>
               <Text variant="body">{order.notes}</Text>
             </View>
@@ -270,34 +270,34 @@ export default function ClientPedidoDetailScreen() {
         <View style={styles.actionsGrid}>
           <ActionBtn
             icon="Share2"
-            label="Compartir"
+            label={t('order_detail.share')}
             onPress={() => Share.share({
-              message: `Pedido ${order.order_number} · ${formatEur(order.total)}\nNudofy`,
+              message: `Pedido ${order.order_number} · ${formatEur(order.total, i18n.language)}\nNudofy`,
             })}
           />
           {agent?.phone && (
             <ActionBtn
               icon="MessageCircle"
-              label="WhatsApp agente"
+              label={t('order_detail.whatsapp_agent')}
               onPress={() => Linking.openURL(`https://wa.me/${agent.phone?.replace(/\D/g, '')}`)}
             />
           )}
           {agent?.email && (
             <ActionBtn
               icon="Mail"
-              label="Email agente"
+              label={t('order_detail.email_agent')}
               onPress={() => Linking.openURL(`mailto:${agent.email}?subject=Pedido ${order.order_number}`)}
             />
           )}
           <ActionBtn
             icon="Download"
-            label={generatingPdf ? 'Generando…' : 'Descargar PDF'}
+            label={generatingPdf ? t('order_detail.generating') : t('order_detail.download_pdf')}
             onPress={generatePdf}
             loading={generatingPdf}
           />
           <ActionBtn
             icon="Image"
-            label={generatingZip ? 'Generando…' : 'Imágenes ZIP'}
+            label={generatingZip ? t('order_detail.generating') : t('order_detail.images_zip')}
             onPress={downloadImages}
             loading={generatingZip}
           />

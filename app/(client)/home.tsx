@@ -5,6 +5,7 @@ import {
   StyleSheet, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, Text, Icon, Badge, EmptyState, Button } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -12,36 +13,35 @@ import Avatar from '@/components/Avatar';
 import StatusBadge from '@/components/StatusBadge';
 import { useClientData, useClientOrders } from '@/hooks/useClient';
 import { useToast } from '@/contexts/ToastContext';
+import { formatEur } from '@/lib/format';
 import type { IconName } from '@/components/ui/Icon';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString())
-    return `Hoy · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return 'Ayer';
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-}
 
 export default function ClientHomeScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('client');
   const toast = useToast();
   const { client, agent, loading } = useClientData();
   const { orders } = useClientOrders(client?.id);
 
   const recentOrders = orders.slice(0, 3);
 
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    const d = new Date(iso);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString())
+      return `${t('home.today')} · ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return t('home.yesterday');
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+  }
+
   if (loading) {
     return (
       <Screen>
         <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>
-          Cargando...
+          {t('home.loading')}
         </Text>
       </Screen>
     );
@@ -59,8 +59,8 @@ export default function ClientHomeScreen() {
         </View>
         <Pressable
           style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
-          onPress={() => toast.info('Las notificaciones estarán disponibles próximamente')}
-          accessibilityLabel="Notificaciones"
+          onPress={() => toast.info(t('home.notifications_soon'))}
+          accessibilityLabel={t('home.notifications')}
         >
           <Icon name="Bell" size={20} color={colors.ink2} />
         </Pressable>
@@ -71,7 +71,7 @@ export default function ClientHomeScreen() {
         <View style={styles.greetingCard}>
           <Avatar name={client?.name ?? 'C'} size={48} fontSize={16} />
           <View style={{ flex: 1 }}>
-            <Text variant="caption" color="ink3">Bienvenido,</Text>
+            <Text variant="caption" color="ink3">{t('home.welcome')}</Text>
             <Text variant="title" style={{ marginTop: 2 }}>{client?.name ?? '—'}</Text>
           </View>
         </View>
@@ -82,14 +82,14 @@ export default function ClientHomeScreen() {
             <View style={styles.agentTop}>
               <Avatar name={agent.name} size={40} fontSize={14} />
               <View style={{ flex: 1 }}>
-                <Text variant="caption" color="ink3" style={styles.kicker}>Tu agente</Text>
+                <Text variant="caption" color="ink3" style={styles.kicker}>{t('home.your_agent')}</Text>
                 <Text variant="bodyMedium" style={{ marginTop: 2 }}>{agent.name}</Text>
               </View>
             </View>
             <View style={styles.agentActions}>
               {agent.phone && (
                 <Button
-                  label="WhatsApp"
+                  label={t('home.whatsapp')}
                   icon="MessageCircle"
                   variant="secondary"
                   onPress={() => {
@@ -103,7 +103,7 @@ export default function ClientHomeScreen() {
                 />
               )}
               <Button
-                label="Email"
+                label={t('home.email')}
                 icon="Mail"
                 variant="secondary"
                 onPress={() => Linking.openURL(`mailto:${agent.email}`)}
@@ -117,17 +117,17 @@ export default function ClientHomeScreen() {
         <View style={styles.actionsRow}>
           <ActionCard
             icon="LayoutGrid"
-            label="Ver catálogo"
+            label={t('home.view_catalog')}
             onPress={() => router.push('/(client)/catalogo')}
           />
           <ActionCard
             icon="ClipboardList"
-            label="Mis pedidos"
+            label={t('home.my_orders')}
             onPress={() => router.push('/(client)/pedidos')}
           />
           <ActionCard
             icon="Plus"
-            label="Nuevo pedido"
+            label={t('home.new_order')}
             onPress={() => router.push('/(client)/catalogo')}
           />
         </View>
@@ -136,9 +136,9 @@ export default function ClientHomeScreen() {
         {recentOrders.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text variant="caption" color="ink3" style={styles.sectionTitle}>Últimos pedidos</Text>
+              <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('home.recent_orders')}</Text>
               <Pressable onPress={() => router.push('/(client)/pedidos')}>
-                <Text variant="caption" color="ink2">Ver todos</Text>
+                <Text variant="caption" color="ink2">{t('home.view_all')}</Text>
               </Pressable>
             </View>
             {recentOrders.map(order => (
@@ -154,7 +154,7 @@ export default function ClientHomeScreen() {
                   </Text>
                 </View>
                 <View style={styles.orderRight}>
-                  <Text variant="bodyMedium">{formatEur(order.total)}</Text>
+                  <Text variant="bodyMedium">{formatEur(order.total, i18n.language)}</Text>
                   <Text variant="caption" color="ink3">{formatDate(order.created_at)}</Text>
                   <StatusBadge status={order.status} />
                 </View>
@@ -166,9 +166,9 @@ export default function ClientHomeScreen() {
         {recentOrders.length === 0 && (
           <EmptyState
             icon="ClipboardList"
-            title="Sin pedidos todavía"
-            description="Explora el catálogo y realiza tu primer pedido"
-            actionLabel="Ver catálogo"
+            title={t('home.no_orders_title')}
+            description={t('home.no_orders_desc')}
+            actionLabel={t('home.view_catalog')}
             onAction={() => router.push('/(client)/catalogo')}
           />
         )}

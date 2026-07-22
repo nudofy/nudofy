@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { confirmDestructive } from '@/lib/confirm';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
@@ -28,6 +29,7 @@ type Tariff = {
 
 export default function TarifasScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
   const toast = useToast();
   const { user } = useAuth();
   const { agent } = useAgentContext();
@@ -58,7 +60,7 @@ export default function TarifasScreen() {
   async function handleCreate() {
     if (!newName.trim()) return;
     if (!agent?.id) {
-      toast.error('No se pudo identificar tu cuenta. Reinicia la app.');
+      toast.error(t('tariffs.account_error'));
       return;
     }
     const discountNum = parseDiscount(newDiscount);
@@ -83,10 +85,10 @@ export default function TarifasScreen() {
     return num;
   }
 
-  function startEdit(t: Tariff) {
-    setEditingId(t.id);
-    setEditName(t.name);
-    setEditDiscount(t.discount_percent != null ? String(t.discount_percent) : '');
+  function startEdit(tariff: Tariff) {
+    setEditingId(tariff.id);
+    setEditName(tariff.name);
+    setEditDiscount(tariff.discount_percent != null ? String(tariff.discount_percent) : '');
   }
 
   async function handleSaveEdit() {
@@ -103,27 +105,27 @@ export default function TarifasScreen() {
     fetchTariffs();
   }
 
-  function handleDelete(t: Tariff) {
+  function handleDelete(tariff: Tariff) {
     confirmDestructive(
-      'Eliminar tarifa',
-      `¿Eliminar la tarifa "${t.name}"? Se borrarán también los precios de cada producto en esa tarifa.`,
+      t('tariffs.delete_title'),
+      t('tariffs.delete_body', { name: tariff.name }),
       async () => {
-        await supabase.from('tariffs').delete().eq('id', t.id);
+        await supabase.from('tariffs').delete().eq('id', tariff.id);
         fetchTariffs();
       }
     );
   }
 
-  if (gateLoading) return <Screen><TopBar title="Tarifas" onBack={() => router.back()} /></Screen>;
+  if (gateLoading) return <Screen><TopBar title={t('tariffs.title')} onBack={() => router.back()} /></Screen>;
 
   if (!allowed) {
     return (
       <Screen>
-        <TopBar title="Tarifas" onBack={() => router.back()} />
+        <TopBar title={t('tariffs.title')} onBack={() => router.back()} />
         <FeatureLock
           requiredPlan={requiredPlan}
-          title={`Tarifas personalizadas es del plan ${requiredPlan}`}
-          description="Crea tarifas con descuentos distintos por cliente. Mejora tu plan para desbloquearlo."
+          title={t('tariffs.gate_title', { plan: requiredPlan })}
+          description={t('tariffs.gate_description')}
         />
       </Screen>
     );
@@ -132,10 +134,10 @@ export default function TarifasScreen() {
   return (
     <Screen>
       <TopBar
-        title="Tarifas"
+        title={t('tariffs.title')}
         onBack={() => router.back()}
         actions={[
-          { icon: 'Plus', onPress: () => setCreating(true), accessibilityLabel: 'Nueva tarifa' },
+          { icon: 'Plus', onPress: () => setCreating(true), accessibilityLabel: t('tariffs.new_tariff') },
         ]}
       />
 
@@ -144,9 +146,7 @@ export default function TarifasScreen() {
           <View style={styles.help}>
             <Icon name="Info" size={18} color={colors.brand} />
             <Text variant="small" color="ink2" style={{ flex: 1 }}>
-              Crea tarifas para asignarlas a tus clientes. Después puedes definir un precio
-              específico por tarifa en cada producto. Si un producto no tiene precio para
-              una tarifa, se usa el precio base.
+              {t('tariffs.help_text')}
             </Text>
           </View>
 
@@ -155,10 +155,10 @@ export default function TarifasScreen() {
           ) : tariffs.length === 0 && !creating ? (
             <View style={styles.empty}>
               <Text variant="small" color="ink3" align="center">
-                Aún no tienes tarifas creadas.
+                {t('tariffs.no_tariffs')}
               </Text>
               <Button
-                label="Crear primera tarifa"
+                label={t('tariffs.create_first')}
                 icon="Plus"
                 onPress={() => setCreating(true)}
                 style={{ marginTop: space[3] }}
@@ -166,17 +166,17 @@ export default function TarifasScreen() {
             </View>
           ) : (
             <View style={styles.list}>
-              {tariffs.map(t => (
-                <View key={t.id} style={styles.row}>
+              {tariffs.map(tariff => (
+                <View key={tariff.id} style={styles.row}>
                   <View style={{ flex: 1, gap: 4 }}>
-                    {editingId === t.id ? (
+                    {editingId === tariff.id ? (
                       <>
                         <TextInput
                           style={styles.input}
                           value={editName}
                           onChangeText={setEditName}
                           autoFocus
-                          placeholder="Nombre"
+                          placeholder={t('tariffs.name_placeholder')}
                           placeholderTextColor={colors.ink4}
                         />
                         <TextInput
@@ -184,22 +184,22 @@ export default function TarifasScreen() {
                           value={editDiscount}
                           onChangeText={setEditDiscount}
                           keyboardType="decimal-pad"
-                          placeholder="Descuento %  (opcional, ej: 10)"
+                          placeholder={t('tariffs.discount_placeholder')}
                           placeholderTextColor={colors.ink4}
                         />
                       </>
                     ) : (
                       <>
-                        <Text variant="bodyMedium">{t.name}</Text>
+                        <Text variant="bodyMedium">{tariff.name}</Text>
                         <Text variant="caption" color="ink3">
-                          {t.discount_percent != null
-                            ? `Descuento ${t.discount_percent}% sobre precio base`
-                            : 'Sin descuento global · solo precios específicos'}
+                          {tariff.discount_percent != null
+                            ? t('tariffs.discount_label', { percent: tariff.discount_percent })
+                            : t('tariffs.no_discount')}
                         </Text>
                       </>
                     )}
                   </View>
-                  {editingId === t.id ? (
+                  {editingId === tariff.id ? (
                     <>
                       <Pressable onPress={() => setEditingId(null)} hitSlop={8}>
                         <Icon name="X" size={18} color={colors.ink3} />
@@ -210,10 +210,10 @@ export default function TarifasScreen() {
                     </>
                   ) : (
                     <>
-                      <Pressable onPress={() => startEdit(t)} hitSlop={8}>
+                      <Pressable onPress={() => startEdit(tariff)} hitSlop={8}>
                         <Icon name="Pencil" size={16} color={colors.ink3} />
                       </Pressable>
-                      <Pressable onPress={() => handleDelete(t)} hitSlop={8}>
+                      <Pressable onPress={() => handleDelete(tariff)} hitSlop={8}>
                         <Icon name="Trash2" size={16} color={colors.danger} />
                       </Pressable>
                     </>
@@ -225,36 +225,36 @@ export default function TarifasScreen() {
 
           {creating && (
             <View style={styles.createBox}>
-              <Text variant="smallMedium" style={{ marginBottom: space[2] }}>Nueva tarifa</Text>
+              <Text variant="smallMedium" style={{ marginBottom: space[2] }}>{t('tariffs.new_tariff_title')}</Text>
               <TextInput
                 style={styles.input}
                 value={newName}
                 onChangeText={setNewName}
-                placeholder="Ej: Mayorista, Tienda VIP, Tarifa 2..."
+                placeholder={t('tariffs.name_example_placeholder')}
                 placeholderTextColor={colors.ink4}
                 autoFocus
               />
               <Text variant="caption" color="ink3" style={{ marginTop: space[2] }}>
-                Descuento global (opcional)
+                {t('tariffs.global_discount_label')}
               </Text>
               <TextInput
                 style={[styles.input, { marginTop: 4 }]}
                 value={newDiscount}
                 onChangeText={setNewDiscount}
                 keyboardType="decimal-pad"
-                placeholder="Ej: 10  →  todos los productos sin precio específico llevan -10%"
+                placeholder={t('tariffs.global_discount_placeholder')}
                 placeholderTextColor={colors.ink4}
               />
               <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[2] }}>
                 <Button
-                  label="Cancelar"
+                  label={t('tariffs.cancel')}
                   variant="secondary"
                   size="sm"
                   onPress={() => { setCreating(false); setNewName(''); setNewDiscount(''); }}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  label="Crear"
+                  label={t('tariffs.create')}
                   size="sm"
                   onPress={handleCreate}
                   disabled={!newName.trim()}

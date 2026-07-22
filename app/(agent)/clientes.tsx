@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import BottomTabBar from '@/components/BottomTabBar';
@@ -12,6 +13,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function ClientesScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
   const { clients, loading, refetch } = useClients();
   const { clientLimit, clientUsageLabel } = usePlanLimits();
   const [search, setSearch] = useState('');
@@ -37,11 +39,11 @@ export default function ClientesScreen() {
   return (
     <Screen>
       <TopBar
-        title="Mis clientes"
-        subtitle={clientLimit !== null ? `${clientUsageLabel} clientes` : undefined}
+        title={t('clients_list.title')}
+        subtitle={clientLimit !== null ? `${clientUsageLabel} ${t('clients_list.usage_suffix')}` : undefined}
         actions={[
-          { icon: 'Upload', onPress: () => router.push('/(agent)/cliente/importar'), accessibilityLabel: 'Importar CSV' },
-          { icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: 'Nuevo cliente' },
+          { icon: 'Upload', onPress: () => router.push('/(agent)/cliente/importar'), accessibilityLabel: t('clients_list.import_csv') },
+          { icon: 'Plus', onPress: () => router.push('/(agent)/cliente/nuevo'), accessibilityLabel: t('clients_list.new_client') },
         ]}
       />
 
@@ -51,7 +53,7 @@ export default function ClientesScreen() {
           <Icon name="Search" size={16} color={colors.ink4} />
           <TextInput
             style={styles.inputEl}
-            placeholder="Buscar cliente o localidad..."
+            placeholder={t('clients_list.search_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -62,9 +64,9 @@ export default function ClientesScreen() {
       {/* Filtros */}
       {clientTypes.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersBar} contentContainerStyle={styles.filtersContent}>
-          <FilterPill label="Todos" active={!typeFilter} onPress={() => setTypeFilter('')} />
-          {clientTypes.map(t => (
-            <FilterPill key={t} label={t} active={typeFilter === t} onPress={() => setTypeFilter(typeFilter === t ? '' : t)} />
+          <FilterPill label={t('clients_list.filter_all')} active={!typeFilter} onPress={() => setTypeFilter('')} />
+          {clientTypes.map(ct => (
+            <FilterPill key={ct} label={ct} active={typeFilter === ct} onPress={() => setTypeFilter(typeFilter === ct ? '' : ct)} />
           ))}
         </ScrollView>
       )}
@@ -72,11 +74,11 @@ export default function ClientesScreen() {
       {/* Lista */}
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {loading && (
-          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('clients_list.loading')}</Text>
         )}
         {!loading && filtered.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-            {search || typeFilter ? 'Sin resultados' : 'Aún no tienes clientes'}
+            {search || typeFilter ? t('clients_list.no_results') : t('clients_list.no_clients')}
           </Text>
         )}
         {filtered.map(client => (

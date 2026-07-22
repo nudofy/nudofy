@@ -5,34 +5,27 @@ import {
   StyleSheet, TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
 import StatusBadge from '@/components/StatusBadge';
 import { useClientData, useClientOrders } from '@/hooks/useClient';
-
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString())
-    return `Hoy · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return 'Ayer';
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+import { formatEur, formatOrderDate } from '@/lib/format';
 
 export default function ClientPedidosScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('orders');
   const { client } = useClientData();
   const { orders, loading } = useClientOrders(client?.id);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
+  const formatDate = (iso: string) => formatOrderDate(
+    iso, i18n.language,
+    { today: t('client.today'), yesterday: t('client.yesterday') },
+    { day: '2-digit', month: 'short', year: 'numeric' }
+  );
 
   const suppliers = useMemo(() => {
     const set = new Map<string, string>();
@@ -58,21 +51,21 @@ export default function ClientPedidosScreen() {
   const avgTicket = filtered.length > 0 ? totalFiltered / filtered.length : 0;
 
   const statusOptions = [
-    { key: 'confirmed', label: 'Recibido' },
-    { key: 'sent_to_supplier', label: 'Enviado' },
-    { key: 'cancelled', label: 'Cancelado' },
+    { key: 'confirmed', label: t('client.filter_received') },
+    { key: 'sent_to_supplier', label: t('client.filter_sent') },
+    { key: 'cancelled', label: t('client.filter_cancelled') },
   ];
 
   return (
     <Screen>
-      <TopBar title="Mis pedidos" />
+      <TopBar title={t('client.title')} />
 
       {/* Buscador */}
       <View style={styles.searchWrap}>
         <Icon name="Search" size={16} color={colors.ink3} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nº pedido o proveedor..."
+          placeholder={t('client.search_placeholder')}
           placeholderTextColor={colors.ink4}
           value={search}
           onChangeText={setSearch}
@@ -87,7 +80,7 @@ export default function ClientPedidosScreen() {
         contentContainerStyle={styles.filtersContent}
       >
         <FilterPill
-          label="Todos"
+          label={t('client.filter_all')}
           active={statusFilter === null && supplierFilter === null}
           onPress={() => { setStatusFilter(null); setSupplierFilter(null); }}
         />
@@ -112,20 +105,20 @@ export default function ClientPedidosScreen() {
       {/* KPIs */}
       {filtered.length > 0 && (
         <View style={styles.kpiRow}>
-          <KpiCard value={filtered.length.toString()} label="Pedidos" />
-          <KpiCard value={formatEur(totalFiltered)} label="Total" />
-          <KpiCard value={formatEur(avgTicket)} label="Ticket medio" />
+          <KpiCard value={filtered.length.toString()} label={t('client.kpi_orders')} />
+          <KpiCard value={formatEur(totalFiltered, i18n.language)} label={t('client.kpi_total')} />
+          <KpiCard value={formatEur(avgTicket, i18n.language)} label={t('client.kpi_avg_ticket')} />
         </View>
       )}
 
       {/* Lista */}
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
         {loading && (
-          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('client.loading')}</Text>
         )}
         {!loading && filtered.length === 0 && (
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-            Sin pedidos en esta sección
+            {t('client.empty')}
           </Text>
         )}
         {filtered.map(order => (
@@ -150,7 +143,7 @@ export default function ClientPedidosScreen() {
                 </Text>
               </View>
               <View style={styles.cardRight}>
-                <Text variant="bodyMedium">{formatEur(order.total)}</Text>
+                <Text variant="bodyMedium">{formatEur(order.total, i18n.language)}</Text>
                 <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
                   {formatDate(order.created_at)}
                 </Text>

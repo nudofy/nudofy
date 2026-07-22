@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import ClientBottomTabBar from '@/components/ClientBottomTabBar';
@@ -13,16 +14,14 @@ import { useClientData, useClientPortalSuppliers, useClientCatalogs, useClientPr
 import { useCart, makeItemKey } from '@/contexts/CartContext';
 import { useProductAttributes } from '@/hooks/useAgent';
 import { supabase } from '@/lib/supabase';
+import { formatEur } from '@/lib/format';
 import type { PortalSupplier, PortalCatalog, PortalProduct } from '@/hooks/useClient';
 
 type View3 = 'suppliers' | 'catalogs' | 'products';
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
 export default function ClientCatalogoScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('catalog');
   const { client } = useClientData();
   const { suppliers, loading: loadingSuppliers } = useClientPortalSuppliers(client?.id);
   const { carts, totalItems } = useCart();
@@ -63,10 +62,10 @@ export default function ClientCatalogoScreen() {
     : totalItems;
 
   const title = view === 'suppliers'
-    ? 'Catálogo'
+    ? t('client.title_suppliers')
     : view === 'catalogs'
-      ? (selectedSupplier?.name ?? 'Catálogos')
-      : (selectedCatalog?.name ?? 'Productos');
+      ? (selectedSupplier?.name ?? t('client.title_catalogs_fallback'))
+      : (selectedCatalog?.name ?? t('client.title_products_fallback'));
 
   return (
     <Screen>
@@ -76,7 +75,7 @@ export default function ClientCatalogoScreen() {
         actions={[{
           icon: 'ShoppingCart',
           onPress: () => router.push('/(client)/carrito'),
-          accessibilityLabel: 'Carrito',
+          accessibilityLabel: t('client.cart_label'),
           badge: cartCount > 0,
         }]}
       />
@@ -87,7 +86,7 @@ export default function ClientCatalogoScreen() {
           <Icon name="Search" size={16} color={colors.ink3} />
           <TextInput
             style={styles.searchInput}
-            placeholder={view === 'catalogs' ? 'Buscar catálogo...' : 'Buscar producto, ref, EAN...'}
+            placeholder={view === 'catalogs' ? t('client.search_catalog_placeholder') : t('client.search_product_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -99,11 +98,11 @@ export default function ClientCatalogoScreen() {
       {view === 'suppliers' && (
         <ScrollView contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false}>
           {loadingSuppliers && (
-            <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+            <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('client.loading')}</Text>
           )}
           {!loadingSuppliers && suppliers.length === 0 && (
             <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-              Tu agente aún no ha habilitado proveedores para tu portal
+              {t('client.no_suppliers')}
             </Text>
           )}
           <View style={styles.supplierGrid}>
@@ -119,7 +118,7 @@ export default function ClientCatalogoScreen() {
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {catalogs.length === 0 && (
             <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-              Sin catálogos disponibles
+              {t('client.no_catalogs')}
             </Text>
           )}
           {catalogs.map(cat => (
@@ -137,7 +136,7 @@ export default function ClientCatalogoScreen() {
                   <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{cat.season}</Text>
                 )}
                 <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-                  {cat.product_count ?? 0} productos
+                  {t('client.product_count', { count: cat.product_count ?? 0 })}
                 </Text>
               </View>
               <Icon name="ChevronRight" size={18} color={colors.ink4} />
@@ -199,6 +198,7 @@ function ProductGrid({
   catalogId: string; catalogName: string;
   onGoCart: () => void;
 }) {
+  const { t, i18n } = useTranslation('catalog');
   const { numColumns, imageHeight } = useGridLayout();
   const { addToCart, updateQty, getItemQty, carts } = useCart();
   const cart = carts.find(c => c.supplier_id === supplierId);
@@ -285,7 +285,7 @@ function ProductGrid({
         contentContainerStyle={styles.productGrid}
         columnWrapperStyle={{ gap: space[2] }}
         ListEmptyComponent={
-          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Sin productos</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('client.no_products')}</Text>
         }
         renderItem={({ item: product }) => {
           const qty = getItemQty(supplierId, product.id);
@@ -311,19 +311,19 @@ function ProductGrid({
                 <Text variant="smallMedium" numberOfLines={2}>{product.name}</Text>
                 {product.reference && (
                   <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-                    Ref: {product.reference}
+                    {t('client.ref_prefix', { ref: product.reference })}
                   </Text>
                 )}
-                <Text variant="bodyMedium" style={{ marginTop: 4 }}>{formatEur(product.price)}</Text>
+                <Text variant="bodyMedium" style={{ marginTop: 4 }}>{formatEur(product.price, i18n.language)}</Text>
                 {outOfStock && (
                   <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
-                    <Badge label="Sin stock" variant="danger" />
+                    <Badge label={t('client.out_of_stock_badge')} variant="danger" />
                   </View>
                 )}
               </View>
               {outOfStock ? (
                 <View style={[styles.addBtn, { backgroundColor: colors.line }]}>
-                  <Text variant="smallMedium" style={{ color: colors.ink3 }}>No disponible</Text>
+                  <Text variant="smallMedium" style={{ color: colors.ink3 }}>{t('client.not_available')}</Text>
                 </View>
               ) : !inCart ? (
                 <Pressable
@@ -331,7 +331,7 @@ function ProductGrid({
                   onPress={() => handleAdd(product)}
                 >
                   <Icon name="Plus" size={16} color={colors.white} />
-                  <Text variant="smallMedium" style={{ color: colors.white }}>Añadir</Text>
+                  <Text variant="smallMedium" style={{ color: colors.white }}>{t('client.add')}</Text>
                 </Pressable>
               ) : (
                 <View style={styles.qtyRow}>
@@ -360,12 +360,12 @@ function ProductGrid({
           onPress={onGoCart}
         >
           <View style={{ flex: 1 }}>
-            <Text variant="bodyMedium" style={{ color: colors.white }}>{cartCount} artículos</Text>
+            <Text variant="bodyMedium" style={{ color: colors.white }}>{t('client.items_count', { count: cartCount })}</Text>
             <Text variant="caption" style={{ color: colors.white, opacity: 0.8, marginTop: 2 }}>
-              Ver carrito
+              {t('client.view_cart')}
             </Text>
           </View>
-          <Text variant="title" style={{ color: colors.white }}>{formatEur(cartTotal)}</Text>
+          <Text variant="title" style={{ color: colors.white }}>{formatEur(cartTotal, i18n.language)}</Text>
         </Pressable>
       )}
 
@@ -376,7 +376,7 @@ function ProductGrid({
             <View style={styles.modalBox}>
               <Text variant="heading" style={{ marginBottom: space[1] }}>{attrProduct?.name}</Text>
               <Text variant="caption" color="ink3" style={{ marginBottom: space[3] }}>
-                Selecciona las opciones para añadir al carrito
+                {t('client.attr_modal_hint')}
               </Text>
               <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
                 {attrList.map(attr => (
@@ -401,7 +401,7 @@ function ProductGrid({
               </ScrollView>
               <View style={{ flexDirection: 'row', gap: space[2], marginTop: space[3] }}>
                 <Pressable style={[styles.modalCancelBtn, { flex: 1 }]} onPress={() => setAttrProduct(null)}>
-                  <Text variant="smallMedium" color="ink2">Cancelar</Text>
+                  <Text variant="smallMedium" color="ink2">{t('client.cancel')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.modalConfirmBtn, { flex: 2 },
@@ -409,7 +409,7 @@ function ProductGrid({
                   onPress={confirmAttrSelection}
                   disabled={attrList.some(a => !attrSelections[a.name])}
                 >
-                  <Text variant="smallMedium" color="white">Añadir al carrito</Text>
+                  <Text variant="smallMedium" color="white">{t('client.add_to_cart')}</Text>
                 </Pressable>
               </View>
             </View>

@@ -5,6 +5,7 @@ import {
   View, ScrollView, Pressable, StyleSheet, Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { colors, space, radius } from '@/theme';
 import { Screen, Text, Button, Icon } from '@/components/ui';
@@ -15,6 +16,7 @@ const DPA_VERSION = '1.0';
 
 export default function DpaAceptarScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
   const toast = useToast();
   const { agent, refreshAgent } = useAgentContext();
   const [accepted, setAccepted] = useState(false);
@@ -33,7 +35,7 @@ export default function DpaAceptarScreen() {
     setSaving(false);
 
     if (error) {
-      toast.error('No se pudo guardar la aceptación. Inténtalo de nuevo.');
+      toast.error(t('dpa.save_error'));
       return;
     }
 
@@ -53,24 +55,23 @@ export default function DpaAceptarScreen() {
             <Icon name="FileText" size={24} color={colors.ink} />
           </View>
           <Text variant="heading" align="center" style={{ marginTop: space[3] }}>
-            Antes de empezar
+            {t('dpa.heading')}
           </Text>
           <Text variant="body" color="ink3" align="center" style={{ marginTop: space[2] }}>
-            Como agente, tratas datos personales de tus clientes a través de Nudofy.
-            El RGPD exige que formalicemos este Acuerdo de Encargo de Tratamiento.
+            {t('dpa.intro')}
           </Text>
         </View>
 
         {/* Puntos clave */}
         <View style={styles.card}>
           <Text variant="caption" color="ink3" style={styles.cardTitle}>
-            QUÉ CUBRE ESTE ACUERDO
+            {t('dpa.covers_title')}
           </Text>
           {[
-            { icon: 'Shield', text: 'Nudofy solo trata tus datos de clientes para prestarte el servicio.' },
-            { icon: 'Lock', text: 'Tus datos se almacenan cifrados en servidores de la UE.' },
-            { icon: 'Trash2', text: 'Al cancelar tu cuenta, tus datos se eliminan en 30 días.' },
-            { icon: 'Download', text: 'Puedes exportar tus datos en cualquier momento desde tu perfil.' },
+            { icon: 'Shield', text: t('dpa.point1') },
+            { icon: 'Lock', text: t('dpa.point2') },
+            { icon: 'Trash2', text: t('dpa.point3') },
+            { icon: 'Download', text: t('dpa.point4') },
           ].map(({ icon, text }, i) => (
             <View key={i} style={[styles.point, i < 3 && styles.pointBorder]}>
               <Icon name={icon as any} size={16} color={colors.ink2} />
@@ -86,7 +87,7 @@ export default function DpaAceptarScreen() {
         >
           <Icon name="ExternalLink" size={16} color={colors.brand} />
           <Text variant="small" style={{ color: colors.brand }}>
-            Leer el texto completo del acuerdo
+            {t('dpa.read_full_text')}
           </Text>
         </Pressable>
 
@@ -101,21 +102,21 @@ export default function DpaAceptarScreen() {
             {accepted && <Icon name="Check" size={12} color={colors.white} />}
           </View>
           <Text variant="small" color="ink2" style={{ flex: 1, lineHeight: 18 }}>
-            He leído y acepto el Acuerdo de Encargo de Tratamiento, los{' '}
+            {t('dpa.accept_prefix')}{' '}
             <Text
               variant="small"
               style={{ color: colors.brand }}
               onPress={() => Linking.openURL('https://nudofy.com/terminos')}
             >
-              Términos de uso
+              {t('dpa.terms')}
             </Text>
-            {' '}y la{' '}
+            {' '}{t('dpa.and_the')}{' '}
             <Text
               variant="small"
               style={{ color: colors.brand }}
               onPress={() => Linking.openURL('https://nudofy.com/privacidad')}
             >
-              Política de privacidad
+              {t('dpa.privacy_policy')}
             </Text>
             .
           </Text>
@@ -123,7 +124,7 @@ export default function DpaAceptarScreen() {
 
         {/* Botón */}
         <Button
-          label="Acepto y entrar a Nudofy"
+          label={t('dpa.accept_button')}
           onPress={handleAccept}
           loading={saving}
           disabled={!accepted}
@@ -132,8 +133,7 @@ export default function DpaAceptarScreen() {
         />
 
         <Text variant="caption" color="ink4" align="center" style={{ marginTop: space[3] }}>
-          Si no aceptas no podrás usar la aplicación.{'\n'}
-          Escríbenos a hola@nudofy.com si tienes dudas.
+          {t('dpa.footer')}
         </Text>
       </ScrollView>
     </Screen>

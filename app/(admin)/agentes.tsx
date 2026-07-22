@@ -5,6 +5,7 @@ import {
   TextInput, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgents, useAdminCompanies } from '@/hooks/useAdmin';
 import type { AdminAgent, AdminCompany } from '@/hooks/useAdmin';
@@ -69,28 +70,19 @@ function usePlans() {
   return plans;
 }
 
-function planDesc(p: PlanOption): string {
-  const price = p.price_monthly == null ? 'A medida' : p.price_monthly === 0 ? 'Gratis' : `${p.price_monthly} €/mes`;
-  const suppliers = p.max_suppliers != null ? `${p.max_suppliers} prov` : 'prov ilimitados';
-  const clients = p.max_clients != null ? `${p.max_clients} cli` : 'cli ilimitados';
-  const agents = p.max_agents != null ? ` · ${p.max_agents} agentes` : '';
+function planDesc(p: PlanOption, t: (key: string, opts?: any) => string): string {
+  const price = p.price_monthly == null ? t('agentes.custom_price') : p.price_monthly === 0 ? t('agentes.free_price') : t('agentes.price_per_month', { price: p.price_monthly });
+  const suppliers = p.max_suppliers != null ? t('agentes.suppliers_count', { count: p.max_suppliers }) : t('agentes.unlimited_suppliers');
+  const clients = p.max_clients != null ? t('agentes.clients_count', { count: p.max_clients }) : t('agentes.unlimited_clients');
+  const agents = p.max_agents != null ? t('agentes.agents_suffix', { count: p.max_agents }) : '';
   return `${price} · ${suppliers} · ${clients}${agents}`;
 }
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-const PLAN_LABELS: Record<string, string> = {
-  basic:       'Básico',
-  pro:         'Pro',
-  agency:      'Agencia',
-};
 
 // ——— Modal: alta agente individual ———
 function ModalAltaAgente({
   visible, onClose, onCreate,
 }: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<{ error?: string } | void> }) {
+  const { t } = useTranslation('admin');
   const toast = useToast();
   const plans = usePlans();
   const [name, setName] = useState('');
@@ -114,7 +106,7 @@ function ModalAltaAgente({
 
   async function handleSave() {
     if (!name.trim() || !email.trim()) {
-      toast.error('Nombre y email son obligatorios.');
+      toast.error(t('agentes.name_email_required'));
       return;
     }
     setSaving(true);
@@ -131,39 +123,39 @@ function ModalAltaAgente({
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
-            <Text variant="title">Alta · Agente individual</Text>
+            <Text variant="title">{t('agentes.modal_agent_title')}</Text>
             <Pressable onPress={onClose} hitSlop={8} style={styles.modalClose}>
               <Icon name="X" size={20} color={colors.ink2} />
             </Pressable>
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            <Text variant="caption" color="ink3" style={styles.formSection}>DATOS PERSONALES</Text>
-            <FormGroup label="Nombre">
+            <Text variant="caption" color="ink3" style={styles.formSection}>{t('agentes.personal_data')}</Text>
+            <FormGroup label={t('agentes.name')}>
               <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Ana García" placeholderTextColor={colors.ink4} />
             </FormGroup>
-            <FormGroup label="Email" sub="(acceso a la app)">
+            <FormGroup label={t('agentes.email_label')} sub={t('agentes.email_sub')}>
               <TextInput style={styles.formInput} value={email} onChangeText={setEmail} placeholder="ana@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
             </FormGroup>
             <View style={styles.formGrid}>
               <View style={{ flex: 1 }}>
-                <FormGroup label="Teléfono" sub="(opcional)">
+                <FormGroup label={t('agentes.phone')} sub={t('agentes.optional_sub')}>
                   <TextInput style={styles.formInput} value={phone} onChangeText={setPhone} placeholder="+34 600 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
                 </FormGroup>
               </View>
               <View style={{ flex: 1 }}>
-                <FormGroup label="NIF" sub="(opcional)">
+                <FormGroup label={t('agentes.nif')} sub={t('agentes.optional_sub')}>
                   <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="12345678A" placeholderTextColor={colors.ink4} autoCapitalize="characters" />
                 </FormGroup>
               </View>
             </View>
-            <FormGroup label="Empresa / Razón social" sub="(opcional)">
+            <FormGroup label={t('agentes.company_name')} sub={t('agentes.optional_sub')}>
               <TextInput style={styles.formInput} value={businessName} onChangeText={setBusinessName} placeholder="Distribuciones García" placeholderTextColor={colors.ink4} />
             </FormGroup>
 
-            <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
+            <Text variant="caption" color="ink3" style={styles.formSection}>{t('agentes.plan_section')}</Text>
             <View style={styles.planSelector}>
               {plans.length === 0 ? (
-                <Text variant="caption" color="ink3">Cargando planes...</Text>
+                <Text variant="caption" color="ink3">{t('agentes.loading_plans')}</Text>
               ) : plans.map(p => (
                 <Pressable
                   key={p.id}
@@ -171,14 +163,14 @@ function ModalAltaAgente({
                   onPress={() => setPlan(p.id)}
                 >
                   <Text variant="smallMedium">{p.name}</Text>
-                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>{planDesc(p)}</Text>
+                  <Text variant="caption" color="ink3" style={{ marginTop: 4 }}>{planDesc(p, t)}</Text>
                 </Pressable>
               ))}
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
-            <Button label="Cancelar" variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
-            <Button label="Dar de alta" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
+            <Button label={t('shared.cancel')} variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
+            <Button label={t('agentes.save')} onPress={handleSave} loading={saving} style={{ flex: 1 }} />
           </View>
         </Pressable>
       </Pressable>
@@ -191,6 +183,7 @@ function ModalAltaAgente({
 function ModalAltaEmpresa({
   visible, onClose, onCreate,
 }: { visible: boolean; onClose: () => void; onCreate: (d: any) => Promise<{ error?: string } | void> }) {
+  const { t } = useTranslation('admin');
   const toast = useToast();
   const [name, setName] = useState('');
   const [nif, setNif] = useState('');
@@ -209,12 +202,12 @@ function ModalAltaEmpresa({
 
   async function handleSave() {
     if (saving) return;
-    if (!name.trim()) { toast.error('La razón social es obligatoria.'); return; }
-    if (!nif.trim()) { toast.error('El NIF / CIF es obligatorio.'); return; }
-    if (!validarNifEspanol(nif)) { Alert.alert('NIF inválido', 'El NIF/CIF introducido no es válido. Revisa el formato y el dígito de control.'); return; }
-    if (!adminName.trim()) { toast.error('El nombre del administrador es obligatorio.'); return; }
-    if (!adminPhone.trim()) { toast.error('El teléfono del administrador es obligatorio.'); return; }
-    if (!adminEmail.trim()) { toast.error('El email del administrador es obligatorio.'); return; }
+    if (!name.trim()) { toast.error(t('agentes.business_name_required_error')); return; }
+    if (!nif.trim()) { toast.error(t('agentes.nif_required_error')); return; }
+    if (!validarNifEspanol(nif)) { Alert.alert(t('agentes.invalid_nif_title'), t('agentes.invalid_nif_body')); return; }
+    if (!adminName.trim()) { toast.error(t('agentes.admin_name_required_error')); return; }
+    if (!adminPhone.trim()) { toast.error(t('agentes.admin_phone_required_error')); return; }
+    if (!adminEmail.trim()) { toast.error(t('agentes.admin_email_required_error')); return; }
 
     // Verificar NIF duplicado
     const { data: existing } = await supabase
@@ -222,16 +215,16 @@ function ModalAltaEmpresa({
       .select('id')
       .eq('nif', nif.trim().toUpperCase())
       .maybeSingle();
-    if (existing) { toast.error(`Ya existe una empresa con el NIF ${nif.trim().toUpperCase()}.`); return; }
+    if (existing) { toast.error(t('agentes.duplicate_nif_error', { nif: nif.trim().toUpperCase() })); return; }
 
     setSaving(true);
     const result = await onCreate({ name, nif: nif.trim().toUpperCase(), address, phone, plan, adminName, adminEmail, adminPhone });
     setSaving(false);
-    if (result?.error) { Alert.alert('Error', result.error); return; }
+    if (result?.error) { Alert.alert(t('shared.error_title'), result.error); return; }
 
     reset();
     onClose();
-    Alert.alert('✓ Empresa creada', `${name} ha sido dada de alta.\nSe ha enviado la invitación a ${adminEmail}.`);
+    Alert.alert(t('agentes.company_created_title'), t('agentes.company_created_body', { name, email: adminEmail }));
   }
 
   return (
@@ -240,57 +233,57 @@ function ModalAltaEmpresa({
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalHeader}>
-            <Text variant="title">Alta · Empresa</Text>
+            <Text variant="title">{t('agentes.modal_company_title')}</Text>
             <Pressable onPress={onClose} hitSlop={8} style={styles.modalClose}>
               <Icon name="X" size={20} color={colors.ink2} />
             </Pressable>
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            <Text variant="caption" color="ink3" style={styles.formSection}>DATOS DE LA EMPRESA</Text>
-            <FormGroup label="Razón social *">
+            <Text variant="caption" color="ink3" style={styles.formSection}>{t('agentes.company_data')}</Text>
+            <FormGroup label={t('agentes.business_name')}>
               <TextInput style={styles.formInput} value={name} onChangeText={setName} placeholder="Comercial Rodríguez S.L." placeholderTextColor={colors.ink4} />
             </FormGroup>
-            <FormGroup label="NIF / CIF *">
+            <FormGroup label={t('agentes.nif_required')}>
               <TextInput style={styles.formInput} value={nif} onChangeText={setNif} placeholder="B-12345678" placeholderTextColor={colors.ink4} autoCapitalize="characters" />
             </FormGroup>
             <View style={styles.formGrid}>
               <View style={{ flex: 1 }}>
-                <FormGroup label="Teléfono empresa" sub="(opcional)">
+                <FormGroup label={t('agentes.company_phone')} sub={t('agentes.optional_sub')}>
                   <TextInput style={styles.formInput} value={phone} onChangeText={setPhone} placeholder="+34 900 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
                 </FormGroup>
               </View>
               <View style={{ flex: 1 }}>
-                <FormGroup label="Dirección fiscal" sub="(opcional)">
+                <FormGroup label={t('agentes.fiscal_address')} sub={t('agentes.optional_sub')}>
                   <TextInput style={styles.formInput} value={address} onChangeText={setAddress} placeholder="C/ Mayor 1, Madrid" placeholderTextColor={colors.ink4} />
                 </FormGroup>
               </View>
             </View>
 
-            <Text variant="caption" color="ink3" style={styles.formSection}>ADMINISTRADOR</Text>
+            <Text variant="caption" color="ink3" style={styles.formSection}>{t('agentes.admin_section')}</Text>
             <Text variant="caption" color="ink3" style={{ marginBottom: space[2] }}>
-              El administrador gestiona los agentes y tiene acceso completo al panel.
+              {t('agentes.admin_desc')}
             </Text>
-            <FormGroup label="Nombre *">
+            <FormGroup label={t('agentes.admin_name')}>
               <TextInput style={styles.formInput} value={adminName} onChangeText={setAdminName} placeholder="María López" placeholderTextColor={colors.ink4} />
             </FormGroup>
             <View style={styles.formGrid}>
               <View style={{ flex: 1 }}>
-                <FormGroup label="Teléfono *">
+                <FormGroup label={t('agentes.admin_phone')}>
                   <TextInput style={styles.formInput} value={adminPhone} onChangeText={setAdminPhone} placeholder="+34 600 000 000" placeholderTextColor={colors.ink4} keyboardType="phone-pad" />
                 </FormGroup>
               </View>
               <View style={{ flex: 1 }}>
-                <FormGroup label="Email *" sub="(acceso a la app)">
+                <FormGroup label={t('agentes.admin_email')} sub={t('agentes.email_sub')}>
                   <TextInput style={styles.formInput} value={adminEmail} onChangeText={setAdminEmail} placeholder="admin@empresa.com" placeholderTextColor={colors.ink4} keyboardType="email-address" autoCapitalize="none" />
                 </FormGroup>
               </View>
             </View>
 
-            <Text variant="caption" color="ink3" style={styles.formSection}>PLAN</Text>
+            <Text variant="caption" color="ink3" style={styles.formSection}>{t('agentes.plan_section')}</Text>
             <View style={styles.planSelector}>
               {(['basic', 'pro', 'agency'] as const).map(p => {
                 const cfg = getPlan(p);
-                const agentsLabel = cfg.max_agents == null ? 'agentes ilimitados' : `hasta ${cfg.max_agents} ag.`;
+                const agentsLabel = cfg.max_agents == null ? t('agentes.unlimited_agents') : t('agentes.up_to_agents', { count: cfg.max_agents });
                 return (
                   <Pressable
                     key={p}
@@ -307,8 +300,8 @@ function ModalAltaEmpresa({
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
-            <Button label="Cancelar" variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
-            <Button label="Dar de alta" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
+            <Button label={t('shared.cancel')} variant="secondary" onPress={() => { reset(); onClose(); }} style={{ flex: 1 }} />
+            <Button label={t('agentes.save')} onPress={handleSave} loading={saving} style={{ flex: 1 }} />
           </View>
         </Pressable>
       </Pressable>
@@ -333,6 +326,7 @@ type Tab = 'all' | 'agents' | 'companies';
 
 export default function AdminAgentesScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('admin');
   const toast = useToast();
   const { agents, loading: agentsLoading, toggleAgentActive, createAgent, refetch: refetchAgents } = useAdminAgents();
   const { companies, loading: companiesLoading, toggleCompanyActive, createCompany, refetch: refetchCompanies } = useAdminCompanies();
@@ -343,6 +337,17 @@ export default function AdminAgentesScreen() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAltaAgente, setShowAltaAgente] = useState(false);
   const [showAltaEmpresa, setShowAltaEmpresa] = useState(false);
+
+  const PLAN_LABELS: Record<string, string> = {
+    basic: t('shared.plan_basic'),
+    pro: t('shared.plan_pro'),
+    agency: t('shared.plan_agency'),
+  };
+
+  function formatDate(iso: string) {
+    const locale = i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'en' ? 'en-GB' : 'es-ES';
+    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  }
 
   const filteredAgents = useMemo(() => agents.filter(a => {
     const matchSearch = !search ||
@@ -370,12 +375,12 @@ export default function AdminAgentesScreen() {
 
   async function handleToggleAgent(agent: AdminAgent) {
     Alert.alert(
-      agent.active ? 'Desactivar agente' : 'Activar agente',
-      `¿${agent.active ? 'Desactivar' : 'Activar'} a ${agent.name}?`,
+      agent.active ? t('agentes.deactivate_agent_title') : t('agentes.activate_agent_title'),
+      t('agentes.confirm_toggle', { action: agent.active ? t('agentes.deactivate') : t('agentes.activate'), name: agent.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('shared.cancel'), style: 'cancel' },
         {
-          text: agent.active ? 'Desactivar' : 'Activar',
+          text: agent.active ? t('agentes.deactivate') : t('agentes.activate'),
           style: agent.active ? 'destructive' : 'default',
           onPress: () => toggleAgentActive(agent.id, !agent.active),
         },
@@ -385,12 +390,12 @@ export default function AdminAgentesScreen() {
 
   async function handleToggleCompany(company: AdminCompany) {
     Alert.alert(
-      company.active ? 'Suspender empresa' : 'Activar empresa',
-      `¿${company.active ? 'Suspender' : 'Activar'} a ${company.name}?`,
+      company.active ? t('agentes.suspend_company_title') : t('agentes.activate_company_title'),
+      t('agentes.confirm_toggle', { action: company.active ? t('agentes.suspend') : t('agentes.activate'), name: company.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('shared.cancel'), style: 'cancel' },
         {
-          text: company.active ? 'Suspender' : 'Activar',
+          text: company.active ? t('agentes.suspend') : t('agentes.activate'),
           style: company.active ? 'destructive' : 'default',
           onPress: () => toggleCompanyActive(company.id, !company.active),
         },
@@ -400,19 +405,19 @@ export default function AdminAgentesScreen() {
 
   async function handleDeleteAgent(agent: AdminAgent) {
     Alert.alert(
-      'Borrar agente',
-      `¿Eliminar permanentemente a ${agent.name}? Esta acción no se puede deshacer.`,
+      t('agentes.delete_agent_title'),
+      t('agentes.delete_agent_body', { name: agent.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('shared.cancel'), style: 'cancel' },
         {
-          text: 'Borrar',
+          text: t('shared.delete'),
           style: 'destructive',
           onPress: async () => {
             const { error } = await supabase.functions.invoke('delete-agent', {
               body: { agentId: agent.id },
             });
-            if (error) toast.error(error.message ?? 'Error al borrar el agente');
-            else { toast.success(`${agent.name} eliminado`); refetchAgents(); }
+            if (error) toast.error(error.message ?? t('agentes.delete_agent_error'));
+            else { toast.success(t('agentes.deleted_agent_toast', { name: agent.name })); refetchAgents(); }
           },
         },
       ]
@@ -421,19 +426,19 @@ export default function AdminAgentesScreen() {
 
   async function handleDeleteCompany(company: AdminCompany) {
     Alert.alert(
-      'Borrar empresa',
-      `¿Eliminar permanentemente "${company.name}" y todos sus agentes? Esta acción no se puede deshacer.`,
+      t('agentes.delete_company_title'),
+      t('agentes.delete_company_body', { name: company.name }),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('shared.cancel'), style: 'cancel' },
         {
-          text: 'Borrar',
+          text: t('shared.delete'),
           style: 'destructive',
           onPress: async () => {
             const { error } = await supabase.functions.invoke('delete-company', {
               body: { companyId: company.id },
             });
-            if (error) Alert.alert('Error', error.message ?? 'Error al borrar la empresa');
-            else { toast.success(`${company.name} eliminada`); refetchCompanies(); }
+            if (error) Alert.alert(t('shared.error_title'), error.message ?? t('agentes.delete_company_error'));
+            else { toast.success(t('agentes.deleted_company_toast', { name: company.name })); refetchCompanies(); }
           },
         },
       ]
@@ -443,13 +448,13 @@ export default function AdminAgentesScreen() {
   async function handleCreateAgent(data: any) {
     const { error } = await createAgent(data);
     if (error) return { error };
-    toast.success('Agente creado · Invitación enviada por email');
+    toast.success(t('agentes.agent_created_toast'));
   }
 
   async function handleCreateCompany(data: any) {
     const { error } = await createCompany(data);
     if (error) return { error };
-    toast.success('Empresa creada · Invitación enviada al administrador');
+    toast.success(t('agentes.company_created_toast'));
   }
 
   const showAgents = tab === 'all' || tab === 'agents';
@@ -458,31 +463,31 @@ export default function AdminAgentesScreen() {
   return (
     <AdminShell
       activeSection="agentes"
-      title="Agentes y empresas"
+      title={t('agentes.title')}
       rightElement={
         <View style={styles.headerActions}>
-          <Button label="+ Empresa" variant="secondary" size="sm" onPress={() => setShowAltaEmpresa(true)} />
-          <Button label="+ Agente" size="sm" onPress={() => setShowAltaAgente(true)} />
+          <Button label={t('agentes.add_company')} variant="secondary" size="sm" onPress={() => setShowAltaEmpresa(true)} />
+          <Button label={t('agentes.add_agent')} size="sm" onPress={() => setShowAltaAgente(true)} />
         </View>
       }
     >
       {/* Tabs */}
       <View style={styles.tabBar}>
         {([
-          { key: 'all', label: `Todos (${agents.length + companies.length})` },
-          { key: 'agents', label: `Agentes (${agents.length})` },
-          { key: 'companies', label: `Empresas (${companies.length})` },
-        ] as { key: Tab; label: string }[]).map(t => (
+          { key: 'all', label: t('agentes.tab_all', { count: agents.length + companies.length }) },
+          { key: 'agents', label: t('agentes.tab_agents', { count: agents.length }) },
+          { key: 'companies', label: t('agentes.tab_companies', { count: companies.length }) },
+        ] as { key: Tab; label: string }[]).map(tabOpt => (
           <Pressable
-            key={t.key}
-            style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
-            onPress={() => setTab(t.key)}
+            key={tabOpt.key}
+            style={[styles.tabBtn, tab === tabOpt.key && styles.tabBtnActive]}
+            onPress={() => setTab(tabOpt.key)}
           >
             <Text
               variant="smallMedium"
-              style={{ color: tab === t.key ? colors.white : colors.ink2 }}
+              style={{ color: tab === tabOpt.key ? colors.white : colors.ink2 }}
             >
-              {t.label}
+              {tabOpt.label}
             </Text>
           </Pressable>
         ))}
@@ -494,7 +499,7 @@ export default function AdminAgentesScreen() {
           <Icon name="Search" size={16} color={colors.ink3} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar por nombre o email..."
+            placeholder={t('agentes.search_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -511,16 +516,16 @@ export default function AdminAgentesScreen() {
                 variant="smallMedium"
                 style={{ color: planFilter === p ? colors.white : colors.ink2 }}
               >
-                {p === 'all' ? 'Todos los planes' : PLAN_LABELS[p] ?? p}
+                {p === 'all' ? t('agentes.all_plans') : PLAN_LABELS[p] ?? p}
               </Text>
             </Pressable>
           ))}
         </View>
         <View style={styles.pillRow}>
           {[
-            { key: 'all', label: 'Todos' },
-            { key: 'active', label: 'Activos' },
-            { key: 'inactive', label: 'Inactivos' },
+            { key: 'all', label: t('agentes.filter_all') },
+            { key: 'active', label: t('agentes.filter_active') },
+            { key: 'inactive', label: t('agentes.filter_inactive') },
           ].map(s => (
             <Pressable
               key={s.key}
@@ -536,7 +541,7 @@ export default function AdminAgentesScreen() {
             </Pressable>
           ))}
         </View>
-        <Text variant="caption" color="ink3">{totalCount} registros</Text>
+        <Text variant="caption" color="ink3">{t('agentes.records_count', { count: totalCount })}</Text>
       </View>
 
       {/* Tabla agentes */}
@@ -544,14 +549,14 @@ export default function AdminAgentesScreen() {
         <View style={styles.card}>
           {tab === 'all' && (
             <View style={styles.cardHeader}>
-              <Text variant="bodyMedium">Agentes individuales</Text>
+              <Text variant="bodyMedium">{t('agentes.individual_agents')}</Text>
               <Text variant="caption" color="ink3">{filteredAgents.length}</Text>
             </View>
           )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View>
               <View style={styles.tableHead}>
-                {['Agente', 'Plan', 'Alta', 'Estado', 'Acciones'].map((h, i) => (
+                {[t('agentes.col_agent'), t('agentes.col_plan'), t('agentes.col_signup'), t('agentes.col_status'), t('agentes.col_actions')].map((h, i) => (
                   <Text
                     key={h}
                     variant="caption"
@@ -563,7 +568,7 @@ export default function AdminAgentesScreen() {
                 ))}
               </View>
               {agentsLoading && (
-                <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+                <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('shared.loading')}</Text>
               )}
               {filteredAgents.map((agent, i) => (
                 <View
@@ -583,32 +588,32 @@ export default function AdminAgentesScreen() {
                     </View>
                   </Pressable>
                   <View style={[styles.td, { width: 120 }]}>
-                    <Badge label={PLAN_LABELS[agent.plan] ?? 'Básico'} variant="neutral" />
+                    <Badge label={PLAN_LABELS[agent.plan] ?? t('shared.plan_basic')} variant="neutral" />
                   </View>
                   <View style={[styles.td, { width: 120 }]}>
                     <Text variant="small" color="ink2">{formatDate(agent.created_at)}</Text>
                   </View>
                   <View style={[styles.td, { width: 110 }]}>
                     <Badge
-                      label={agent.active ? 'Activo' : 'Inactivo'}
+                      label={agent.active ? t('shared.active') : t('shared.inactive')}
                       variant={agent.active ? 'success' : 'neutral'}
                     />
                   </View>
                   <View style={[styles.td, { width: 260, flexDirection: 'row', gap: space[1] }]}>
                     <Button
-                      label="Ver"
+                      label={t('shared.view')}
                       variant="secondary"
                       size="sm"
                       onPress={() => router.push(`/(admin)/agente/${agent.id}` as any)}
                     />
                     <Button
-                      label={agent.active ? 'Desactivar' : 'Activar'}
+                      label={agent.active ? t('agentes.deactivate') : t('agentes.activate')}
                       variant="secondary"
                       size="sm"
                       onPress={() => handleToggleAgent(agent)}
                     />
                     <Button
-                      label="Borrar"
+                      label={t('shared.delete')}
                       variant="danger"
                       size="sm"
                       onPress={() => handleDeleteAgent(agent)}
@@ -626,14 +631,14 @@ export default function AdminAgentesScreen() {
         <View style={styles.card}>
           {tab === 'all' && (
             <View style={styles.cardHeader}>
-              <Text variant="bodyMedium">Empresas</Text>
+              <Text variant="bodyMedium">{t('agentes.companies_title')}</Text>
               <Text variant="caption" color="ink3">{filteredCompanies.length}</Text>
             </View>
           )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View>
               <View style={styles.tableHead}>
-                {['Empresa', 'Plan', 'Alta', 'Estado', 'Acciones'].map((h, i) => (
+                {[t('agentes.col_company'), t('agentes.col_plan'), t('agentes.col_signup'), t('agentes.col_status'), t('agentes.col_actions')].map((h, i) => (
                   <Text
                     key={h}
                     variant="caption"
@@ -645,7 +650,7 @@ export default function AdminAgentesScreen() {
                 ))}
               </View>
               {companiesLoading && (
-                <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>
+                <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('shared.loading')}</Text>
               )}
               {filteredCompanies.map((company, i) => {
                 const initials = company.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
@@ -665,38 +670,38 @@ export default function AdminAgentesScreen() {
                         <View style={{ flex: 1 }}>
                           <Text variant="smallMedium" numberOfLines={1}>{company.name}</Text>
                           <Text variant="caption" color="ink3" numberOfLines={1}>
-                            Empresa · {company.nif ?? 'Sin NIF'}
+                            {t('agentes.company_label', { nif: company.nif ?? t('agentes.no_nif') })}
                           </Text>
                         </View>
                       </View>
                     </Pressable>
                     <View style={[styles.td, { width: 120 }]}>
-                      <Badge label={PLAN_LABELS[company.plan] ?? 'Agencia'} variant="neutral" />
+                      <Badge label={PLAN_LABELS[company.plan] ?? t('shared.plan_agency')} variant="neutral" />
                     </View>
                     <View style={[styles.td, { width: 120 }]}>
                       <Text variant="small" color="ink2">{formatDate(company.created_at)}</Text>
                     </View>
                     <View style={[styles.td, { width: 110 }]}>
                       <Badge
-                        label={company.active ? 'Activo' : 'Inactivo'}
+                        label={company.active ? t('shared.active') : t('shared.inactive')}
                         variant={company.active ? 'success' : 'neutral'}
                       />
                     </View>
                     <View style={[styles.td, { width: 260, flexDirection: 'row', gap: space[1] }]}>
                       <Button
-                        label="Ver"
+                        label={t('shared.view')}
                         variant="secondary"
                         size="sm"
                         onPress={() => router.push(`/(admin)/empresa/${company.id}` as any)}
                       />
                       <Button
-                        label={company.active ? 'Suspender' : 'Activar'}
+                        label={company.active ? t('agentes.suspend') : t('agentes.activate')}
                         variant="secondary"
                         size="sm"
                         onPress={() => handleToggleCompany(company)}
                       />
                       <Button
-                        label="Borrar"
+                        label={t('shared.delete')}
                         variant="danger"
                         size="sm"
                         onPress={() => handleDeleteCompany(company)}
@@ -712,7 +717,7 @@ export default function AdminAgentesScreen() {
 
       {totalCount === 0 && !agentsLoading && !companiesLoading && (
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
-          Sin resultados
+          {t('agentes.no_results')}
         </Text>
       )}
 

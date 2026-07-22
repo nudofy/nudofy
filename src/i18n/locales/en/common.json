@@ -1,0 +1,9 @@
+{
+  "app_name": "Nudofy",
+  "profile_load_error": {
+    "title": "We couldn't load your account",
+    "body": "Check your internet connection and try again.",
+    "retry": "Retry",
+    "logout": "Sign out"
+  }
+}

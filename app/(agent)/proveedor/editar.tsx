@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -17,6 +18,8 @@ import { SupplierSchema, validate } from '@/lib/validation';
 
 export default function EditarProveedorScreen() {
   const router = useRouter();
+  const { t } = useTranslation('agent');
+  const { t: tv } = useTranslation('validation');
   const toast = useToast();
   const params = useLocalSearchParams<{ id: string }>();
   const id = params.id;
@@ -55,7 +58,7 @@ export default function EditarProveedorScreen() {
   async function pickLogo() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      toast.error('Necesitamos acceso a tu galería para subir el logo.');
+      toast.error(t('supplier_form.gallery_permission_error'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -81,7 +84,7 @@ export default function EditarProveedorScreen() {
       const { error } = await supabase.storage
         .from('supplier-logos')
         .upload(filename, arrayBuffer, { contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`, cacheControl: '31536000' });
-      if (error) { toast.error('Error subiendo imagen: ' + error.message); return null; }
+      if (error) { toast.error(t('supplier_form.upload_error', { message: error.message })); return null; }
       const { data } = supabase.storage.from('supplier-logos').getPublicUrl(filename);
       return data.publicUrl;
     } finally {
@@ -91,7 +94,7 @@ export default function EditarProveedorScreen() {
 
   async function handleSave() {
     if (!canSave || !id) return;
-    const v = validate(SupplierSchema, {
+    const v = validate(SupplierSchema(tv), {
       name, contact, phone, email, address, description,
     });
     if (!v.ok) { toast.error(v.firstError); return; }
@@ -117,10 +120,10 @@ export default function EditarProveedorScreen() {
 
       const { error } = await updateSupplier(id, updates);
       if (error) { toast.error(error); return; }
-      toast.success('Proveedor actualizado');
+      toast.success(t('supplier_form.updated_toast'));
       router.back();
     } catch (e: any) {
-      toast.error(e?.message ?? 'Inténtalo de nuevo');
+      toast.error(e?.message ?? t('supplier_form.retry'));
     } finally {
       setSaving(false);
     }
@@ -132,7 +135,7 @@ export default function EditarProveedorScreen() {
   if (!loaded) {
     return (
       <Screen>
-        <TopBar title="Editar proveedor" onBack={() => router.back()} />
+        <TopBar title={t('supplier_form.title_edit')} onBack={() => router.back()} />
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.ink} />
       </Screen>
     );
@@ -141,9 +144,9 @@ export default function EditarProveedorScreen() {
   return (
     <Screen>
       <TopBar
-        title="Editar proveedor"
+        title={t('supplier_form.title_edit')}
         onBack={() => router.back()}
-        actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: 'Guardar', disabled: !canSave || isBusy }]}
+        actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: t('supplier_form.save'), disabled: !canSave || isBusy }]}
       />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -156,32 +159,32 @@ export default function EditarProveedorScreen() {
               ) : (
                 <View style={styles.logoPlaceholder}>
                   <Icon name="Camera" size={24} color={colors.ink3} />
-                  <Text variant="caption" color="ink3">Añadir logo</Text>
+                  <Text variant="caption" color="ink3">{t('supplier_form.add_logo')}</Text>
                 </View>
               )}
             </Pressable>
             {displayLogo && (
               <Pressable onPress={() => { setLogoUri(null); setExistingLogoUrl(null); }}>
-                <Text variant="caption" color="danger">Eliminar foto</Text>
+                <Text variant="caption" color="danger">{t('supplier_form.remove_photo')}</Text>
               </Pressable>
             )}
           </View>
 
           {/* Datos */}
           <View style={styles.section}>
-            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Datos del proveedor</Text>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>{t('supplier_form.section_title')}</Text>
             <View style={styles.sectionBody}>
-              <Field label="Nombre *" value={name} onChangeText={setName} placeholder="Nombre comercial" />
-              <Field label="Persona de contacto" value={contact} onChangeText={setContact} placeholder="Nombre del contacto" />
-              <Field label="Teléfono" value={phone} onChangeText={setPhone} placeholder="000 000 000" keyboardType="phone-pad" />
-              <Field label="Email" value={email} onChangeText={setEmail} placeholder="email@proveedor.com" keyboardType="email-address" />
-              <Field label="Dirección" value={address} onChangeText={setAddress} placeholder="Calle, ciudad, código postal" />
-              <Field label="Descripción / Condiciones" value={description} onChangeText={setDescription} placeholder="Notas, condiciones de pago, descuentos..." multiline last />
+              <Field label={t('supplier_form.name')} value={name} onChangeText={setName} placeholder={t('supplier_form.name_placeholder')} />
+              <Field label={t('supplier_form.contact')} value={contact} onChangeText={setContact} placeholder={t('supplier_form.contact_placeholder')} />
+              <Field label={t('supplier_form.phone')} value={phone} onChangeText={setPhone} placeholder={t('supplier_form.phone_placeholder')} keyboardType="phone-pad" />
+              <Field label={t('supplier_form.email')} value={email} onChangeText={setEmail} placeholder={t('supplier_form.email_placeholder')} keyboardType="email-address" />
+              <Field label={t('supplier_form.address')} value={address} onChangeText={setAddress} placeholder={t('supplier_form.address_placeholder')} />
+              <Field label={t('supplier_form.description')} value={description} onChangeText={setDescription} placeholder={t('supplier_form.description_placeholder')} multiline last />
             </View>
           </View>
 
           <Button
-            label="Guardar cambios"
+            label={t('supplier_form.save_changes')}
             onPress={handleSave}
             loading={isBusy}
             disabled={!canSave}

@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
@@ -9,6 +10,7 @@ import BottomTabBar from '@/components/BottomTabBar';
 import Avatar from '@/components/Avatar';
 import StatusBadge from '@/components/StatusBadge';
 import { useOrders } from '@/hooks/useAgent';
+import { formatEur, formatOrderDate } from '@/lib/format';
 import type { Order } from '@/hooks/useAgent';
 
 type TabKey = 'realizados' | 'pendientes' | 'cancelados';
@@ -19,24 +21,13 @@ const TAB_STATUS: Record<TabKey, Order['status'][]> = {
   cancelados: ['cancelled'],
 };
 
-function formatEur(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) return `Hoy · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
-  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return 'Ayer';
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-}
-
 export default function PedidosScreen() {
   const router = useRouter();
+  const { t, i18n } = useTranslation('orders');
   const { orders, loading, deleteOrder, refetch } = useOrders();
   const [tab, setTab] = useState<TabKey>('realizados');
   const [search, setSearch] = useState('');
+  const formatDate = (iso: string) => formatOrderDate(iso, i18n.language, { today: t('agent.today'), yesterday: t('agent.yesterday') });
 
   useFocusEffect(React.useCallback(() => { refetch(); }, [refetch]));
 
@@ -57,10 +48,10 @@ export default function PedidosScreen() {
 
   function handleDeleteDraft(id: string) {
     confirmDestructive(
-      'Descartar pedido',
-      '¿Seguro que quieres eliminar este pedido pendiente? No se podrá recuperar.',
+      t('agent.discard_dialog_title'),
+      t('agent.discard_dialog_body'),
       async () => { await deleteOrder(id); refetch(); },
-      'Descartar'
+      t('agent.discard')
     );
   }
 
@@ -79,9 +70,9 @@ export default function PedidosScreen() {
   return (
     <Screen>
       <TopBar
-        title="Mis pedidos"
+        title={t('agent.title')}
         onBack={() => router.push('/(agent)/home')}
-        actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/pedido/nuevo'), accessibilityLabel: 'Nuevo pedido' }]}
+        actions={[{ icon: 'Plus', onPress: () => router.push('/(agent)/pedido/nuevo'), accessibilityLabel: t('agent.new_order') }]}
       />
 
       {/* Buscador */}
@@ -90,7 +81,7 @@ export default function PedidosScreen() {
           <Icon name="Search" size={16} color={colors.ink4} />
           <TextInput
             style={styles.inputEl}
-            placeholder="Buscar por cliente, proveedor o nº pedido..."
+            placeholder={t('agent.search_placeholder')}
             placeholderTextColor={colors.ink4}
             value={search}
             onChangeText={setSearch}
@@ -100,30 +91,31 @@ export default function PedidosScreen() {
 
       {/* Pestañas */}
       <View style={styles.tabBar}>
-        <TabBtn label="Realizados" count={doneCount} active={tab === 'realizados'} onPress={() => setTab('realizados')} />
-        <TabBtn label="Pendientes" count={pendingCount} active={tab === 'pendientes'} onPress={() => setTab('pendientes')} />
-        <TabBtn label="Cancelados" active={tab === 'cancelados'} onPress={() => setTab('cancelados')} />
+        <TabBtn label={t('agent.tab_done')} count={doneCount} active={tab === 'realizados'} onPress={() => setTab('realizados')} />
+        <TabBtn label={t('agent.tab_pending')} count={pendingCount} active={tab === 'pendientes'} onPress={() => setTab('pendientes')} />
+        <TabBtn label={t('agent.tab_cancelled')} active={tab === 'cancelados'} onPress={() => setTab('cancelados')} />
       </View>
 
       {/* KPIs */}
       {filtered.length > 0 && (
         <View style={styles.kpiRow}>
-          <Kpi value={String(filtered.length)} label="Pedidos" />
-          <Kpi value={formatEur(totalFiltered)} label="Facturado" />
-          <Kpi value={formatEur(ticketMedio)} label="Ticket medio" />
+          <Kpi value={String(filtered.length)} label={t('agent.kpi_orders')} />
+          <Kpi value={formatEur(totalFiltered, i18n.language)} label={t('agent.kpi_revenue')} />
+          <Kpi value={formatEur(ticketMedio, i18n.language)} label={t('agent.kpi_avg_ticket')} />
         </View>
       )}
 
       {/* Lista */}
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-        {loading && <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Cargando...</Text>}
+        {loading && <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('agent.loading')}</Text>}
         {!loading && filtered.length === 0 && (
-          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>Sin pedidos en esta sección</Text>
+          <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('agent.empty')}</Text>
         )}
         {filtered.map(order => (
           <OrderCard
             key={order.id}
             order={order}
+            formatDate={formatDate}
             onPress={() => handleOpenOrder(order)}
             onDelete={order.status === 'draft' ? () => handleDeleteDraft(order.id) : undefined}
           />
@@ -163,9 +155,10 @@ function Kpi({ value, label }: { value: string; label: string }) {
   );
 }
 
-function OrderCard({ order, onPress, onDelete }: {
-  order: Order; onPress: () => void; onDelete?: () => void;
+function OrderCard({ order, onPress, onDelete, formatDate }: {
+  order: Order; onPress: () => void; onDelete?: () => void; formatDate: (iso: string) => string;
 }) {
+  const { t, i18n } = useTranslation('orders');
   const isDraft = order.status === 'draft';
   return (
     <Pressable
@@ -176,13 +169,13 @@ function OrderCard({ order, onPress, onDelete }: {
         <Avatar name={order.client?.name ?? '?'} size={38} fontSize={12} />
         <View style={styles.cardBody}>
           {order.order_number && <Text variant="caption" color="ink3">{order.order_number}</Text>}
-          <Text variant="bodyMedium">{order.client?.name ?? (isDraft ? 'Sin cliente aún' : 'Sin cliente')}</Text>
+          <Text variant="bodyMedium">{order.client?.name ?? (isDraft ? t('agent.no_client_draft') : t('agent.no_client'))}</Text>
           <Text variant="small" color="ink3" numberOfLines={1}>
             {order.supplier?.name ?? '—'}{order.catalog?.name ? ` · ${order.catalog.name}` : ''}
           </Text>
         </View>
         <View style={styles.cardRight}>
-          <Text variant="bodyMedium">{formatEur(order.total)}</Text>
+          <Text variant="bodyMedium">{formatEur(order.total, i18n.language)}</Text>
           <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>{formatDate(order.created_at)}</Text>
         </View>
       </View>
@@ -197,20 +190,20 @@ function OrderCard({ order, onPress, onDelete }: {
                   onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
                   hitSlop={6}
                 >
-                  <Text variant="caption" color="ink2">Descartar</Text>
+                  <Text variant="caption" color="ink2">{t('agent.discard')}</Text>
                 </Pressable>
               )}
               <Pressable style={[styles.actBtn, styles.actBtnPrimary]} onPress={onPress}>
-                <Text variant="caption" color="brand">Continuar</Text>
+                <Text variant="caption" color="brand">{t('agent.continue')}</Text>
               </Pressable>
             </>
           ) : (
             <>
               <Pressable style={styles.actBtn}>
-                <Text variant="caption" color="ink2">Reenviar PDF</Text>
+                <Text variant="caption" color="ink2">{t('agent.resend_pdf')}</Text>
               </Pressable>
               <Pressable style={styles.actBtn}>
-                <Text variant="caption" color="ink2">Duplicar</Text>
+                <Text variant="caption" color="ink2">{t('agent.duplicate')}</Text>
               </Pressable>
             </>
           )}
