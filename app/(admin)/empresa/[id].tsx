@@ -13,16 +13,21 @@ import { Text, Icon, Button, Badge } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 
-// Valores alineados con la tabla `plans` (fuente de verdad). Nota: los planes
-// reales NO limitan el nº de productos (solo clientes/proveedores/catálogos),
-// por eso maxProducts es "ilimitado" (999999 = centinela que la UI muestra como ∞).
-const PLAN_LIMITS: Record<string, { maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
-  free:       { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
-  free_pro:   { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0  },
-  basic:      { maxAgents: 1,   maxClients: 50,     maxProducts: 999999, price: 15 },
-  pro:        { maxAgents: 3,   maxClients: 500,    maxProducts: 999999, price: 35 },
-  agency:     { maxAgents: 8,   maxClients: 999999, maxProducts: 999999, price: 75 },
+// Valores alineados con la tabla `plans` (fuente de verdad). 999999 = centinela
+// que la UI muestra como ∞. Empresa (agency_pro) es precio a medida: ver isCustomPricing.
+// maxAgents = agentes incluidos en el precio base; priceExtraAgent = coste de cada
+// agente adicional por encima de ese número (null si el plan no admite extras).
+const PLAN_LIMITS: Record<string, { maxAgents: number; maxClients: number; maxProducts: number; price: number; priceExtraAgent: number | null }> = {
+  free:       { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0,  priceExtraAgent: null },
+  free_pro:   { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0,  priceExtraAgent: null },
+  basic:      { maxAgents: 1,   maxClients: 80,     maxProducts: 1500,   price: 15, priceExtraAgent: null },
+  pro:        { maxAgents: 1,   maxClients: 300,    maxProducts: 3000,   price: 39, priceExtraAgent: null },
+  agency:     { maxAgents: 8,   maxClients: 650,    maxProducts: 5000,   price: 89, priceExtraAgent: 15   },
+  agency_pro: { maxAgents: 999, maxClients: 999999, maxProducts: 999999, price: 0,  priceExtraAgent: null },
 };
+
+// Planes que un admin puede asignar a una empresa (Free/Free Pro son de uso interno, no aplican aquí).
+const COMPANY_PLANS = ['basic', 'pro', 'agency', 'agency_pro'] as const;
 
 function UsageBar({ label, current, max, unlimitedLabel, last }: { label: string; current: number; max: number; unlimitedLabel: string; last?: boolean }) {
   const pct = max > 0 && max < 999999 ? Math.min((current / max) * 100, 100) : 0;
@@ -60,12 +65,13 @@ export default function AdminEmpresaDetailScreen() {
     return n.toLocaleString(locale, { minimumFractionDigits: 0 }) + ' €';
   }
 
-  const PLAN_META: Record<string, { label: string; maxAgents: number; maxClients: number; maxProducts: number; price: number }> = {
+  const PLAN_META: Record<string, { label: string; maxAgents: number; maxClients: number; maxProducts: number; price: number; priceExtraAgent: number | null }> = {
     free:     { label: t('agente_detail.plan_free'),    ...PLAN_LIMITS.free },
     free_pro: { label: t('agente_detail.plan_free_pro'), ...PLAN_LIMITS.free_pro },
     basic:    { label: t('shared.plan_basic'), ...PLAN_LIMITS.basic },
     pro:      { label: t('shared.plan_pro'),   ...PLAN_LIMITS.pro },
     agency:   { label: t('shared.plan_agency'), ...PLAN_LIMITS.agency },
+    agency_pro: { label: t('shared.plan_agency_pro'), ...PLAN_LIMITS.agency_pro },
   };
   const { id } = useLocalSearchParams<{ id: string }>();
   const { company, agents, invoices, clientCount, productCount, loading, updateCompany, toggleActive } = useAdminCompanyDetail(id);
@@ -75,6 +81,22 @@ export default function AdminEmpresaDetailScreen() {
   const [editNif, setEditNif] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Cambiar plan
+  const [changingPlan, setChangingPlan] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<typeof COMPANY_PLANS[number] | null>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  async function confirmPlanChange() {
+    if (!selectedPlan) return;
+    setSavingPlan(true);
+    const { error } = await updateCompany({ plan: selectedPlan });
+    setSavingPlan(false);
+    if (error) { toast.error(error); return; }
+    toast.success(t('empresa_detail.plan_updated'));
+    setChangingPlan(false);
+    setSelectedPlan(null);
+  }
 
   // Cambiar contraseña admin
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -121,8 +143,12 @@ export default function AdminEmpresaDetailScreen() {
   const initials = company.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
   const activeAgentCount = agents.filter(a => a.active).length;
+  const isCustomPricing = company.plan === 'agency_pro';
   const basePrice = plan.price ?? 0;
-  const monthlyTotal = basePrice * activeAgentCount;
+  // El precio base incluye plan.maxAgents agentes; solo se cobra priceExtraAgent
+  // por cada agente activo por encima de ese número (si el plan admite extras).
+  const extraAgentCount = plan.priceExtraAgent != null ? Math.max(0, activeAgentCount - plan.maxAgents) : 0;
+  const monthlyTotal = basePrice + extraAgentCount * (plan.priceExtraAgent ?? 0);
 
   const showUpgrade = company.plan === 'agency' && (
     activeAgentCount / plan.maxAgents > 0.7 ||
@@ -194,7 +220,7 @@ export default function AdminEmpresaDetailScreen() {
     const email = adminAgent?.email ?? '';
     if (!email) { toast.error(t('empresa_detail.no_admin_email_error')); return; }
 
-    const subject = `Nudofy · Propuesta de upgrade a Agencia Pro — ${company!.name}`;
+    const subject = `Nudofy · Propuesta de upgrade a Empresa — ${company!.name}`;
     const body =
 `Hola,
 
@@ -205,11 +231,7 @@ Tu empresa ${company!.name} está utilizando actualmente el plan Agencia y se es
 • Clientes: ${clientCount} / ${plan.maxClients}
 • Productos: ${productCount} / ${plan.maxProducts}
 
-El plan Agencia Pro (79 €/mes) te ofrece:
-• Agentes ilimitados
-• Clientes ilimitados
-• Productos ilimitados
-• Soporte prioritario
+El plan Empresa te ofrece un límite a medida por encima de Agencia (agentes, clientes y productos), con soporte dedicado y onboarding personalizado.
 
 Si quieres saber más o hacer el cambio, responde a este email y te ayudamos en el proceso.
 
@@ -299,8 +321,14 @@ Equipo Nudofy`;
         />
         <KpiCard
           label={t('empresa_detail.kpi_monthly_billing')}
-          value={formatEur(monthlyTotal)}
-          sub={t('empresa_detail.agents_price_breakdown', { count: activeAgentCount, price: basePrice })}
+          value={isCustomPricing ? t('empresa_detail.custom_price') : formatEur(monthlyTotal)}
+          sub={
+            isCustomPricing
+              ? t('empresa_detail.custom_price_sub')
+              : extraAgentCount > 0
+                ? t('empresa_detail.agents_price_breakdown', { count: extraAgentCount, price: plan.priceExtraAgent })
+                : t('empresa_detail.agents_included_flat', { count: plan.maxAgents })
+          }
           accent
         />
       </View>
@@ -328,13 +356,24 @@ Equipo Nudofy`;
         <View style={styles.cardHeader}>
           <Text variant="bodyMedium">{t('empresa_detail.company_data_title')}</Text>
           {!editing && (
-            <Pressable
-              onPress={startEdit}
-              hitSlop={8}
-              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-            >
-              <Text variant="smallMedium" color="ink2">{t('empresa_detail.edit')}</Text>
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: space[3] }}>
+              <Pressable
+                onPress={() => { setChangingPlan(!changingPlan); setSelectedPlan(null); }}
+                hitSlop={8}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <Text variant="smallMedium" color="ink2">
+                  {changingPlan ? t('empresa_detail.cancel') : t('empresa_detail.change_plan')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={startEdit}
+                hitSlop={8}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <Text variant="smallMedium" color="ink2">{t('empresa_detail.edit')}</Text>
+              </Pressable>
+            </View>
           )}
         </View>
         {editing ? (
@@ -358,7 +397,45 @@ Equipo Nudofy`;
             <FieldRow label={t('empresa_detail.business_name')} value={company.name} />
             <FieldRow label={t('empresa_detail.nif')} value={company.nif ?? '—'} />
             <FieldRow label={t('empresa_detail.fiscal_address')} value={company.address ?? '—'} />
-            <FieldRow label={t('empresa_detail.active_plan')} value={t('empresa_detail.plan_per_month', { plan: plan.label, amount: formatEur(monthlyTotal) })} />
+            <FieldRow label={t('empresa_detail.active_plan')} value={isCustomPricing ? t('empresa_detail.plan_custom', { plan: plan.label }) : t('empresa_detail.plan_per_month', { plan: plan.label, amount: formatEur(monthlyTotal) })} last={!changingPlan} />
+            {changingPlan && (
+              <View style={styles.planSelector}>
+                {COMPANY_PLANS.map(p => {
+                  const pm = PLAN_META[p];
+                  const isActive = p === company.plan;
+                  const isSelected = p === selectedPlan;
+                  return (
+                    <Pressable
+                      key={p}
+                      style={[
+                        styles.planOpt,
+                        isActive && styles.planOptActive,
+                        isSelected && styles.planOptSelected,
+                      ]}
+                      onPress={() => setSelectedPlan(p)}
+                    >
+                      <Text variant="smallMedium">{pm.label}</Text>
+                      <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                        {p === 'agency_pro' ? t('empresa_detail.custom_price') : formatEur(pm.price)}
+                      </Text>
+                      {isActive && (
+                        <Text variant="caption" color="ink4" style={{ marginTop: 2 }}>{t('empresa_detail.current_badge')}</Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+                {selectedPlan && (
+                  <View style={{ width: '100%', marginTop: space[2] }}>
+                    <Button
+                      label={t('empresa_detail.confirm_plan', { plan: PLAN_META[selectedPlan].label })}
+                      onPress={confirmPlanChange}
+                      loading={savingPlan}
+                      fullWidth
+                    />
+                  </View>
+                )}
+              </View>
+            )}
             <FieldRow label={t('empresa_detail.signup_short')} value={formatDate(company.created_at)} last />
           </>
         )}
@@ -572,6 +649,20 @@ const styles = StyleSheet.create({
   },
   breadcrumb: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   pageActions: { flexDirection: 'row', gap: space[1] },
+
+  planSelector: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: space[2],
+    padding: space[3],
+  },
+  planOpt: {
+    flex: 1, minWidth: '45%',
+    borderWidth: 1, borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: space[3],
+    backgroundColor: colors.white,
+  },
+  planOptActive: { backgroundColor: colors.surface2 },
+  planOptSelected: { borderColor: colors.ink, borderWidth: 2 },
 
   companyHeader: {
     backgroundColor: colors.white,

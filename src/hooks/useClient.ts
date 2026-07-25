@@ -168,7 +168,8 @@ export function useClientProducts(catalogId?: string, search?: string, tariffId?
       .eq('catalog_id', catalogId)
       .eq('active', true)
       .eq('published', true)
-      .order('name');
+      .order('name')
+      .limit(5000);
 
     const list: PortalProduct[] = (data ?? []) as any;
 

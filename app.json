@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nudofy",
     "slug": "nudofy",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -43,26 +43,59 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "plugins": [
       "./plugins/withFmtFix",
       "expo-router",
       "expo-secure-store",
       "expo-font",
       "expo-document-picker",
-      ["expo-camera", { "cameraPermission": "Necesitamos acceso a la cámara para escanear códigos de barras." }],
-      ["expo-image-picker", { "photosPermission": "Necesitamos acceso a tu galería para subir imágenes de productos.", "cameraPermission": "Necesitamos acceso a la cámara para hacer fotos de productos." }],
-      ["expo-build-properties", { "android": { "targetSdkVersion": 36, "compileSdkVersion": 36, "useLegacyPackaging": false } }],
-      ["expo-notifications", {
-        "icon": "./assets/icon.png",
-        "color": "#E73121",
-        "sounds": []
-      }]
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Necesitamos acceso a la cámara para escanear códigos de barras."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesitamos acceso a tu galería para subir imágenes de productos.",
+          "cameraPermission": "Necesitamos acceso a la cámara para hacer fotos de productos."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "targetSdkVersion": 36,
+            "compileSdkVersion": 36,
+            "useLegacyPackaging": false
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#E73121",
+          "sounds": []
+        }
+      ],
+      "expo-localization",
+      "expo-image"
     ],
     "scheme": "nudofy",
     "extra": {
-      "eas": { "projectId": "40847a34-c16b-4316-a2a2-a25eb2dcafef" },
-      "router": { "origin": false }
+      "eas": {
+        "projectId": "40847a34-c16b-4316-a2a2-a25eb2dcafef"
+      },
+      "router": {
+        "origin": false
+      }
     },
     "owner": "nudofy"
   }

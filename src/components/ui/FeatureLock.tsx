@@ -27,7 +27,7 @@ export default function FeatureLock({
       </Text>
       <Button
         label="Ver planes y precios"
-        onPress={() => Linking.openURL('https://nudofy.app/precios')}
+        onPress={() => Linking.openURL('https://nudofy.com/precios')}
         style={{ marginTop: space[2] }}
       />
     </View>

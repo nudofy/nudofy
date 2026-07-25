@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import {
   View, ScrollView, Pressable,
-  StyleSheet, TextInput, FlatList, Image, Modal, KeyboardAvoidingView, Platform,
+  StyleSheet, TextInput, FlatList, Modal, KeyboardAvoidingView, Platform,
   useWindowDimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
@@ -170,7 +171,7 @@ function SupplierCard({ supplier, onPress }: { supplier: PortalSupplier; onPress
       onPress={onPress}
     >
       {supplier.logo_url ? (
-        <Image source={{ uri: supplier.logo_url }} style={styles.supplierLogoImage} resizeMode="contain" />
+        <Image source={{ uri: supplier.logo_url }} style={styles.supplierLogoImage} contentFit="contain" />
       ) : (
         <View style={styles.supplierLogo}>
           <Text variant="heading" color="ink2">{supplier.name.charAt(0).toUpperCase()}</Text>
@@ -284,6 +285,11 @@ function ProductGrid({
         numColumns={numColumns}
         contentContainerStyle={styles.productGrid}
         columnWrapperStyle={{ gap: space[2] }}
+        windowSize={5}
+        removeClippedSubviews
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        updateCellsBatchingPeriod={50}
         ListEmptyComponent={
           <Text variant="small" color="ink3" align="center" style={styles.emptyText}>{t('client.no_products')}</Text>
         }
@@ -298,7 +304,9 @@ function ProductGrid({
                   <Image
                     source={{ uri: product.image_url }}
                     style={styles.productImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="disk"
+                    recyclingKey={product.id}
                   />
                 ) : (
                   <Icon name="Package" size={24} color={colors.ink4} />

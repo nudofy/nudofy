@@ -30,7 +30,7 @@ export default function TrialVencidoScreen() {
   }
 
   function handleUpgrade() {
-    Linking.openURL('https://nudofy.app/precios');
+    Linking.openURL('https://nudofy.com/precios');
   }
 
   return (

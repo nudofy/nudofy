@@ -2,9 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, TextInput, FlatList, Pressable, ScrollView,
-  StyleSheet, Image, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
+  StyleSheet, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
   useWindowDimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
@@ -145,7 +146,13 @@ export default function CatalogoScreen() {
       >
         <View style={[styles.cardImage, { height: imageHeight }]}>
           {item.image_url ? (
-            <Image source={{ uri: item.image_url }} style={styles.productImage} resizeMode="cover" />
+            <Image
+              source={{ uri: item.image_url }}
+              style={styles.productImage}
+              contentFit="cover"
+              cachePolicy="disk"
+              recyclingKey={item.id}
+            />
           ) : (
             <Icon name="Package" size={32} color={colors.ink4} />
           )}
@@ -275,6 +282,11 @@ export default function CatalogoScreen() {
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
+          windowSize={5}
+          removeClippedSubviews
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          updateCellsBatchingPeriod={50}
         />
       )}
 

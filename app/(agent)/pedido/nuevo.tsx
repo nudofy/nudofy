@@ -4,7 +4,8 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   View, ScrollView, Pressable, Alert,
   StyleSheet, TextInput, ActivityIndicator, Modal,
-  KeyboardAvoidingView, Platform, Image, FlatList, Dimensions } from 'react-native';
+  KeyboardAvoidingView, Platform, FlatList, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { confirmDestructive } from '@/lib/confirm';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -1006,6 +1007,11 @@ export default function NuevoPedidoScreen() {
             columnWrapperStyle={styles.productGridRow}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            windowSize={5}
+            removeClippedSubviews
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            updateCellsBatchingPeriod={50}
             renderItem={({ item: p }) => {
               const qty = getQty(p.id);
               const inCart = qty > 0;
@@ -1017,7 +1023,13 @@ export default function NuevoPedidoScreen() {
                     onPress={() => p.image_url && setImageViewer(p.image_url)}
                   >
                     {p.image_url ? (
-                      <Image source={{ uri: p.image_url }} style={styles.productCardImgEl} resizeMode="cover" />
+                      <Image
+                        source={{ uri: p.image_url }}
+                        style={styles.productCardImgEl}
+                        contentFit="cover"
+                        cachePolicy="disk"
+                        recyclingKey={p.id}
+                      />
                     ) : (
                       <Icon name="Package" size={24} color={colors.ink4} />
                     )}
@@ -1230,7 +1242,7 @@ export default function NuevoPedidoScreen() {
         <Pressable style={styles.imgViewerOverlay} onPress={() => setImageViewer(null)}>
           <View style={styles.imgViewerBox}>
             {imageViewer && (
-              <Image source={{ uri: imageViewer }} style={styles.imgViewerImg} resizeMode="contain" />
+              <Image source={{ uri: imageViewer }} style={styles.imgViewerImg} contentFit="contain" />
             )}
             <Pressable style={styles.imgViewerClose} onPress={() => setImageViewer(null)}>
               <Icon name="X" size={20} color={colors.white} />
@@ -1317,7 +1329,7 @@ export default function NuevoPedidoScreen() {
                   <Image
                     source={{ uri: imgUrl }}
                     style={styles.attrModalImg}
-                    resizeMode="cover"
+                    contentFit="cover"
                   />
                 ) : null;
               })()}

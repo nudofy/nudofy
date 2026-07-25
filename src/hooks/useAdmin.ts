@@ -24,7 +24,7 @@ export interface AdminCompany {
   name: string;
   nif?: string;
   address?: string;
-  plan: 'basic' | 'pro' | 'agency';
+  plan: 'basic' | 'pro' | 'agency' | 'agency_pro';
   active: boolean;
   created_at: string;
   agent_count?: number;

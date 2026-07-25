@@ -16,6 +16,7 @@ export interface Agent {
   plan_expires_at?: string | null;
   accepted_dpa_at?: string | null;
   company_id?: string | null;
+  risk_multiplier: number;
 }
 
 export interface Client {
@@ -163,7 +164,7 @@ export function useAgent() {
     if (!user) { setLoading(false); return; }
     supabase
       .from('agents')
-      .select('id, name, email, phone, plan, active')
+      .select('id, name, email, phone, plan, active, plan_expires_at, accepted_dpa_at, company_id, risk_multiplier')
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
@@ -319,7 +320,8 @@ export function useProducts(catalogId?: string, tariffId?: string | null) {
       .select('*')
       .eq('catalog_id', catalogId)
       .eq('active', true)
-      .order('name');
+      .order('name')
+      .limit(5000);
 
     const list = (data ?? []) as Product[];
 

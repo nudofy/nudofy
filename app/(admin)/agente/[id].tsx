@@ -28,8 +28,8 @@ export default function AdminAgenteDetailScreen() {
     free:     { label: t('agente_detail.plan_free'),    price: t('agente_detail.free_price'), free: true },
     free_pro: { label: t('agente_detail.plan_free_pro'), price: t('agente_detail.free_price'), free: true },
     basic:    { label: t('shared.plan_basic'), price: '15 €/mes' },
-    pro:      { label: t('shared.plan_pro'),   price: '35 €/mes' },
-    agency:   { label: t('shared.plan_agency'), price: '75 €/mes' },
+    pro:      { label: t('shared.plan_pro'),   price: '39 €/mes' },
+    agency:   { label: t('shared.plan_agency'), price: '89 €/mes' },
   };
 
   const DURATIONS = [
