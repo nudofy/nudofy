@@ -131,6 +131,12 @@ CREATE TABLE public.agents (
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Panel de Analítica — multiplicador de riesgo de fuga, configurable por agente.
+-- Ver supabase/migrations/20260720103324_agent_risk_multiplier.sql
+ALTER TABLE public.agents
+  ADD COLUMN IF NOT EXISTS risk_multiplier NUMERIC(3,2) NOT NULL DEFAULT 1.5
+  CHECK (risk_multiplier BETWEEN 1.1 AND 3.0);
+
 -- ============================================================
 -- CLIENTES
 -- ============================================================
@@ -645,3 +651,142 @@ CREATE POLICY "agents_visible_to_client" ON public.agents
 -- duplica la fila del agente y provoca que los .single() del alta devuelvan
 -- 406 "not exactly one row", bloqueando TODOS los registros nuevos.
 -- (Este bug ya ocurrió una vez en producción — ver historial.)
+
+-- ============================================================
+-- PANEL DE ANALÍTICA PARA AGENTE (V1 — ranking clientes + riesgo de fuga)
+-- ============================================================
+-- Definición completa y comentada en:
+-- supabase/migrations/20260720095302_agent_client_metrics.sql
+-- Ver también docs/nudofy-panel-analitica-spec.txt
+
+CREATE INDEX IF NOT EXISTS idx_orders_client_created ON public.orders(client_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_agent_status_created ON public.orders(agent_id, status, created_at);
+
+CREATE OR REPLACE VIEW public.agent_client_metrics
+WITH (security_invoker = true) AS
+WITH real_orders AS (
+  SELECT
+    o.id,
+    o.client_id,
+    o.agent_id,
+    o.created_at,
+    o.total,
+    ROW_NUMBER() OVER (PARTITION BY o.client_id ORDER BY o.created_at DESC) AS rn_desc,
+    LAG(o.created_at) OVER (PARTITION BY o.client_id ORDER BY o.created_at) AS prev_created_at
+  FROM public.orders o
+  WHERE o.status IN ('confirmed', 'sent_to_supplier', 'proposal_sent')
+    AND o.client_id IS NOT NULL
+),
+gaps AS (
+  SELECT
+    client_id,
+    EXTRACT(EPOCH FROM (created_at - prev_created_at)) / 86400.0 AS gap_days
+  FROM real_orders
+  WHERE prev_created_at IS NOT NULL AND rn_desc <= 6
+),
+frequency AS (
+  SELECT client_id, AVG(gap_days) AS avg_order_frequency_days
+  FROM gaps
+  GROUP BY client_id
+),
+totals AS (
+  SELECT client_id, COUNT(*) AS total_orders, MAX(created_at) AS last_order_date
+  FROM real_orders
+  GROUP BY client_id
+),
+revenue_current AS (
+  SELECT client_id, COALESCE(SUM(total), 0) AS revenue, COUNT(*) AS orders_count
+  FROM real_orders
+  WHERE created_at >= NOW() - INTERVAL '12 months'
+  GROUP BY client_id
+),
+revenue_prev AS (
+  SELECT client_id, COALESCE(SUM(total), 0) AS revenue
+  FROM real_orders
+  WHERE created_at >= NOW() - INTERVAL '24 months' AND created_at < NOW() - INTERVAL '12 months'
+  GROUP BY client_id
+)
+SELECT
+  c.id AS client_id,
+  c.agent_id,
+  c.name,
+  c.phone,
+  c.email,
+  COALESCE(t.total_orders, 0) AS total_orders,
+  t.last_order_date,
+  CASE WHEN t.last_order_date IS NULL THEN NULL
+       ELSE EXTRACT(EPOCH FROM (NOW() - t.last_order_date)) / 86400.0
+  END AS days_since_last_order,
+  CASE WHEN COALESCE(t.total_orders, 0) >= 3 THEN f.avg_order_frequency_days ELSE NULL END AS avg_order_frequency_days,
+  COALESCE(t.total_orders, 0) >= 3 AS has_enough_history,
+  COALESCE(rc.revenue, 0) AS total_revenue_period,
+  COALESCE(rp.revenue, 0) AS total_revenue_prev_period,
+  CASE WHEN COALESCE(rc.orders_count, 0) > 0 THEN rc.revenue / rc.orders_count ELSE NULL END AS avg_ticket
+FROM public.clients c
+LEFT JOIN totals t          ON t.client_id = c.id
+LEFT JOIN frequency f       ON f.client_id = c.id
+LEFT JOIN revenue_current rc ON rc.client_id = c.id
+LEFT JOIN revenue_prev rp    ON rp.client_id = c.id;
+
+GRANT SELECT ON public.agent_client_metrics TO authenticated;
+
+-- ============================================================
+-- PANEL DE ANALÍTICA PARA AGENTE (V1 — ranking de productos)
+-- ============================================================
+-- Definición completa y comentada en:
+-- supabase/migrations/20260720101935_agent_product_metrics.sql
+
+CREATE INDEX IF NOT EXISTS idx_order_items_product ON public.order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
+
+CREATE OR REPLACE VIEW public.agent_product_metrics
+WITH (security_invoker = true) AS
+WITH real_items AS (
+  SELECT
+    oi.product_id,
+    o.created_at,
+    oi.quantity,
+    oi.total
+  FROM public.order_items oi
+  JOIN public.orders o ON o.id = oi.order_id
+  WHERE o.status IN ('confirmed', 'sent_to_supplier', 'proposal_sent')
+),
+current_period AS (
+  SELECT product_id, SUM(quantity) AS units, SUM(total) AS revenue
+  FROM real_items
+  WHERE created_at >= NOW() - INTERVAL '12 months'
+  GROUP BY product_id
+),
+prev_period AS (
+  SELECT product_id, SUM(quantity) AS units, SUM(total) AS revenue
+  FROM real_items
+  WHERE created_at >= NOW() - INTERVAL '24 months' AND created_at < NOW() - INTERVAL '12 months'
+  GROUP BY product_id
+),
+totals AS (
+  SELECT product_id, SUM(quantity) AS total_units, MAX(created_at) AS last_ordered_at
+  FROM real_items
+  GROUP BY product_id
+)
+SELECT
+  p.id AS product_id,
+  s.agent_id,
+  p.name AS product_name,
+  p.reference,
+  p.image_url,
+  s.id AS supplier_id,
+  s.name AS supplier_name,
+  COALESCE(t.total_units, 0) AS total_units_sold,
+  t.last_ordered_at,
+  COALESCE(cp.units, 0) AS units_sold_period,
+  COALESCE(cp.revenue, 0) AS revenue_period,
+  COALESCE(pp.units, 0) AS units_sold_prev_period,
+  COALESCE(pp.revenue, 0) AS revenue_prev_period
+FROM public.products p
+JOIN public.catalogs c  ON c.id = p.catalog_id
+JOIN public.suppliers s ON s.id = c.supplier_id
+LEFT JOIN totals t          ON t.product_id = p.id
+LEFT JOIN current_period cp ON cp.product_id = p.id
+LEFT JOIN prev_period pp    ON pp.product_id = p.id;
+
+GRANT SELECT ON public.agent_product_metrics TO authenticated;
