@@ -106,7 +106,12 @@ Deno.serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+      payment_method_types: ['card'],
       customer: customerId,
+      customer_update: { name: 'auto', address: 'auto' },
+      billing_address_collection: 'required',
+      tax_id_collection: { enabled: true },
+      automatic_tax: { enabled: true },
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
