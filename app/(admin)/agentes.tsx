@@ -281,7 +281,7 @@ function ModalAltaEmpresa({
 
             <Text variant="caption" color="ink3" style={styles.formSection}>{t('agentes.plan_section')}</Text>
             <View style={styles.planSelector}>
-              {(['basic', 'pro', 'agency'] as const).map(p => {
+              {(['agency'] as const).map(p => {
                 const cfg = getPlan(p);
                 const agentsLabel = cfg.max_agents == null ? t('agentes.unlimited_agents') : t('agentes.up_to_agents', { count: cfg.max_agents });
                 return (
@@ -349,7 +349,11 @@ export default function AdminAgentesScreen() {
     return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
+  // Agentes = cuentas solas (Básico/Pro/Free). Los agentes de una agencia
+  // (plan 'agency', sincronizado desde su empresa) se ven dentro de su
+  // agencia, no sueltos aquí — evita el duplicado agente/empresa 1:1.
   const filteredAgents = useMemo(() => agents.filter(a => {
+    if (a.plan === 'agency') return false;
     const matchSearch = !search ||
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.email.toLowerCase().includes(search.toLowerCase());
@@ -360,7 +364,10 @@ export default function AdminAgentesScreen() {
     return matchSearch && matchPlan && matchStatus;
   }), [agents, search, planFilter, statusFilter]);
 
+  // Agencias = solo empresas de equipo (Agencia/Empresa). Las empresas 1:1
+  // creadas automáticamente para cuentas Básico/Pro no se muestran aquí.
   const filteredCompanies = useMemo(() => companies.filter(c => {
+    if (c.plan !== 'agency' && c.plan !== 'agency_pro') return false;
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
     const matchPlan = planFilter === 'all' || c.plan === planFilter;
     const matchStatus = statusFilter === 'all' ||
@@ -372,6 +379,11 @@ export default function AdminAgentesScreen() {
   const totalCount = tab === 'all'
     ? filteredAgents.length + filteredCompanies.length
     : tab === 'agents' ? filteredAgents.length : filteredCompanies.length;
+
+  // Recuentos de las pestañas: por categoría (solo/equipo), sin aplicar
+  // busqueda/estado/plan — esos solo afectan a lo que se ve en la tabla.
+  const soloAgentsCount = useMemo(() => agents.filter(a => a.plan !== 'agency').length, [agents]);
+  const teamCompaniesCount = useMemo(() => companies.filter(c => c.plan === 'agency' || c.plan === 'agency_pro').length, [companies]);
 
   async function handleToggleAgent(agent: AdminAgent) {
     Alert.alert(
@@ -474,9 +486,9 @@ export default function AdminAgentesScreen() {
       {/* Tabs */}
       <View style={styles.tabBar}>
         {([
-          { key: 'all', label: t('agentes.tab_all', { count: agents.length + companies.length }) },
-          { key: 'agents', label: t('agentes.tab_agents', { count: agents.length }) },
-          { key: 'companies', label: t('agentes.tab_companies', { count: companies.length }) },
+          { key: 'all', label: t('agentes.tab_all', { count: soloAgentsCount + teamCompaniesCount }) },
+          { key: 'agents', label: t('agentes.tab_agents', { count: soloAgentsCount }) },
+          { key: 'companies', label: t('agentes.tab_companies', { count: teamCompaniesCount }) },
         ] as { key: Tab; label: string }[]).map(tabOpt => (
           <Pressable
             key={tabOpt.key}
