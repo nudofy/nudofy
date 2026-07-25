@@ -91,6 +91,15 @@ export default function AdminEmpresaDetailScreen() {
     if (!selectedPlan) return;
     setSavingPlan(true);
     const { error } = await updateCompany({ plan: selectedPlan });
+    if (!error) {
+      // usePlanLimits comprueba agents.plan, no companies.plan — hay que
+      // propagar el cambio a todos los agentes de la empresa o los límites
+      // reales se quedarían con el plan viejo. agents.plan no admite
+      // 'agency_pro' (solo companies.plan lo hace), así que Empresa se
+      // traduce a 'agency' para el agente individual.
+      const agentSyncPlan = selectedPlan === 'agency_pro' ? 'agency' : selectedPlan;
+      await supabase.from('agents').update({ plan: agentSyncPlan }).eq('company_id', company!.id);
+    }
     setSavingPlan(false);
     if (error) { toast.error(error); return; }
     toast.success(t('empresa_detail.plan_updated'));
