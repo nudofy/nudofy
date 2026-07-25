@@ -6,7 +6,7 @@ import {
   KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -15,6 +15,9 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { SupportedLanguage } from '@/i18n';
+import { getPlanConfigs, PlanConfig } from '@/lib/planConfig';
+
+const SELF_SERVE_PLANS = ['basic', 'pro', 'agency'] as const;
 
 const RISK_PRESETS = [
   { value: 1.2, label: 'Exigente', hint: 'Avisa antes' },
@@ -30,6 +33,7 @@ const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] = [
 
 export default function PerfilScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ checkout?: string }>();
   const toast = useToast();
   const { agent, refreshAgent } = useAgentContext();
   const { signOut, session, profile, setPreferredLanguage } = useAuth();
@@ -41,6 +45,53 @@ export default function PerfilScreen() {
   const [saving, setSaving] = useState(false);
   const [savingRisk, setSavingRisk] = useState(false);
   const [savingLanguage, setSavingLanguage] = useState(false);
+  const [allPlans, setAllPlans] = useState<PlanConfig[]>([]);
+  const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
+
+  useEffect(() => {
+    getPlanConfigs().then(setAllPlans);
+  }, []);
+
+  useEffect(() => {
+    if (params.checkout === 'success') {
+      refreshAgent();
+      toast.success('Pago recibido. Si no ves el cambio en unos segundos, vuelve a entrar en Perfil.');
+      router.setParams({ checkout: undefined });
+    }
+  }, [params.checkout]);
+
+  const isAccountOwner = profile?.role === 'company_admin';
+  const planInfo = allPlans.find(p => p.id === agent?.plan);
+  const trialActive = !!agent?.plan_expires_at && new Date(agent.plan_expires_at) > new Date();
+
+  async function handleChangePlan(targetPlan: typeof SELF_SERVE_PLANS[number]) {
+    if (!session) return;
+    setLoadingCheckout(targetPlan);
+    const successUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/perfil?checkout=success`
+      : 'nudofy://perfil?checkout=success';
+    const cancelUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/perfil`
+      : 'nudofy://perfil';
+    try {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-billing-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ targetPlan, successUrl, cancelUrl }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) { toast.error(json.error ?? 'Error al iniciar el pago'); return; }
+      await Linking.openURL(json.url);
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setLoadingCheckout(null);
+    }
+  }
 
   async function handleSetLanguage(lang: SupportedLanguage) {
     if (!profile || lang === profile.preferred_language) return;
@@ -211,12 +262,46 @@ export default function PerfilScreen() {
                 )}
               </View>
 
-              <View style={styles.field}>
-                <Text variant="caption" color="ink3">Plan</Text>
-                <Text variant="bodyMedium" style={{ marginTop: 4, textTransform: 'capitalize' }}>
-                  {agent?.plan ?? '—'}
+            </View>
+          </View>
+
+          {/* Mi plan */}
+          <View style={styles.section}>
+            <Text variant="caption" color="ink3" style={styles.sectionTitle}>Mi plan</Text>
+            <View style={[styles.sectionBody, { padding: space[3], gap: space[2] }]}>
+              <Text variant="bodyMedium">
+                {planInfo ? `${planInfo.name} · ${planInfo.price_monthly > 0 ? `${planInfo.price_monthly} €/mes` : 'Gratis'}` : (agent?.plan ?? '—')}
+              </Text>
+              {trialActive && (
+                <Text variant="caption" color="ink3">
+                  Prueba gratuita activa hasta el {new Date(agent!.plan_expires_at!).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </Text>
-              </View>
+              )}
+              {isAccountOwner ? (
+                <View style={{ gap: space[2], marginTop: space[1] }}>
+                  <Text variant="caption" color="ink3">Cambiar a:</Text>
+                  <View style={styles.riskOptions}>
+                    {SELF_SERVE_PLANS.filter(p => p !== agent?.plan).map(p => {
+                      const pm = allPlans.find(x => x.id === p);
+                      return (
+                        <Pressable
+                          key={p}
+                          style={styles.riskChip}
+                          onPress={() => handleChangePlan(p)}
+                          disabled={loadingCheckout !== null}
+                        >
+                          <Text variant="smallMedium" color="ink2">{pm?.name ?? p}</Text>
+                          <Text variant="caption" color="ink3">
+                            {loadingCheckout === p ? 'Abriendo…' : `${pm?.price_monthly ?? '—'} €/mes`}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : (
+                <Text variant="caption" color="ink3">El administrador de tu empresa gestiona el plan.</Text>
+              )}
             </View>
           </View>
 
