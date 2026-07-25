@@ -67,11 +67,16 @@ export default function PerfilScreen() {
   async function handleChangePlan(targetPlan: typeof SELF_SERVE_PLANS[number]) {
     if (!session) return;
     setLoadingCheckout(targetPlan);
+    // En web, volver directo a /perfil sale en blanco: la carga en frío de una
+    // ruta anidada no funciona en este build (afecta a cualquier pantalla, no
+    // solo a esta — probado con /mas también). La raíz "/" sí carga bien en
+    // frío, y app/_layout.tsx ya mira el parámetro checkout para saltar a
+    // Perfil en vez de a Home una vez arrancada la sesión.
     const successUrl = Platform.OS === 'web' && typeof window !== 'undefined'
-      ? `${window.location.origin}/perfil?checkout=success`
+      ? `${window.location.origin}/?checkout=success`
       : 'nudofy://perfil?checkout=success';
     const cancelUrl = Platform.OS === 'web' && typeof window !== 'undefined'
-      ? `${window.location.origin}/perfil`
+      ? `${window.location.origin}/?checkout=cancel`
       : 'nudofy://perfil';
     try {
       const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-billing-session`, {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform, View, Text, Pressable, StyleSheet } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useGlobalSearchParams } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { I18nextProvider, useTranslation } from 'react-i18next';
@@ -55,6 +55,7 @@ function RootLayoutNav() {
   const { t } = useTranslation('common');
   const segments = useSegments();
   const router = useRouter();
+  const { checkout } = useGlobalSearchParams<{ checkout?: string }>();
 
   // Procesar deep links (magic link de invitación al portal)
   useEffect(() => {
@@ -98,15 +99,19 @@ function RootLayoutNav() {
       return;
     }
 
-    // Con sesión → redirigir según rol
+    // Con sesión → redirigir según rol.
+    // Si venimos de un checkout de Stripe (vuelve siempre a "/", la única ruta
+    // que carga bien en frío — ver perfil.tsx), saltar a Perfil en vez de Home.
     if (profile?.role === 'agent' || profile?.role === 'company_admin') {
-      if (!inAgentGroup) router.replace('/(agent)/home');
+      if (!inAgentGroup) {
+        router.replace(checkout ? `/(agent)/perfil?checkout=${checkout}` : '/(agent)/home');
+      }
     } else if (profile?.role === 'client') {
       if (!inClientGroup) router.replace('/(client)/home');
     } else if (profile?.role === 'nudofy_admin') {
       if (!inAdminGroup) router.replace('/(admin)/dashboard');
     }
-  }, [session, profile, loading, segments]);
+  }, [session, profile, loading, segments, checkout]);
 
   // Hay sesión pero el perfil no cargó tras varios reintentos: mostrar una
   // pantalla de recuperación en vez de dejar la app colgada sin enrutado.
