@@ -112,6 +112,18 @@ export default function AdminAgenteDetailScreen() {
 
   const plan = PLAN_META[agent.plan] ?? PLAN_META.basic;
 
+  const trialActive = !!agent.plan_expires_at && new Date(agent.plan_expires_at) > new Date();
+  const paymentStatusLabel = trialActive
+    ? t('agente_detail.trial_active', {
+        count: Math.max(0, Math.ceil((new Date(agent.plan_expires_at!).getTime() - Date.now()) / 86400000)),
+        date: formatDate(agent.plan_expires_at!),
+      })
+    : agent.stripe_subscription_id
+      ? t('agente_detail.up_to_date')
+      : agent.plan_expires_at
+        ? t('agente_detail.trial_expired')
+        : t('agente_detail.no_subscription');
+
   function handleSelectPlan(newPlan: typeof PLANS[number]) {
     setSelectedPlan(newPlan);
     setSelectedDuration(PLAN_META[newPlan].free ? 30 : null);
@@ -233,7 +245,7 @@ export default function AdminAgenteDetailScreen() {
           </View>
           <FieldRow label={t('agente_detail.plan_label')} value={plan.label} />
           <FieldRow label={t('agente_detail.price_label')} value={plan.price} />
-          <FieldRow label={t('agente_detail.payment_status')} value={t('agente_detail.up_to_date')} last />
+          <FieldRow label={t('agente_detail.payment_status')} value={paymentStatusLabel} last />
 
           {changingPlan && (
             <View style={styles.planSelector}>

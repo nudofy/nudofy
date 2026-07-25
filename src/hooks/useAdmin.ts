@@ -17,6 +17,8 @@ export interface AdminAgent {
   company_id?: string;
   client_count?: number;
   order_count?: number;
+  plan_expires_at?: string | null;
+  stripe_subscription_id?: string | null;
 }
 
 export interface AdminCompany {
@@ -250,7 +252,7 @@ export function useAdminAgentDetail(agentId?: string) {
     Promise.all([
       supabase
         .from('agents')
-        .select('id, user_id, name, email, phone, plan, active, created_at, company_id')
+        .select('id, user_id, name, email, phone, plan, active, created_at, company_id, plan_expires_at, stripe_subscription_id')
         .eq('id', agentId)
         .single(),
       supabase.from('clients').select('id', { count: 'exact', head: true }).eq('agent_id', agentId),
