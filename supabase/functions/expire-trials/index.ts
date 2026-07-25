@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
                   <p>Tu periodo de prueba de 15 días en Nudofy ha finalizado. Para seguir
                      gestionando tus clientes, catálogos y pedidos, elige el plan que mejor
                      se adapte a tu negocio.</p>
-                  <a href="https://nudofy.app/precios"
+                  <a href="https://nudofy.com/precios"
                      style="display:inline-block;background:#1a1a1a;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;margin-top:8px;">
                     Ver planes
                   </a>

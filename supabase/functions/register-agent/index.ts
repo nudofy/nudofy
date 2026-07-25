@@ -1,4 +1,4 @@
-// register-agent · Auto-registro desde nudofy.app/registro
+// register-agent · Auto-registro desde nudofy.com/registro
 // Recibe: { name, email, password, dpa_version }
 // Crea usuario Auth + registro en agents con plan free_pro (15 días de trial)
 // Envía email de bienvenida con Resend
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
       </table>
 
       <!-- CTA -->
-      <a href="https://nudofy.app/precios"
+      <a href="https://nudofy.com/precios"
          style="display:block;background:#1a1a1a;color:#fff;text-align:center;padding:14px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;margin-bottom:24px;">
         Ver planes →
       </a>
@@ -229,8 +229,8 @@ Deno.serve(async (req) => {
     <!-- Footer -->
     <div style="background:#f5f5f5;padding:20px 32px;border-top:1px solid #e5e5e5;">
       <p style="margin:0;font-size:12px;color:#999;text-align:center;">
-        Nudofy · nudofy.app ·
-        <a href="https://nudofy.app/baja" style="color:#999;text-decoration:none;">Darme de baja</a>
+        Nudofy · nudofy.com ·
+        <a href="https://nudofy.com/baja" style="color:#999;text-decoration:none;">Darme de baja</a>
       </p>
     </div>
   </div>
