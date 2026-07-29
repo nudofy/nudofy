@@ -14,6 +14,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { useClientData, useClientOrders } from '@/hooks/useClient';
 import { useToast } from '@/contexts/ToastContext';
 import { formatEur } from '@/lib/format';
+import { openMailto } from '@/lib/mailto';
 import type { IconName } from '@/components/ui/Icon';
 
 export default function ClientHomeScreen() {
@@ -106,7 +107,7 @@ export default function ClientHomeScreen() {
                 label={t('home.email')}
                 icon="Mail"
                 variant="secondary"
-                onPress={() => Linking.openURL(`mailto:${agent.email}`)}
+                onPress={() => openMailto(agent.email)}
                 style={{ flex: 1 }}
               />
             </View>

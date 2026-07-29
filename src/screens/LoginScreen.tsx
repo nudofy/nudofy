@@ -8,6 +8,7 @@ import {
   Platform, Pressable, ScrollView, StyleSheet,
   TextInput, View, useWindowDimensions,
 } from 'react-native';
+import { openMailto } from '../lib/mailto';
 
 function openUrl(url: string, sameTab = false) {
   if (Platform.OS === 'web' && sameTab) {
@@ -158,7 +159,7 @@ export default function LoginScreen() {
           <Text variant="small" color="ink3">{t('login.about')}</Text>
         </Pressable>
         <View style={styles.dot} />
-        <Pressable onPress={() => Linking.openURL('mailto:info@nudofy.com')} hitSlop={6}>
+        <Pressable onPress={() => openMailto('nudofyapp@gmail.com')} hitSlop={6}>
           <Text variant="small" color="ink3">{t('login.contact')}</Text>
         </Pressable>
         <View style={styles.dot} />

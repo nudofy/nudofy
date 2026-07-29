@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { getPlanConfigs } from '@/lib/planConfig';
+import { openMailto } from '@/lib/mailto';
 import { colors, space, radius } from '@/theme';
 import { Text, Button, Icon } from '@/components/ui';
 
@@ -79,7 +80,7 @@ export default function TrialVencidoScreen() {
           <Text
             variant="caption"
             color="ink2"
-            onPress={() => Linking.openURL('mailto:nudofyapp@gmail.com')}
+            onPress={() => openMailto('nudofyapp@gmail.com')}
           >
             nudofyapp@gmail.com
           </Text>

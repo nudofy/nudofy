@@ -5,6 +5,7 @@ import {
   StyleSheet, Linking, Share, ActivityIndicator,
 } from 'react-native';
 import { printAndShare } from '@/lib/pdf';
+import { openMailto } from '@/lib/mailto';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
@@ -286,7 +287,7 @@ export default function ClientPedidoDetailScreen() {
             <ActionBtn
               icon="Mail"
               label={t('order_detail.email_agent')}
-              onPress={() => Linking.openURL(`mailto:${agent.email}?subject=Pedido ${order.order_number}`)}
+              onPress={() => openMailto(agent.email, { subject: `Pedido ${order.order_number}` })}
             />
           )}
           <ActionBtn
