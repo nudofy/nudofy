@@ -354,6 +354,29 @@ CREATE TABLE public.notifications (
 CREATE INDEX idx_notifications_user ON public.notifications(user_id, read);
 
 -- ============================================================
+-- TOKENS DE PUSH NOTIFICATIONS (Expo)
+-- ============================================================
+-- Igual que company_users/invoices en su día, esta tabla ya existía y se
+-- usaba en producción (src/lib/pushNotifications.ts, supabase/functions/
+-- notify-order) pero nunca se había documentado aquí — reconstruida y con
+-- RLS añadido en la auditoría de seguridad del 2026-07-28. Ver
+-- supabase/migrations/20260728121500_push_tokens_rls.sql para el detalle y
+-- el aviso de "verificar columnas reales antes de aplicar".
+CREATE TABLE IF NOT EXISTS public.push_tokens (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  token       TEXT NOT NULL,
+  platform    TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, token)
+);
+
+ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "push_tokens_own" ON public.push_tokens
+  FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- ============================================================
 -- CONFIGURACIÓN DE PLATAFORMA (panel admin → Configuración)
 -- ============================================================
 -- Solo para ajustes NO sensibles (nombre de app, modo mantenimiento, etc.).
@@ -444,22 +467,23 @@ CREATE POLICY "companies_admin_only" ON public.companies
   );
 
 -- Agentes: nudofy_admin tiene acceso total (además de agents_own_data /
--- agents_same_company_select). Nota: las políticas de DELETE/UPDATE usan
--- auth.jwt()->'user_metadata'->>'role' en vez de consultar public.users
--- como la de SELECT — son dos formas distintas de comprobar "es admin" que
--- pueden desincronizarse si el rol se cambia en public.users sin refrescar
--- el JWT. Fuera del alcance de este fix puntual, pero queda anotado.
+-- agents_same_company_select). Las tres políticas comprueban el mismo campo
+-- (public.users.role) — antes DELETE/UPDATE comprobaban
+-- auth.jwt()->'user_metadata'->>'role', lo que podía quedar desincronizado
+-- si el rol cambiaba en public.users sin refrescar el JWT (ver fix en
+-- supabase/migrations/20260728123000_fix_admin_agents_policy_drift.sql,
+-- auditoría 2026-07-28).
 CREATE POLICY "nudofy_admin puede ver todos los agentes" ON public.agents
   FOR ALL USING (
     (SELECT role FROM public.users WHERE id = auth.uid()) = 'nudofy_admin'
   );
 CREATE POLICY "nudofy_admin_update_agents" ON public.agents
   FOR UPDATE USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') = 'nudofy_admin'
+    (SELECT role FROM public.users WHERE id = auth.uid()) = 'nudofy_admin'
   );
 CREATE POLICY "nudofy_admin_delete_agents" ON public.agents
   FOR DELETE USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') = 'nudofy_admin'
+    (SELECT role FROM public.users WHERE id = auth.uid()) = 'nudofy_admin'
   );
 
 -- company_users: SOLO nudofy_admin (ni siquiera el propio company_admin
@@ -581,6 +605,32 @@ ALTER TABLE public.client_portal_access ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "portal_access_by_client" ON public.client_portal_access
   FOR SELECT USING (
     client_id IN (SELECT id FROM public.clients WHERE user_id = auth.uid())
+  );
+
+-- Acceso al portal: el agente gestiona (alta/baja) el acceso de SUS clientes
+-- a SUS proveedores. Faltaba esta política (auditoría 2026-07-28) — sin ella
+-- los insert/delete de app/(agent)/cliente/[id].tsx (PortalAccessSection)
+-- fallaban por RLS. Ver supabase/migrations/20260728120000_*.sql.
+CREATE POLICY "client_portal_access_agent_manage" ON public.client_portal_access
+  FOR ALL USING (
+    client_id IN (
+      SELECT id FROM public.clients
+      WHERE agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+    )
+    AND supplier_id IN (
+      SELECT id FROM public.suppliers
+      WHERE agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+    )
+  )
+  WITH CHECK (
+    client_id IN (
+      SELECT id FROM public.clients
+      WHERE agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+    )
+    AND supplier_id IN (
+      SELECT id FROM public.suppliers
+      WHERE agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+    )
   );
 
 -- Proveedores: el cliente ve los proveedores a los que tiene acceso

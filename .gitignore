@@ -31,3 +31,6 @@ web-build/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Claude Code (worktrees de sesiones, config local)
+.claude/

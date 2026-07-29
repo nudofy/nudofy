@@ -1,6 +1,27 @@
-const SUPABASE_URL = "https://bpdtjjhexygryvxrhivl.supabase.co";
-const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwZHRqamhleHlncnl2eHJoaXZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTU3NTUxNCwiZXhwIjoyMDkxMTUxNTE0fQ.3SbvUaWsgBGErKYDCs3hrZtr2lAKjd-EyIEdC3RI0RU";
-const EMAIL = "baquearisti@gmail.com";
+// AUDITORÍA DE SEGURIDAD (28 jul 2026): este script tenía la Supabase
+// service_role key de PRODUCCIÓN hardcodeada en texto plano, commiteada y
+// pusheada al repo remoto (github.com/nudofy/nudofy, commit 26d66d3, 10 may
+// 2026). La service_role key salta TODAS las políticas RLS — es la llave
+// maestra de la base de datos completa.
+//
+// Se ha quitado el valor literal de aquí, pero ESO NO DESHACE LA FILTRACIÓN:
+// la clave ya viajó al repo remoto. Acción obligatoria pendiente para Jorge
+// (no se puede hacer desde este entorno): Supabase Dashboard → Settings →
+// API → Service role key → "Reset" (rotar), y actualizar el secreto en todos
+// los sitios donde se usa (Edge Functions ya la leen de variable de entorno,
+// no del código, así que solo hay que actualizar el valor del secret).
+//
+// A partir de ahora: SIEMPRE pasar SUPABASE_URL/SERVICE_KEY por variable de
+// entorno (nunca hardcodeado), ej.:
+//   SUPABASE_URL=https://xxx.supabase.co SERVICE_KEY=eyJ... node fix-agent.mjs
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const EMAIL = process.env.FIX_AGENT_EMAIL ?? "baquearisti@gmail.com";
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en el entorno.");
+  process.exit(1);
+}
 
 const headers = {
   "apikey": SERVICE_KEY,

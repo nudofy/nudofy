@@ -73,6 +73,21 @@ Deno.serve(async (req) => {
 
     const { targetPlan, successUrl, cancelUrl } = await req.json();
 
+    // Defensa en profundidad: Stripe redirige el navegador/WebView del
+    // usuario a estas URLs tras el pago — no hay forma de que esto afecte a
+    // otro usuario, pero como esta función acepta la URL tal cual del body,
+    // se restringe a los esquemas/orígenes propios de la app en vez de
+    // confiar ciegamente en lo recibido (evita que quede como open redirect
+    // si en el futuro se reutiliza este valor en otro sitio).
+    const isAllowedRedirect = (url: string) =>
+      typeof url === 'string' && (
+        url.startsWith('nudofy://') ||
+        ALLOWED_ORIGINS.some(o => url.startsWith(o + '/') || url === o)
+      );
+    if (!isAllowedRedirect(successUrl) || !isAllowedRedirect(cancelUrl)) {
+      return new Response(JSON.stringify({ error: 'successUrl/cancelUrl inválidas' }), { status: 400, headers });
+    }
+
     // Ya tiene una suscripción activa: gestionar el cambio/cancelación desde el
     // Billing Portal de Stripe (evita reimplementar prorrateo a mano).
     if (agent.stripe_subscription_id && agent.active && agent.stripe_customer_id) {

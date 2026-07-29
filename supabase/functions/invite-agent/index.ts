@@ -63,6 +63,26 @@ serve(async (req) => {
       callerIsNudofyAdmin = callerProfile.role === 'nudofy_admin';
     }
 
+    // El company_id NUNCA se acepta tal cual del body si quien llama es un
+    // company_admin normal: antes de este fix (auditoría 28 jul 2026) un
+    // company_admin podía mandar el company_id de OTRA empresa y colar un
+    // agente suyo dentro de ella — esa cuenta luego pasaría el filtro de
+    // "agents_same_company_select"/"companies_own_select" de RLS y vería el
+    // equipo y los datos de la empresa ajena (fuga cross-tenant). Solo
+    // isSuperAdmin/nudofy_admin puede asignar un company_id arbitrario
+    // (lo necesitan desde el panel admin al dar de alta la empresa+admin de
+    // otro cliente); un company_admin siempre queda forzado a SU PROPIA
+    // empresa, ignorando lo que venga en el body.
+    let effectiveCompanyId: string | null = company_id ?? null;
+    if (!isSuperAdmin && !callerIsNudofyAdmin) {
+      const { data: callerAgentRow } = await supabaseAdmin
+        .from('agents')
+        .select('company_id')
+        .eq('user_id', callerUser.id)
+        .maybeSingle();
+      effectiveCompanyId = callerAgentRow?.company_id ?? null;
+    }
+
     // Generar contraseña temporal
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let tempPassword = 'Nf';
@@ -127,7 +147,7 @@ serve(async (req) => {
       business_name: business_name ?? null,
       nif: nif ?? null,
       plan: plan ?? 'pro',
-      company_id: company_id ?? null,
+      company_id: effectiveCompanyId,
       active: true,
     });
 

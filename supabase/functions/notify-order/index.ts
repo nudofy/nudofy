@@ -30,6 +30,29 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    // ── Auth: esta función usa service role para leer el pedido completo
+    // (datos de cliente, importes, notas) y para mandar el email a quien sea
+    // — así que, a diferencia de una simple lectura RLS, TIENE que validar
+    // explícitamente que quien llama tiene derecho a ver ESTE pedido en
+    // concreto. Antes de este fix (auditoría 28 jul 2026) no había ningún
+    // chequeo de autorización: cualquiera con el anon key público (viene
+    // embebido en la app, no es secreto) podía pedir el detalle completo de
+    // CUALQUIER pedido de CUALQUIER agente/empresa pasando su order_id, y
+    // además redirigir el envío a un email arbitrario vía "recipients" —
+    // fuga de datos entre inquilinos (cross-tenant) + posible uso para
+    // reenviar notificaciones no deseadas. Mismo patrón de validación de JWT
+    // contra GoTrue que el resto de Edge Functions (auth.getUser(jwt) falla
+    // en este runtime).
+    const authHeader = req.headers.get('authorization') ?? '';
+    const callerJwt = authHeader.replace(/^Bearer\s+/i, '');
+    const callerRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: { apikey: Deno.env.get('SUPABASE_ANON_KEY')!, authorization: `Bearer ${callerJwt}` },
+    });
+    if (!callerRes.ok) {
+      return new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401, headers });
+    }
+    const callerUser: { id: string; email: string } = await callerRes.json();
+
     // ── Cargar pedido completo ──────────────────────────────────────────
     const { data: order, error } = await supabase
       .from('orders')
@@ -52,6 +75,32 @@ serve(async (req) => {
     const catalog  = order.catalog  as any;
     const items    = (order.items   as any[]) ?? [];
     const orderStatus = status ?? order.status;
+
+    // ── Verificar que quien llama tiene derecho a este pedido ───────────
+    // Autorizado si: es el agente dueño, un compañero de la misma empresa
+    // (mismo criterio que agents_same_company_select en RLS), el cliente
+    // dueño del pedido, o nudofy_admin. Cualquier otro caso → 403, aunque
+    // el JWT sea válido (estar logueado no da derecho a ver pedidos ajenos).
+    const isOwnerAgent = !!agent && agent.user_id === callerUser.id;
+    let isCompanyMate = false;
+    if (!isOwnerAgent && agent?.company_id) {
+      const { data: callerAgentRow } = await supabase
+        .from('agents')
+        .select('company_id')
+        .eq('user_id', callerUser.id)
+        .maybeSingle();
+      isCompanyMate = !!callerAgentRow && callerAgentRow.company_id === agent.company_id;
+    }
+    const isOwnerClient = !!client && client.user_id === callerUser.id;
+    let isNudofyAdmin = false;
+    if (!isOwnerAgent && !isCompanyMate && !isOwnerClient) {
+      const { data: callerProfile } = await supabase
+        .from('users').select('role').eq('id', callerUser.id).maybeSingle();
+      isNudofyAdmin = callerProfile?.role === 'nudofy_admin';
+    }
+    if (!isOwnerAgent && !isCompanyMate && !isOwnerClient && !isNudofyAdmin) {
+      return new Response(JSON.stringify({ error: 'Sin acceso a este pedido' }), { status: 403, headers });
+    }
 
     // ── Resolver destinatarios por defecto ─────────────────────────────
     let defaultRecipients: { email: string; type: 'agent' | 'company' | 'supplier' | 'client'; user_id?: string }[] = [];

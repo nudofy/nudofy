@@ -26,8 +26,8 @@ serve(async (req) => {
     if (!user_id || !new_password) {
       return new Response(JSON.stringify({ error: 'user_id y new_password son obligatorios' }), { status: 400, headers });
     }
-    if (new_password.length < 6) {
-      return new Response(JSON.stringify({ error: 'La contraseña debe tener al menos 6 caracteres' }), { status: 400, headers });
+    if (new_password.length < 8) {
+      return new Response(JSON.stringify({ error: 'La contraseña debe tener al menos 8 caracteres' }), { status: 400, headers });
     }
 
     // Verificar que quien llama es admin.
