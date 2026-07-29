@@ -154,6 +154,18 @@ Funciones que profesionalizan el producto y abren mercado a clientes mayores.
 | C9 | App offline-first robusta (sync con conflictos)     | XL       | Comerciales en visitas a tiendas con mala cobertura.   |
 | C10| Auditoría completa de cambios (audit log)           | M        | Plan Agencia + clientes con compliance.                |
 
+#### Notas técnicas — C9 (offline-first: catálogo + pedidos)
+
+> Añadido 28 jul 2026, pendiente de implementar. Se hace en fases, no de golpe.
+
+1. **Catálogo local**: SQLite (`expo-sqlite`), no `AsyncStorage` — mismo motivo que el crash de memoria con 424 productos. Imágenes vía `expo-image` (cache en disco automático al navegar), no precargadas en bloque.
+2. **Sync de bajada incremental**: cada producto/catálogo lleva `updated_at`; el móvil guarda "última sincronización" y solo pide deltas. Mostrar al agente "catálogo actualizado hace X" para que sepa si fiarse offline.
+3. **Pedidos offline**: se guardan en SQLite local con un ID único generado en el propio móvil (no por el servidor) — ese ID es la clave de idempotencia para el paso siguiente.
+4. **Sync de subida (patrón outbox)**: tabla local de pedidos pendientes; al recuperar conexión (`@react-native-community/netinfo`) se suben usando el ID generado en el móvil como clave, para que un reintento tras corte de conexión no duplique el pedido.
+5. **Conflictos de precio/stock**: el pedido offline guarda con qué versión del catálogo se hizo. Al sincronizar, si el precio/stock cambió, el pedido no se acepta en silencio — se marca "revisar" para confirmación manual.
+6. **Alternativa a evaluar antes de construirlo a mano**: PowerSync (servicio ya hecho para sync offline Postgres↔SQLite) — ahorra construir la lógica de sync, a cambio de sumar dependencia/coste externo.
+7. **Fases sugeridas**: (a) catálogo offline de solo lectura primero — bajo riesgo, ya da valor; (b) pedidos offline + cola de subida; (c) indicador de pendientes + manejo de conflictos.
+
 ### Fase D — Cosas de AgentesCloud que NO vamos a hacer (descartadas)
 
 > Está aquí explícitamente para que no se nos olvide y nadie las proponga sin contexto. Estas funciones existen porque AgentesCloud sirve a otro segmento (agente comercial autónomo tradicional). Nudofy NO sirve a ese segmento y por tanto no las necesita.
