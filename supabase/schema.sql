@@ -137,6 +137,15 @@ ALTER TABLE public.agents
   ADD COLUMN IF NOT EXISTS risk_multiplier NUMERIC(3,2) NOT NULL DEFAULT 1.5
   CHECK (risk_multiplier BETWEEN 1.1 AND 3.0);
 
+-- Sincronización agents.plan <-> companies.plan: toda cuenta Básico/Pro/Agencia
+-- tiene una empresa 1:1 vinculada (company_id). Dos triggers (uno en agents,
+-- BEFORE INSERT/UPDATE OF plan/company_id; otro en companies, AFTER UPDATE OF
+-- plan) fuerzan que agents.plan siempre coincida con el de su companies.plan
+-- vinculada — escribir agents.plan directamente en un agente con company_id
+-- no tiene efecto (el trigger lo revierte en el mismo UPDATE, sin error). El
+-- cambio real de plan para estas cuentas se hace en companies.plan.
+-- Ver supabase/migrations/20260725225254_sync_agent_company_plan_trigger.sql
+
 -- ============================================================
 -- CLIENTES
 -- ============================================================

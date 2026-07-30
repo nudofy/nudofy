@@ -148,6 +148,8 @@
     "user_id_label": "User ID",
     "current_plan_title": "Current plan",
     "change_plan": "Change plan",
+    "plan_managed_by_company": "This agent's plan is managed by their company — change the plan from the company page.",
+    "go_to_company": "Go to company",
     "plan_label": "Plan",
     "price_label": "Price",
     "payment_status": "Payment status",

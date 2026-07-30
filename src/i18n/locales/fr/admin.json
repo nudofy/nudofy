@@ -148,6 +148,8 @@
     "user_id_label": "ID utilisateur",
     "current_plan_title": "Formule actuelle",
     "change_plan": "Changer de formule",
+    "plan_managed_by_company": "La formule de cet agent est gérée par son entreprise — modifiez-la depuis la fiche de l'entreprise.",
+    "go_to_company": "Aller à l'entreprise",
     "plan_label": "Formule",
     "price_label": "Prix",
     "payment_status": "Statut de paiement",

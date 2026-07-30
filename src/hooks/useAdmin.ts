@@ -185,6 +185,28 @@ export function useAdminAgents() {
   useEffect(() => { fetchAgents(); }, [fetchAgents]);
 
   async function updateAgentPlan(id: string, plan: AdminAgent['plan'], expiresAt?: string | null) {
+    // Toda cuenta Básico/Pro/Agencia tiene una empresa 1:1 vinculada
+    // (company_id). Un trigger de BD (trg_sync_agent_plan) fuerza
+    // agents.plan a igualar companies.plan en cada UPDATE — escribir aquí
+    // directamente en ese caso no hace nada (revierte en silencio, sin
+    // error). Si hay empresa vinculada, el cambio real hay que hacerlo en
+    // companies.plan, que ya cascada a agents.plan vía trigger.
+    const { data: agentRow, error: fetchError } = await supabase
+      .from('agents')
+      .select('company_id')
+      .eq('id', id)
+      .single();
+    if (fetchError) return { error: fetchError.message };
+
+    if (agentRow?.company_id) {
+      if (plan !== 'basic' && plan !== 'pro' && plan !== 'agency') {
+        return { error: 'Este agente pertenece a una empresa: no se le puede asignar un plan gratuito desde aquí.' };
+      }
+      const { error } = await supabase.from('companies').update({ plan }).eq('id', agentRow.company_id);
+      if (!error) fetchAgents();
+      return { error: error?.message ?? null };
+    }
+
     const update: Record<string, any> = { plan };
     if (expiresAt !== undefined) update.plan_expires_at = expiresAt;
     const { error } = await supabase.from('agents').update(update).eq('id', id);

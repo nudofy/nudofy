@@ -233,21 +233,41 @@ export default function AdminAgenteDetailScreen() {
         <View style={[styles.card, { flex: 1 }]}>
           <View style={styles.cardHeader}>
             <Text variant="bodyMedium">{t('agente_detail.current_plan_title')}</Text>
-            <Pressable
-              onPress={() => setChangingPlan(!changingPlan)}
-              hitSlop={8}
-              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-            >
-              <Text variant="smallMedium" color="ink2">
-                {changingPlan ? t('shared.cancel') : t('agente_detail.change_plan')}
-              </Text>
-            </Pressable>
+            {!agent.company_id && (
+              <Pressable
+                onPress={() => setChangingPlan(!changingPlan)}
+                hitSlop={8}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <Text variant="smallMedium" color="ink2">
+                  {changingPlan ? t('shared.cancel') : t('agente_detail.change_plan')}
+                </Text>
+              </Pressable>
+            )}
           </View>
           <FieldRow label={t('agente_detail.plan_label')} value={plan.label} />
           <FieldRow label={t('agente_detail.price_label')} value={plan.price} />
-          <FieldRow label={t('agente_detail.payment_status')} value={paymentStatusLabel} last />
+          <FieldRow label={t('agente_detail.payment_status')} value={paymentStatusLabel} last={!agent.company_id} />
 
-          {changingPlan && (
+          {/* Este agente tiene una empresa 1:1 (toda cuenta Básico/Pro/Agencia
+              la tiene) — un trigger de BD (trg_sync_agent_plan) fuerza
+              agents.plan a coincidir con companies.plan en cada UPDATE, así
+              que cambiarlo aquí directamente no hace nada (revierte en
+              silencio). Hay que cambiarlo desde la ficha de la empresa. */}
+          {agent.company_id && (
+            <View style={{ padding: space[3], paddingTop: space[2] }}>
+              <Text variant="small" color="ink3" style={{ marginBottom: space[2] }}>
+                {t('agente_detail.plan_managed_by_company')}
+              </Text>
+              <Button
+                label={t('agente_detail.go_to_company')}
+                variant="secondary"
+                onPress={() => router.push(`/(admin)/empresa/${agent.company_id}` as any)}
+              />
+            </View>
+          )}
+
+          {!agent.company_id && changingPlan && (
             <View style={styles.planSelector}>
               {PLANS.map(p => {
                 const pm = PLAN_META[p];

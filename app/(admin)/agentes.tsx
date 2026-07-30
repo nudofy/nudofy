@@ -339,6 +339,8 @@ export default function AdminAgentesScreen() {
   const [showAltaEmpresa, setShowAltaEmpresa] = useState(false);
 
   const PLAN_LABELS: Record<string, string> = {
+    free: t('agente_detail.plan_free'),
+    free_pro: t('agente_detail.plan_free_pro'),
     basic: t('shared.plan_basic'),
     pro: t('shared.plan_pro'),
     agency: t('shared.plan_agency'),
