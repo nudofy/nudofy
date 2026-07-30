@@ -45,7 +45,7 @@ serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('NUDOFY_SECRET_KEY') ?? '',
     );
 
     // supabase.auth.getUser(jwt) falla en este runtime (esm.sh resuelve una

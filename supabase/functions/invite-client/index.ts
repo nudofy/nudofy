@@ -45,7 +45,7 @@ serve(async (req) => {
     // Cliente admin (service role)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      Deno.env.get('NUDOFY_SECRET_KEY')!,
     );
 
     // Verificar que el cliente pertenece al agente autenticado

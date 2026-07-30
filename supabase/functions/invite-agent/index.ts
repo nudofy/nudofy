@@ -46,7 +46,7 @@ serve(async (req) => {
     // Cliente admin con service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      Deno.env.get('NUDOFY_SECRET_KEY')!,
     );
 
     // Verificar permisos: superadmin o company_admin

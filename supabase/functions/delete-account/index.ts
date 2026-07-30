@@ -38,7 +38,7 @@ serve(async (req) => {
     // Borrar con service role (cascada elimina todo en BD)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      Deno.env.get('NUDOFY_SECRET_KEY')!,
     );
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      Deno.env.get('NUDOFY_SECRET_KEY')!,
     );
 
     // Verificar si ya existe un agente con este email
