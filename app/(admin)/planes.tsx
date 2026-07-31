@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, StyleSheet, Pressable, Switch, ScrollView,
-  Modal, TextInput, KeyboardAvoidingView, Platform, Alert,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
+import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Text, Button, Badge, Icon } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
@@ -142,20 +143,16 @@ export default function AdminPlanesScreen() {
   }
 
   function confirmDelete(plan: Plan) {
-    Alert.alert(
+    confirmDestructive(
       t('planes.delete_plan_title'),
       t('planes.delete_plan_body', { name: plan.name }),
-      [
-        { text: t('planes.cancel'), style: 'cancel' },
-        {
-          text: t('planes.delete'), style: 'destructive', onPress: async () => {
-            const { error } = await supabase.from('plans').delete().eq('id', plan.id);
-            if (error) { toast.error(error.message); return; }
-            toast.success(t('planes.plan_deleted'));
-            fetchPlans();
-          }
-        },
-      ]
+      async () => {
+        const { error } = await supabase.from('plans').delete().eq('id', plan.id);
+        if (error) { toast.error(error.message); return; }
+        toast.success(t('planes.plan_deleted'));
+        fetchPlans();
+      },
+      t('planes.delete'),
     );
   }
 

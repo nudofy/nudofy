@@ -1,7 +1,7 @@
 // ADM-07 · Ficha de empresa
 import React, { useState } from 'react';
 import {
-  View, StyleSheet, Pressable, ScrollView, TextInput, Alert, Linking,
+  View, StyleSheet, Pressable, ScrollView, TextInput, Linking,
   Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -12,6 +12,7 @@ import { colors, space, radius } from '@/theme';
 import { Text, Icon, Button, Badge } from '@/components/ui';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
+import { confirmDestructive, confirmAction, alertInfo } from '@/lib/confirm';
 
 // Valores alineados con la tabla `plans` (fuente de verdad). 999999 = centinela
 // que la UI muestra como ∞. Empresa (agency_pro) es precio a medida: ver isCustomPricing.
@@ -180,46 +181,35 @@ export default function AdminEmpresaDetailScreen() {
     else { setEditing(false); toast.success(t('empresa_detail.company_updated')); }
   }
 
-  async function handleToggleActive() {
-    Alert.alert(
+  function handleToggleActive() {
+    const confirm = company!.active ? confirmDestructive : confirmAction;
+    confirm(
       company!.active ? t('empresa_detail.suspend_company_title') : t('empresa_detail.activate_company_title'),
       t('empresa_detail.confirm_toggle_company', {
         action: company!.active ? t('empresa_detail.suspend') : t('empresa_detail.activate'),
         name: company!.name,
         extra: company!.active ? t('empresa_detail.agents_lose_access') : '',
       }),
-      [
-        { text: t('empresa_detail.cancel'), style: 'cancel' },
-        {
-          text: company!.active ? t('empresa_detail.suspend') : t('empresa_detail.activate'),
-          style: company!.active ? 'destructive' : 'default',
-          onPress: async () => {
-            const { error } = await toggleActive(!company!.active);
-            if (error) toast.error(error);
-          },
-        },
-      ]
+      async () => {
+        const { error } = await toggleActive(!company!.active);
+        if (error) toast.error(error);
+      },
+      company!.active ? t('empresa_detail.suspend') : t('empresa_detail.activate'),
     );
   }
 
-  async function handleDelete() {
-    Alert.alert(
+  function handleDelete() {
+    confirmDestructive(
       t('empresa_detail.delete_company_title'),
       t('empresa_detail.delete_company_body', { name: company!.name }),
-      [
-        { text: t('empresa_detail.cancel'), style: 'cancel' },
-        {
-          text: t('empresa_detail.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase.functions.invoke('delete-company', {
-              body: { companyId: company!.id },
-            });
-            if (error) Alert.alert(t('shared.error_title'), error.message ?? t('empresa_detail.delete_company_error'));
-            else router.back();
-          },
-        },
-      ]
+      async () => {
+        const { error } = await supabase.functions.invoke('delete-company', {
+          body: { companyId: company!.id },
+        });
+        if (error) alertInfo(t('shared.error_title'), error.message ?? t('empresa_detail.delete_company_error'));
+        else router.back();
+      },
+      t('empresa_detail.delete'),
     );
   }
 

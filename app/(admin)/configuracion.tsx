@@ -1,11 +1,12 @@
 // ADM-06 · Configuración de la plataforma
 import React, { useState, useEffect } from 'react';
 import {
-  View, StyleSheet, TextInput, Switch, Alert,
+  View, StyleSheet, TextInput, Switch,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
+import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Text, Button, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
@@ -85,27 +86,21 @@ export default function AdminConfiguracionScreen() {
   }
 
   function handleClearCache() {
-    Alert.alert(
+    confirmDestructive(
       t('configuracion.clear_cache_title'),
       t('configuracion.clear_cache_body'),
-      [
-        { text: t('configuracion.cancel'), style: 'cancel' },
-        {
-          text: t('configuracion.clear'),
-          style: 'destructive',
-          onPress: async () => {
-            setClearingCache(true);
-            try {
-              await supabase.rpc('notify_pgrst_reload' as any);
-              toast.success(t('configuracion.cache_cleared'));
-            } catch {
-              toast.success(t('configuracion.cache_cleared'));
-            } finally {
-              setClearingCache(false);
-            }
-          },
-        },
-      ]
+      async () => {
+        setClearingCache(true);
+        try {
+          await supabase.rpc('notify_pgrst_reload' as any);
+          toast.success(t('configuracion.cache_cleared'));
+        } catch {
+          toast.success(t('configuracion.cache_cleared'));
+        } finally {
+          setClearingCache(false);
+        }
+      },
+      t('configuracion.clear'),
     );
   }
 
@@ -275,13 +270,11 @@ export default function AdminConfiguracionScreen() {
             value={maintenanceMode}
             onValueChange={(val) => {
               if (val) {
-                Alert.alert(
+                confirmDestructive(
                   t('configuracion.activate_maintenance_title'),
                   t('configuracion.activate_maintenance_body'),
-                  [
-                    { text: t('configuracion.cancel'), style: 'cancel' },
-                    { text: t('configuracion.activate'), style: 'destructive', onPress: () => setMaintenanceMode(true) },
-                  ]
+                  () => setMaintenanceMode(true),
+                  t('configuracion.activate'),
                 );
               } else {
                 setMaintenanceMode(false);

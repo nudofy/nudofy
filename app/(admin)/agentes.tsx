@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, StyleSheet, Pressable,
-  TextInput, ScrollView, Alert, Modal, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,7 @@ import Avatar from '@/components/Avatar';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { getPlan } from '@/lib/planConfig';
+import { confirmDestructive, confirmAction, alertInfo } from '@/lib/confirm';
 
 // Validación NIF/NIE/CIF español
 function validarNifEspanol(value: string): boolean {
@@ -204,7 +205,7 @@ function ModalAltaEmpresa({
     if (saving) return;
     if (!name.trim()) { toast.error(t('agentes.business_name_required_error')); return; }
     if (!nif.trim()) { toast.error(t('agentes.nif_required_error')); return; }
-    if (!validarNifEspanol(nif)) { Alert.alert(t('agentes.invalid_nif_title'), t('agentes.invalid_nif_body')); return; }
+    if (!validarNifEspanol(nif)) { alertInfo(t('agentes.invalid_nif_title'), t('agentes.invalid_nif_body')); return; }
     if (!adminName.trim()) { toast.error(t('agentes.admin_name_required_error')); return; }
     if (!adminPhone.trim()) { toast.error(t('agentes.admin_phone_required_error')); return; }
     if (!adminEmail.trim()) { toast.error(t('agentes.admin_email_required_error')); return; }
@@ -220,11 +221,11 @@ function ModalAltaEmpresa({
     setSaving(true);
     const result = await onCreate({ name, nif: nif.trim().toUpperCase(), address, phone, plan, adminName, adminEmail, adminPhone });
     setSaving(false);
-    if (result?.error) { Alert.alert(t('shared.error_title'), result.error); return; }
+    if (result?.error) { alertInfo(t('shared.error_title'), result.error); return; }
 
     reset();
     onClose();
-    Alert.alert(t('agentes.company_created_title'), t('agentes.company_created_body', { name, email: adminEmail }));
+    alertInfo(t('agentes.company_created_title'), t('agentes.company_created_body', { name, email: adminEmail }));
   }
 
   return (
@@ -387,75 +388,53 @@ export default function AdminAgentesScreen() {
   const soloAgentsCount = useMemo(() => agents.filter(a => a.plan !== 'agency').length, [agents]);
   const teamCompaniesCount = useMemo(() => companies.filter(c => c.plan === 'agency' || c.plan === 'agency_pro').length, [companies]);
 
-  async function handleToggleAgent(agent: AdminAgent) {
-    Alert.alert(
+  function handleToggleAgent(agent: AdminAgent) {
+    const confirm = agent.active ? confirmDestructive : confirmAction;
+    confirm(
       agent.active ? t('agentes.deactivate_agent_title') : t('agentes.activate_agent_title'),
       t('agentes.confirm_toggle', { action: agent.active ? t('agentes.deactivate') : t('agentes.activate'), name: agent.name }),
-      [
-        { text: t('shared.cancel'), style: 'cancel' },
-        {
-          text: agent.active ? t('agentes.deactivate') : t('agentes.activate'),
-          style: agent.active ? 'destructive' : 'default',
-          onPress: () => toggleAgentActive(agent.id, !agent.active),
-        },
-      ]
+      () => toggleAgentActive(agent.id, !agent.active),
+      agent.active ? t('agentes.deactivate') : t('agentes.activate'),
     );
   }
 
-  async function handleToggleCompany(company: AdminCompany) {
-    Alert.alert(
+  function handleToggleCompany(company: AdminCompany) {
+    const confirm = company.active ? confirmDestructive : confirmAction;
+    confirm(
       company.active ? t('agentes.suspend_company_title') : t('agentes.activate_company_title'),
       t('agentes.confirm_toggle', { action: company.active ? t('agentes.suspend') : t('agentes.activate'), name: company.name }),
-      [
-        { text: t('shared.cancel'), style: 'cancel' },
-        {
-          text: company.active ? t('agentes.suspend') : t('agentes.activate'),
-          style: company.active ? 'destructive' : 'default',
-          onPress: () => toggleCompanyActive(company.id, !company.active),
-        },
-      ]
+      () => toggleCompanyActive(company.id, !company.active),
+      company.active ? t('agentes.suspend') : t('agentes.activate'),
     );
   }
 
-  async function handleDeleteAgent(agent: AdminAgent) {
-    Alert.alert(
+  function handleDeleteAgent(agent: AdminAgent) {
+    confirmDestructive(
       t('agentes.delete_agent_title'),
       t('agentes.delete_agent_body', { name: agent.name }),
-      [
-        { text: t('shared.cancel'), style: 'cancel' },
-        {
-          text: t('shared.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase.functions.invoke('delete-agent', {
-              body: { agentId: agent.id },
-            });
-            if (error) toast.error(error.message ?? t('agentes.delete_agent_error'));
-            else { toast.success(t('agentes.deleted_agent_toast', { name: agent.name })); refetchAgents(); }
-          },
-        },
-      ]
+      async () => {
+        const { error } = await supabase.functions.invoke('delete-agent', {
+          body: { agentId: agent.id },
+        });
+        if (error) toast.error(error.message ?? t('agentes.delete_agent_error'));
+        else { toast.success(t('agentes.deleted_agent_toast', { name: agent.name })); refetchAgents(); }
+      },
+      t('shared.delete'),
     );
   }
 
-  async function handleDeleteCompany(company: AdminCompany) {
-    Alert.alert(
+  function handleDeleteCompany(company: AdminCompany) {
+    confirmDestructive(
       t('agentes.delete_company_title'),
       t('agentes.delete_company_body', { name: company.name }),
-      [
-        { text: t('shared.cancel'), style: 'cancel' },
-        {
-          text: t('shared.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase.functions.invoke('delete-company', {
-              body: { companyId: company.id },
-            });
-            if (error) Alert.alert(t('shared.error_title'), error.message ?? t('agentes.delete_company_error'));
-            else { toast.success(t('agentes.deleted_company_toast', { name: company.name })); refetchCompanies(); }
-          },
-        },
-      ]
+      async () => {
+        const { error } = await supabase.functions.invoke('delete-company', {
+          body: { companyId: company.id },
+        });
+        if (error) alertInfo(t('shared.error_title'), error.message ?? t('agentes.delete_company_error'));
+        else { toast.success(t('agentes.deleted_company_toast', { name: company.name })); refetchCompanies(); }
+      },
+      t('shared.delete'),
     );
   }
 

@@ -1,11 +1,12 @@
 // ADM-05 · Facturación
 import React, { useState, useMemo } from 'react';
 import {
-  View, StyleSheet, Pressable, ScrollView, TextInput, Alert,
+  View, StyleSheet, Pressable, ScrollView, TextInput,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { pickFile } from '@/lib/filePicker';
 import { supabase } from '@/lib/supabase';
+import { confirmAction, alertInfo } from '@/lib/confirm';
 import AdminShell from '@/components/AdminShell';
 import { useAdminInvoices } from '@/hooks/useAdmin';
 import type { AdminInvoice } from '@/hooks/useAdmin';
@@ -98,20 +99,18 @@ export default function AdminFacturacionScreen() {
 
       refetch?.();
     } catch (e: any) {
-      Alert.alert(t('shared.error_title'), e.message ?? t('facturacion.upload_pdf_error'));
+      alertInfo(t('shared.error_title'), e.message ?? t('facturacion.upload_pdf_error'));
     } finally {
       setUploadingId(null);
     }
   }
 
   function handleMarkPaid(inv: AdminInvoice) {
-    Alert.alert(
+    confirmAction(
       t('facturacion.mark_paid_title'),
       t('facturacion.mark_paid_body', { invoice: inv.invoice_number ?? inv.id.slice(0, 8) }),
-      [
-        { text: t('facturacion.cancel'), style: 'cancel' },
-        { text: t('facturacion.confirm'), onPress: () => markAsPaid(inv.id) },
-      ]
+      () => markAsPaid(inv.id),
+      t('facturacion.confirm'),
     );
   }
 

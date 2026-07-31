@@ -1,6 +1,6 @@
 // ADM-03 · Ficha de agente
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable, Alert, TextInput, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { colors, space, radius } from '@/theme';
 import { Text, Icon, Button, Badge } from '@/components/ui';
 import Avatar from '@/components/Avatar';
 import { useToast } from '@/contexts/ToastContext';
+import { confirmDestructive, confirmAction } from '@/lib/confirm';
 
 const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency'] as const;
 
@@ -150,17 +151,12 @@ export default function AdminAgenteDetailScreen() {
   }
 
   function handleToggleActive() {
-    Alert.alert(
+    const confirm = agent!.active ? confirmDestructive : confirmAction;
+    confirm(
       agent!.active ? t('agente_detail.deactivate_agent_title') : t('agente_detail.activate_agent_title'),
       t('agente_detail.confirm_toggle_account', { action: agent!.active ? t('agente_detail.deactivate') : t('agente_detail.activate'), name: agent!.name }),
-      [
-        { text: t('shared.cancel'), style: 'cancel' },
-        {
-          text: agent!.active ? t('agente_detail.deactivate') : t('agente_detail.activate'),
-          style: agent!.active ? 'destructive' : 'default',
-          onPress: () => toggleAgentActive(agent!.id, !agent!.active),
-        },
-      ]
+      () => toggleAgentActive(agent!.id, !agent!.active),
+      agent!.active ? t('agente_detail.deactivate') : t('agente_detail.activate'),
     );
   }
 
@@ -350,22 +346,16 @@ export default function AdminAgenteDetailScreen() {
           <Button
             label={t('agente_detail.delete_agent')}
             variant="secondary"
-            onPress={() => Alert.alert(
+            onPress={() => confirmDestructive(
               t('agente_detail.delete_agent'),
               t('agente_detail.delete_agent_body', { name: agent.name }),
-              [
-                { text: t('shared.cancel'), style: 'cancel' },
-                {
-                  text: t('shared.delete'),
-                  style: 'destructive',
-                  onPress: async () => {
-                    const { error } = await deleteAgent(agent!.id);
-                    if (error) { toast.error(error); return; }
-                    toast.success(t('agente_detail.agent_deleted'));
-                    router.back();
-                  },
-                },
-              ]
+              async () => {
+                const { error } = await deleteAgent(agent!.id);
+                if (error) { toast.error(error); return; }
+                toast.success(t('agente_detail.agent_deleted'));
+                router.back();
+              },
+              t('shared.delete'),
             )}
           />
         </View>
