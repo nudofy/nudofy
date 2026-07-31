@@ -233,7 +233,10 @@ CREATE TABLE public.orders (
   supplier_id   UUID NOT NULL REFERENCES public.suppliers(id),
   catalog_id    UUID REFERENCES public.catalogs(id),
   order_number  TEXT UNIQUE, -- formato NUD-YYYY-XXXX
-  status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'confirmed', 'sent_to_supplier', 'cancelled')),
+  -- 'cancelled' faltaba en produccion hasta el 31 jul 2026 (rompia cancelar
+  -- pedidos para todos los agentes) - ver migracion
+  -- 20260731111430_fix_orders_status_check_missing_cancelled.sql
+  status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'confirmed', 'sent_to_supplier', 'delivered', 'proposal_sent', 'cancelled')),
   total         NUMERIC(10,2) DEFAULT 0,
   discount_code TEXT,
   notes         TEXT,
@@ -595,6 +598,37 @@ CREATE POLICY "order_items_by_agent" ON public.order_items
       SELECT id FROM public.orders
       WHERE agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
     )
+  );
+
+-- Bug real encontrado el 31 jul 2026: ninguna de las 6 tablas de arriba tenía
+-- política de lectura para nudofy_admin (solo "el propio agente ve lo suyo")
+-- — la ficha de admin mostraba 0 proveedores/catálogos/pedidos/clientes para
+-- CUALQUIER agente aunque tuviera datos reales. Solo SELECT: el admin no
+-- necesita ni debe escribir directamente los datos de negocio de un agente.
+-- Ver supabase/migrations/20260731111719_add_admin_read_clients_suppliers_orders.sql
+CREATE POLICY "nudofy_admin_read_clients" ON public.clients
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+CREATE POLICY "nudofy_admin_read_suppliers" ON public.suppliers
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+CREATE POLICY "nudofy_admin_read_catalogs" ON public.catalogs
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+CREATE POLICY "nudofy_admin_read_products" ON public.products
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+CREATE POLICY "nudofy_admin_read_orders" ON public.orders
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
+  );
+CREATE POLICY "nudofy_admin_read_order_items" ON public.order_items
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'nudofy_admin')
   );
 
 -- Notificaciones: solo el propio usuario
