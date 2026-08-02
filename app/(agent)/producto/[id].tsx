@@ -6,7 +6,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
-import { confirmDestructive } from '@/lib/confirm';
+import { confirmDestructive, alertInfo } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import ResourceError from '@/components/ResourceError';
@@ -137,7 +137,18 @@ export default function ProductoScreen() {
       t('product_detail.delete_title'),
       t('product_detail.delete_body', { name: product!.name }),
       async () => {
-        await supabase.from('products').delete().eq('id', id);
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (error) {
+          // order_items.product_id no tiene ON DELETE CASCADE: un producto
+          // que ya se haya pedido alguna vez no se puede borrar. Antes
+          // fallaba en silencio.
+          if (error.code === '23503') {
+            alertInfo(t('product_detail.delete_blocked_title'), t('product_detail.delete_blocked_body'));
+          } else {
+            alertInfo(t('product_detail.error_title'), error.message);
+          }
+          return;
+        }
         goBack();
       }
     );

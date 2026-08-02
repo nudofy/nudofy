@@ -8,6 +8,7 @@ import {
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useGoBack } from '@/hooks/useGoBack';
+import { alertInfo } from '@/lib/confirm';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
@@ -83,7 +84,21 @@ export default function CatalogoScreen() {
 
   function handleDeleteCatalog() {
     const doDelete = async () => {
-      await supabase.from('catalogs').delete().eq('id', id);
+      const { error } = await supabase.from('catalogs').delete().eq('id', id);
+      if (error) {
+        // 23503 = violacion de clave foranea (Postgres). orders.catalog_id no
+        // tiene ON DELETE CASCADE a proposito - un pedido nunca debe perder
+        // la referencia a su catalogo - asi que borrar un catalogo con
+        // pedidos asociados falla en la base de datos. Antes esto se
+        // ignoraba en silencio: el boton no daba error pero tampoco borraba
+        // nada, parecia que "no dejaba" sin explicar por que.
+        if (error.code === '23503') {
+          alertInfo(t('catalog_detail.delete_blocked_title'), t('catalog_detail.delete_blocked_body'));
+        } else {
+          alertInfo(t('catalog_detail.error_title'), error.message);
+        }
+        return;
+      }
       goBack();
     };
     const confirmMsg = t('catalog_detail.delete_catalog_confirm', { name: catalogName });

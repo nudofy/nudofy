@@ -7,7 +7,7 @@ import {
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
-import { confirmDestructive } from '@/lib/confirm';
+import { confirmDestructive, alertInfo } from '@/lib/confirm';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { colors, space, radius } from '@/theme';
@@ -116,7 +116,18 @@ export default function ProveedorScreen() {
       t('supplier_detail.delete_supplier'),
       t('supplier_detail.delete_supplier_body', { name: supplier?.name }),
       async () => {
-        await supabase.from('suppliers').delete().eq('id', id);
+        const { error } = await supabase.from('suppliers').delete().eq('id', id);
+        if (error) {
+          // Mismo motivo que en catalogo/[id].tsx: orders.supplier_id no
+          // tiene ON DELETE CASCADE, asi que un proveedor con pedidos
+          // asociados no se puede borrar - antes fallaba en silencio.
+          if (error.code === '23503') {
+            alertInfo(t('supplier_detail.delete_blocked_title'), t('supplier_detail.delete_blocked_body'));
+          } else {
+            alertInfo(t('supplier_detail.error_title'), error.message);
+          }
+          return;
+        }
         goBack();
       }
     );

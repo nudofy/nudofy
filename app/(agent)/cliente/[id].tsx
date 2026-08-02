@@ -104,7 +104,8 @@ export default function ClienteScreen() {
 
   async function deleteAddress(addrId: string) {
     confirmDestructive(t('client_detail.delete_address_title'), t('client_detail.delete_address_body'), async () => {
-      await supabase.from('client_addresses').delete().eq('id', addrId);
+      const { error } = await supabase.from('client_addresses').delete().eq('id', addrId);
+      if (error) { toast.error(error.message); return; }
       setAddresses(prev => prev.filter(a => a.id !== addrId));
     });
   }
@@ -124,7 +125,8 @@ export default function ClienteScreen() {
       t('client_detail.delete_client_title'),
       t('client_detail.delete_client_body', { name: client?.name }),
       async () => {
-        await supabase.from('clients').delete().eq('id', id);
+        const { error } = await supabase.from('clients').delete().eq('id', id);
+        if (error) { toast.error(error.message); return; }
         goBack();
       }
     );

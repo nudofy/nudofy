@@ -170,8 +170,10 @@ Un saludo.`;
 
   async function deleteDraft() {
     if (!order) return;
-    await supabase.from('order_items').delete().eq('order_id', order.id);
-    await supabase.from('orders').delete().eq('id', order.id);
+    const { error: itemsError } = await supabase.from('order_items').delete().eq('order_id', order.id);
+    if (itemsError) { toast.error(itemsError.message); return; }
+    const { error } = await supabase.from('orders').delete().eq('id', order.id);
+    if (error) { toast.error(error.message); return; }
     goBack();
   }
 

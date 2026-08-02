@@ -112,7 +112,8 @@ export default function TarifasScreen() {
       t('tariffs.delete_title'),
       t('tariffs.delete_body', { name: tariff.name }),
       async () => {
-        await supabase.from('tariffs').delete().eq('id', tariff.id);
+        const { error } = await supabase.from('tariffs').delete().eq('id', tariff.id);
+        if (error) { toast.error(error.message); return; }
         fetchTariffs();
       }
     );
