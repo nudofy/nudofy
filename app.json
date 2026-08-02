@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nudofy",
     "slug": "nudofy",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "runtimeVersion": {
       "policy": "appVersion"
     },
