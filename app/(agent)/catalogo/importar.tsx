@@ -149,14 +149,22 @@ export default function ImportarProductosScreen() {
       const rows = parsed.data;
       const res: ImportResult[] = [];
 
-      // Borrar primero los productos que tienen referencia del CSV para evitar conflictos
-      const csvRefs = rows.map(r => r['referencia']?.trim()).filter(Boolean) as string[];
-      if (csvRefs.length > 0) {
-        await supabase.from('products')
-          .delete()
-          .eq('catalog_id', catalogId)
-          .in('reference', csvRefs);
-      }
+      // Productos existentes de este catalogo con referencia, para poder
+      // actualizar en vez de borrar+recrear. Antes se borraba cualquier
+      // producto cuya referencia apareciera en el CSV y se insertaba uno
+      // nuevo desde cero - eso significaba una fila (id) completamente
+      // nueva, así que perdía la imagen (image_url), las imagenes extra
+      // (product_images), los precios por tarifa (product_prices) y
+      // cualquier otro dato del producto no incluido en el CSV. Bug real
+      // reportado el 2 ago 2026. Ahora se actualiza la fila existente por
+      // referencia (conserva su id y todo lo que no toca el CSV), y solo
+      // se inserta una fila nueva si no habia ninguna con esa referencia.
+      const { data: existing } = await supabase
+        .from('products')
+        .select('id, reference')
+        .eq('catalog_id', catalogId)
+        .not('reference', 'is', null);
+      const existingByRef = new Map((existing ?? []).map((p: any) => [p.reference, p.id]));
 
       for (const row of rows) {
         const name = row['nombre']?.trim();
@@ -186,7 +194,10 @@ export default function ImportarProductosScreen() {
           min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
         };
 
-        const { error } = await supabase.from('products').insert(payload);
+        const existingId = reference ? existingByRef.get(reference) : undefined;
+        const { error } = existingId
+          ? await supabase.from('products').update(payload).eq('id', existingId)
+          : await supabase.from('products').insert(payload);
         res.push({ name, ok: !error, error: error?.message });
       }
 
