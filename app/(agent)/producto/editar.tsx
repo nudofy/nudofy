@@ -5,6 +5,7 @@ import {
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
@@ -20,6 +21,7 @@ import { resizeForUpload } from '@/lib/imageResize';
 
 export default function EditarProductoScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const { t: tv } = useTranslation('validation');
   const toast = useToast();
@@ -259,7 +261,7 @@ export default function EditarProductoScreen() {
       if (varErr) { toast.error(varErr); return; }
 
       toast.success(t('product_form.updated_toast'));
-      router.back();
+      goBack();
     } catch (e: any) {
       toast.error(e?.message ?? t('product_form.retry'));
     } finally {
@@ -270,7 +272,7 @@ export default function EditarProductoScreen() {
   if (!loaded) {
     return (
       <Screen>
-        <TopBar title={t('product_form.title_edit')} onBack={() => router.back()} />
+        <TopBar title={t('product_form.title_edit')} onBack={() => goBack()} />
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.ink} />
       </Screen>
     );
@@ -280,7 +282,7 @@ export default function EditarProductoScreen() {
     <Screen>
       <TopBar
         title={t('product_form.title_edit')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: t('product_form.save'), disabled: !canSave || saving }]}
       />
 

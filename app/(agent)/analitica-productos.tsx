@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import { useProductMetrics, unitsVariationPct } from '@/hooks/useAgentAnalytics';
@@ -16,6 +17,7 @@ function formatEur(n: number) {
 
 export default function AnaliticaProductosScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { metrics, loading } = useProductMetrics();
   const [sort, setSort] = useState<Sort>('units');
   const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function AnaliticaProductosScreen() {
 
   return (
     <Screen>
-      <TopBar title="Ranking de productos" onBack={() => router.back()} />
+      <TopBar title="Ranking de productos" onBack={() => goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.sortRow}>

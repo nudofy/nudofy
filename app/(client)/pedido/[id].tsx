@@ -7,6 +7,7 @@ import {
 import { printAndShare } from '@/lib/pdf';
 import { openMailto } from '@/lib/mailto';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
@@ -39,6 +40,7 @@ interface OrderItemDetail {
 
 export default function ClientPedidoDetailScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('client');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { agent } = useClientData();
@@ -207,7 +209,7 @@ export default function ClientPedidoDetailScreen() {
   if (loading || !order) {
     return (
       <Screen>
-        <TopBar title={t('order_detail.top_bar_title')} onBack={() => router.back()} />
+        <TopBar title={t('order_detail.top_bar_title')} onBack={() => goBack()} />
         <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>
           {t('order_detail.loading')}
         </Text>
@@ -219,7 +221,7 @@ export default function ClientPedidoDetailScreen() {
 
   return (
     <Screen>
-      <TopBar title={t('order_detail.top_bar_title')} onBack={() => router.back()} />
+      <TopBar title={t('order_detail.top_bar_title')} onBack={() => goBack()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Cabecera del estado */}

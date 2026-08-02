@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
@@ -19,6 +20,7 @@ import { resizeForUpload } from '@/lib/imageResize';
 
 export default function NuevoProveedorScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const { t: tv } = useTranslation('validation');
   const { createSupplier } = useSuppliers();
@@ -98,7 +100,7 @@ export default function NuevoProveedorScreen() {
         toast.success(t('supplier_form.created_toast'));
         router.replace(`/(agent)/proveedor/${data.id}` as any);
       } else {
-        router.back();
+        goBack();
       }
     } catch (e: any) {
       toast.error(e?.message ?? t('supplier_form.retry'));
@@ -113,7 +115,7 @@ export default function NuevoProveedorScreen() {
     <Screen>
       <TopBar
         title={t('supplier_form.title_new')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: t('supplier_form.save'), disabled: !canSave || isBusy }]}
       />
 

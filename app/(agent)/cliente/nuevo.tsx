@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button } from '@/components/ui';
@@ -15,6 +16,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function NuevoClienteScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const { t: tv } = useTranslation('validation');
   const { createClient } = useClients();
@@ -50,14 +52,14 @@ export default function NuevoClienteScreen() {
     setLoading(false);
     if (error) { toast.error(error); return; }
     toast.success(t('client_form.created_toast'));
-    router.back();
+    goBack();
   }
 
   return (
     <Screen>
       <TopBar
         title={t('client_form.title_new')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{ icon: 'Check', onPress: handleCreate, accessibilityLabel: t('client_form.save') }]}
       />
 

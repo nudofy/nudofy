@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
@@ -83,6 +84,7 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
 
 export default function MiEmpresaScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const toast = useToast();
   const { agents, loading, toggleAgentActive, inviteAgent, planLimits } = useCompanyAgents();
@@ -140,7 +142,7 @@ export default function MiEmpresaScreen() {
     <Screen>
       <TopBar
         title={t('my_company.title')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{ icon: 'UserPlus', onPress: () => setShowInvite(true), accessibilityLabel: t('my_company.invite_agent') }]}
       />
 

@@ -4,6 +4,7 @@ import {
   View, ScrollView, Pressable, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text } from '@/components/ui';
@@ -21,6 +22,7 @@ type Tab = 'mensual' | 'anual';
 
 export default function EstadisticasScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const [tab, setTab] = useState<Tab>('mensual');
   const { monthStats, yearStats, totalOrders, totalRevenue, loading } = useStats();
@@ -56,12 +58,12 @@ export default function EstadisticasScreen() {
       });
   }, [selectedMonth, agent]);
 
-  if (gateLoading) return <Screen><TopBar title={t('stats.title')} onBack={() => router.back()} /></Screen>;
+  if (gateLoading) return <Screen><TopBar title={t('stats.title')} onBack={() => goBack()} /></Screen>;
 
   if (!statsAllowed) {
     return (
       <Screen>
-        <TopBar title={t('stats.title')} onBack={() => router.back()} />
+        <TopBar title={t('stats.title')} onBack={() => goBack()} />
         <FeatureLock
           requiredPlan={statsRequiredPlan}
           title={t('stats.gate_title', { plan: statsRequiredPlan })}
@@ -73,7 +75,7 @@ export default function EstadisticasScreen() {
 
   return (
     <Screen>
-      <TopBar title={t('stats.title')} onBack={() => router.back()} />
+      <TopBar title={t('stats.title')} onBack={() => goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* KPIs globales */}

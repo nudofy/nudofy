@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { confirmDestructive } from '@/lib/confirm';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
@@ -32,6 +33,7 @@ type ClientAddress = {
 
 export default function ClienteScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const { t: tv } = useTranslation('validation');
   const toast = useToast();
@@ -123,7 +125,7 @@ export default function ClienteScreen() {
       t('client_detail.delete_client_body', { name: client?.name }),
       async () => {
         await supabase.from('clients').delete().eq('id', id);
-        router.back();
+        goBack();
       }
     );
   }
@@ -135,7 +137,7 @@ export default function ClienteScreen() {
         title={loadError ? t('client_detail.error_title') : t('client_detail.not_found_title')}
         message={loadError ? t('client_detail.error_message') : t('client_detail.not_found_message')}
         detail={loadError}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         onRetry={fetchClient}
       />
     );
@@ -144,7 +146,7 @@ export default function ClienteScreen() {
   if (loading || !client) {
     return (
       <Screen>
-        <TopBar title={t('client_detail.top_bar_title')} onBack={() => router.back()} />
+        <TopBar title={t('client_detail.top_bar_title')} onBack={() => goBack()} />
         <View style={styles.loadingWrap}>
           <Text variant="small" color="ink3">{t('client_detail.loading')}</Text>
         </View>
@@ -156,7 +158,7 @@ export default function ClienteScreen() {
     <Screen>
       <TopBar
         title={t('client_detail.title')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[
           { icon: editing ? 'Check' : 'Pencil', onPress: () => editing ? saveChanges() : setEditing(true), accessibilityLabel: editing ? t('client_detail.save') : t('client_detail.edit') },
           { icon: 'Trash2', onPress: handleDeleteClient, accessibilityLabel: t('client_detail.delete_client_label') },

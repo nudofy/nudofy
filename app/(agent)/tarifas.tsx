@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { confirmDestructive } from '@/lib/confirm';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -29,6 +30,7 @@ type Tariff = {
 
 export default function TarifasScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const toast = useToast();
   const { user } = useAuth();
@@ -116,12 +118,12 @@ export default function TarifasScreen() {
     );
   }
 
-  if (gateLoading) return <Screen><TopBar title={t('tariffs.title')} onBack={() => router.back()} /></Screen>;
+  if (gateLoading) return <Screen><TopBar title={t('tariffs.title')} onBack={() => goBack()} /></Screen>;
 
   if (!allowed) {
     return (
       <Screen>
-        <TopBar title={t('tariffs.title')} onBack={() => router.back()} />
+        <TopBar title={t('tariffs.title')} onBack={() => goBack()} />
         <FeatureLock
           requiredPlan={requiredPlan}
           title={t('tariffs.gate_title', { plan: requiredPlan })}
@@ -135,7 +137,7 @@ export default function TarifasScreen() {
     <Screen>
       <TopBar
         title={t('tariffs.title')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[
           { icon: 'Plus', onPress: () => setCreating(true), accessibilityLabel: t('tariffs.new_tariff') },
         ]}

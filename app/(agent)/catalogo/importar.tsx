@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, Pressable, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { pickFile } from '@/lib/filePicker';
 import { readFileText, normalizeHeader } from '@/lib/csvImport';
@@ -45,6 +46,7 @@ type ImportResult = { name: string; ok: boolean; error?: string };
 
 export default function ImportarProductosScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const toast = useToast();
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
@@ -200,12 +202,12 @@ export default function ImportarProductosScreen() {
   const okCount = results.filter(r => r.ok).length;
   const errCount = results.filter(r => !r.ok).length;
 
-  if (gateLoading) return <Screen><TopBar title={t('product_import.title')} onBack={() => router.back()} /></Screen>;
+  if (gateLoading) return <Screen><TopBar title={t('product_import.title')} onBack={() => goBack()} /></Screen>;
 
   if (!allowed) {
     return (
       <Screen>
-        <TopBar title={t('product_import.title')} onBack={() => router.back()} />
+        <TopBar title={t('product_import.title')} onBack={() => goBack()} />
         <FeatureLock
           requiredPlan={requiredPlan}
           title={t('product_import.gate_title', { plan: requiredPlan })}
@@ -217,7 +219,7 @@ export default function ImportarProductosScreen() {
 
   return (
     <Screen>
-      <TopBar title={t('product_import.title')} onBack={() => router.back()} />
+      <TopBar title={t('product_import.title')} onBack={() => goBack()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Plantilla CSV */}
@@ -319,7 +321,7 @@ export default function ImportarProductosScreen() {
               </>
             )}
 
-            <Button label={t('product_import.view_catalog')} onPress={() => router.back()} fullWidth style={{ marginTop: space[3] }} />
+            <Button label={t('product_import.view_catalog')} onPress={() => goBack()} fullWidth style={{ marginTop: space[3] }} />
           </View>
         )}
       </ScrollView>

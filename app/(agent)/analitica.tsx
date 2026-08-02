@@ -4,6 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Badge } from '@/components/ui';
 import type { IconName } from '@/components/ui';
@@ -39,6 +40,7 @@ const RISK_WEIGHT: Record<RiskLevel, number> = { riesgo: 3, atencion: 2, sin_his
 
 export default function AnaliticaScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const toast = useToast();
   const { agent } = useAgentContext();
   const { metrics, loading } = useClientMetrics();
@@ -79,7 +81,7 @@ export default function AnaliticaScreen() {
 
   return (
     <Screen>
-      <TopBar title="Mi cartera" onBack={() => router.back()} />
+      <TopBar title="Mi cartera" onBack={() => goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Resumen */}

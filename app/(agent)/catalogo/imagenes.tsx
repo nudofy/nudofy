@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { pickFiles as pickFilesUtil } from '@/lib/filePicker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
@@ -53,6 +54,7 @@ function nameWithoutExt(filename: string): string {
 
 export default function CatalogoImagenesScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const toast = useToast();
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
@@ -195,7 +197,7 @@ export default function CatalogoImagenesScreen() {
   if (loadingProducts) {
     return (
       <Screen>
-        <TopBar title={t('catalog_images.title_fallback')} onBack={() => router.back()} />
+        <TopBar title={t('catalog_images.title_fallback')} onBack={() => goBack()} />
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.ink} />
       </Screen>
     );
@@ -203,7 +205,7 @@ export default function CatalogoImagenesScreen() {
 
   return (
     <Screen>
-      <TopBar title={catalogName ? t('catalog_images.title_with_name', { name: catalogName }) : t('catalog_images.title_fallback')} onBack={() => router.back()} />
+      <TopBar title={catalogName ? t('catalog_images.title_with_name', { name: catalogName }) : t('catalog_images.title_fallback')} onBack={() => goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Explicación */}

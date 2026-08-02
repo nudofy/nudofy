@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon } from '@/components/ui';
 import {
@@ -22,6 +23,7 @@ function formatDate(iso: string) {
 
 export default function ProductoAnaliticaScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { metrics, loading: loadingMetrics } = useProductMetrics();
   const { rows, loading: loadingRows } = useProductClientBreakdown(id);
@@ -41,14 +43,14 @@ export default function ProductoAnaliticaScreen() {
   if (loadingMetrics) {
     return (
       <Screen>
-        <TopBar title="Producto" onBack={() => router.back()} />
+        <TopBar title="Producto" onBack={() => goBack()} />
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <TopBar title={product?.product_name ?? 'Producto'} onBack={() => router.back()} />
+      <TopBar title={product?.product_name ?? 'Producto'} onBack={() => goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Resumen */}

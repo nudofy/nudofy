@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, EmptyState } from '@/components/ui';
@@ -40,6 +41,7 @@ export default function ClientCarritoScreen() {
 // ——— Lista de carritos abiertos ———
 function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: string) => void }) {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('client');
   const totalCartsAmount = carts.reduce(
     (sum, c) => sum + c.items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
@@ -48,7 +50,7 @@ function CartList({ carts, onSelectCart }: { carts: Cart[]; onSelectCart: (id: s
 
   return (
     <Screen>
-      <TopBar title={t('cart.title')} onBack={() => router.back()} />
+      <TopBar title={t('cart.title')} onBack={goBack} />
 
       {carts.length > 0 && (
         <View style={styles.kpiBar}>

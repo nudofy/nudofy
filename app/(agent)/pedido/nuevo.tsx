@@ -10,6 +10,7 @@ import { confirmDestructive } from '@/lib/confirm';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
@@ -57,6 +58,7 @@ function formatRelativeTime(iso: string, t: (key: string, opts?: any) => string,
 
 export default function NuevoPedidoScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const params = useLocalSearchParams<{ clientId?: string; draftId?: string; edit?: string }>();
   const { agent } = useAgentContext();
@@ -648,13 +650,13 @@ export default function NuevoPedidoScreen() {
           t('order_new.save_draft_dialog_title'),
           t('order_new.save_draft_dialog_body'),
           [
-            { text: t('order_new.discard_action'), style: 'destructive', onPress: () => router.back() },
-            { text: t('order_new.save_action'), style: 'default', onPress: () => { saveDraftSilently().then((id) => { if (id) toast.success(t('order_new.draft_saved')); else toast.error(t('order_new.draft_save_error')); router.back(); }); } },
+            { text: t('order_new.discard_action'), style: 'destructive', onPress: () => goBack() },
+            { text: t('order_new.save_action'), style: 'default', onPress: () => { saveDraftSilently().then((id) => { if (id) toast.success(t('order_new.draft_saved')); else toast.error(t('order_new.draft_save_error')); goBack(); }); } },
           ]
         );
         return;
       }
-      router.back();
+      goBack();
       return;
     }
     if (step === 'modo')      { setStep('inicio');      return; }
@@ -1200,7 +1202,7 @@ export default function NuevoPedidoScreen() {
             <Button
               label={t('order_new.save_draft')}
               variant="secondary"
-              onPress={() => { saveDraftSilently().then((id) => { if (id) { toast.success(t('order_new.draft_saved')); router.back(); } else { toast.error(t('order_new.draft_save_error')); } }); }}
+              onPress={() => { saveDraftSilently().then((id) => { if (id) { toast.success(t('order_new.draft_saved')); goBack(); } else { toast.error(t('order_new.draft_save_error')); } }); }}
               fullWidth
               style={{ marginBottom: space[2] }}
             />

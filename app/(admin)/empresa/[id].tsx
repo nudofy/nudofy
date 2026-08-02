@@ -5,6 +5,7 @@ import {
   Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { useAdminCompanyDetail } from '@/hooks/useAdmin';
@@ -53,6 +54,7 @@ function UsageBar({ label, current, max, unlimitedLabel, last }: { label: string
 
 export default function AdminEmpresaDetailScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/dashboard');
   const { t, i18n } = useTranslation('admin');
   const toast = useToast();
 
@@ -207,7 +209,7 @@ export default function AdminEmpresaDetailScreen() {
           body: { companyId: company!.id },
         });
         if (error) alertInfo(t('shared.error_title'), error.message ?? t('empresa_detail.delete_company_error'));
-        else router.back();
+        else goBack();
       },
       t('empresa_detail.delete'),
     );
@@ -248,7 +250,7 @@ Equipo Nudofy`;
       {/* Breadcrumb + acciones */}
       <View style={styles.pageHeader}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           style={({ pressed }) => [styles.breadcrumb, pressed && { opacity: 0.6 }]}
           hitSlop={8}
         >

@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button, Badge } from '@/components/ui';
@@ -25,6 +26,7 @@ function useGridLayout() {
 
 export default function CatalogoScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +38,7 @@ export default function CatalogoScreen() {
   const [catalogSeason, setCatalogSeason] = useState('');
   const [catalogStatus, setCatalogStatus] = useState<'active' | 'archived'>('active');
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'reference' | 'price'>('name');
   const [selectedFamilia, setSelectedFamilia] = useState<string | null>(null);
   const [selectedSubfamilia, setSelectedSubfamilia] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
@@ -81,7 +84,7 @@ export default function CatalogoScreen() {
   function handleDeleteCatalog() {
     const doDelete = async () => {
       await supabase.from('catalogs').delete().eq('id', id);
-      router.back();
+      goBack();
     };
     const confirmMsg = t('catalog_detail.delete_catalog_confirm', { name: catalogName });
     if (Platform.OS === 'web') {
@@ -115,8 +118,8 @@ export default function CatalogoScreen() {
     return Array.from(set).sort();
   }, [products, selectedFamilia]);
 
-  const filtered = useMemo(() =>
-    products.filter(p => {
+  const filtered = useMemo(() => {
+    const result = products.filter(p => {
       const matchSearch = !search ||
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.reference ?? '').toLowerCase().includes(search.toLowerCase()) ||
@@ -124,9 +127,13 @@ export default function CatalogoScreen() {
       const matchFamilia = !selectedFamilia || p.familia === selectedFamilia;
       const matchSubfamilia = !selectedSubfamilia || p.subfamilia === selectedSubfamilia;
       return matchSearch && matchFamilia && matchSubfamilia;
-    }),
-    [products, search, selectedFamilia, selectedSubfamilia]
-  );
+    });
+    return [...result].sort((a, b) => {
+      if (sortBy === 'price') return a.price - b.price;
+      if (sortBy === 'reference') return (a.reference ?? '').localeCompare(b.reference ?? '');
+      return a.name.localeCompare(b.name);
+    });
+  }, [products, search, selectedFamilia, selectedSubfamilia, sortBy]);
 
   function selectFamilia(f: string) {
     if (selectedFamilia === f) {
@@ -190,7 +197,7 @@ export default function CatalogoScreen() {
     <Screen>
       <TopBar
         title={catalogName || t('catalog_detail.title_fallback')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[
           { icon: 'Upload', onPress: () => router.push(`/(agent)/catalogo/importar?catalogId=${id}` as any), accessibilityLabel: t('catalog_detail.import_csv') },
           { icon: 'Images', onPress: () => router.push(`/(agent)/catalogo/imagenes?catalogId=${id}` as any), accessibilityLabel: t('catalog_detail.bulk_images') },
@@ -213,6 +220,29 @@ export default function CatalogoScreen() {
           />
         </View>
       </View>
+
+      {/* Orden */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipsScroll}
+        contentContainerStyle={styles.chipsContent}
+      >
+        <Text variant="caption" color="ink3">{t('catalog_detail.sort_label')}</Text>
+        {([
+          { key: 'name', label: t('catalog_detail.sort_name') },
+          { key: 'reference', label: t('catalog_detail.sort_reference') },
+          { key: 'price', label: t('catalog_detail.sort_price') },
+        ] as const).map(opt => (
+          <Pressable
+            key={opt.key}
+            style={[styles.chip, sortBy === opt.key && styles.chipActive]}
+            onPress={() => setSortBy(opt.key)}
+          >
+            <Text variant="smallMedium" color={sortBy === opt.key ? 'white' : 'ink2'}>{opt.label}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
 
       {/* Filtro por familia */}
       {familias.length > 0 && (

@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
@@ -18,6 +19,7 @@ import { SupplierSchema, validate } from '@/lib/validation';
 
 export default function EditarProveedorScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const { t: tv } = useTranslation('validation');
   const toast = useToast();
@@ -121,7 +123,7 @@ export default function EditarProveedorScreen() {
       const { error } = await updateSupplier(id, updates);
       if (error) { toast.error(error); return; }
       toast.success(t('supplier_form.updated_toast'));
-      router.back();
+      goBack();
     } catch (e: any) {
       toast.error(e?.message ?? t('supplier_form.retry'));
     } finally {
@@ -135,7 +137,7 @@ export default function EditarProveedorScreen() {
   if (!loaded) {
     return (
       <Screen>
-        <TopBar title={t('supplier_form.title_edit')} onBack={() => router.back()} />
+        <TopBar title={t('supplier_form.title_edit')} onBack={() => goBack()} />
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.ink} />
       </Screen>
     );
@@ -145,7 +147,7 @@ export default function EditarProveedorScreen() {
     <Screen>
       <TopBar
         title={t('supplier_form.title_edit')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: t('supplier_form.save'), disabled: !canSave || isBusy }]}
       />
 

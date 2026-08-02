@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +23,7 @@ interface AgentOrder {
 export default function AdminAgentePedidosScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const goBack = useGoBack('/dashboard');
   const { t, i18n } = useTranslation('admin');
   const [orders, setOrders] = useState<AgentOrder[]>([]);
   const [agentName, setAgentName] = useState('');
@@ -61,7 +63,7 @@ export default function AdminAgentePedidosScreen() {
     <AdminShell
       activeSection="agentes"
       title={t('agente_pedidos.title', { name: agentName })}
-      onBack={() => router.back()}
+      onBack={() => goBack()}
     >
       {loading && (
         <Text variant="small" color="ink3" align="center" style={styles.empty}>{t('agente_pedidos.loading')}</Text>

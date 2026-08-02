@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import AdminShell from '@/components/AdminShell';
 import { useAdminAgentDetail, useAdminAgents } from '@/hooks/useAdmin';
@@ -17,6 +18,7 @@ const PLANS = ['free', 'free_pro', 'basic', 'pro', 'agency'] as const;
 export default function AdminAgenteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const goBack = useGoBack('/dashboard');
   const { t, i18n } = useTranslation('admin');
   const toast = useToast();
 
@@ -103,7 +105,7 @@ export default function AdminAgenteDetailScreen() {
 
   if (loading || !agent) {
     return (
-      <AdminShell activeSection="agentes" title={t('agente_detail.loading_title')} onBack={() => router.back()}>
+      <AdminShell activeSection="agentes" title={t('agente_detail.loading_title')} onBack={() => goBack()}>
         <Text variant="small" color="ink3" align="center" style={styles.emptyText}>
           {t('agente_detail.loading_body')}
         </Text>
@@ -161,7 +163,7 @@ export default function AdminAgenteDetailScreen() {
   }
 
   return (
-    <AdminShell activeSection="agentes" title={agent.name} onBack={() => router.back()}>
+    <AdminShell activeSection="agentes" title={agent.name} onBack={() => goBack()}>
       {/* Cabecera */}
       <View style={styles.agentHeader}>
         <Avatar name={agent.name} size={56} fontSize={20} />
@@ -353,7 +355,7 @@ export default function AdminAgenteDetailScreen() {
                 const { error } = await deleteAgent(agent!.id);
                 if (error) { toast.error(error); return; }
                 toast.success(t('agente_detail.agent_deleted'));
-                router.back();
+                goBack();
               },
               t('shared.delete'),
             )}

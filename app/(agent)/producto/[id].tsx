@@ -4,6 +4,7 @@ import {
   View, ScrollView, StyleSheet, Image, FlatList, Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
@@ -31,6 +32,7 @@ type VariantFull = { id: string; attributes: Record<string, string>; reference?:
 
 export default function ProductoScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
@@ -111,7 +113,7 @@ export default function ProductoScreen() {
         title={loadError ? t('product_detail.error_title') : t('product_detail.not_found_title')}
         message={loadError ? t('product_detail.error_message') : t('product_detail.not_found_message')}
         detail={loadError}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         onRetry={fetchProduct}
       />
     );
@@ -120,7 +122,7 @@ export default function ProductoScreen() {
   if (!product) {
     return (
       <Screen>
-        <TopBar title={t('product_detail.top_bar_title')} onBack={() => router.back()} />
+        <TopBar title={t('product_detail.top_bar_title')} onBack={() => goBack()} />
         <Text variant="small" color="ink3" align="center" style={{ marginTop: space[8] }}>{t('product_detail.loading')}</Text>
       </Screen>
     );
@@ -136,7 +138,7 @@ export default function ProductoScreen() {
       t('product_detail.delete_body', { name: product!.name }),
       async () => {
         await supabase.from('products').delete().eq('id', id);
-        router.back();
+        goBack();
       }
     );
   }
@@ -147,7 +149,7 @@ export default function ProductoScreen() {
     <Screen>
       <TopBar
         title={subtitle || t('product_detail.top_bar_title')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[
           { icon: 'Pencil', onPress: () => router.push(`/(agent)/producto/editar?id=${id}` as any), accessibilityLabel: t('product_detail.edit') },
           { icon: 'Trash2', onPress: handleDeleteProduct, accessibilityLabel: t('product_detail.delete') },

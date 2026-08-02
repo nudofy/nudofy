@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { confirmDestructive } from '@/lib/confirm';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Icon, Button } from '@/components/ui';
@@ -33,6 +34,7 @@ const LANGUAGE_OPTIONS: { value: SupportedLanguage; label: string }[] = [
 
 export default function PerfilScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const params = useLocalSearchParams<{ checkout?: string }>();
   const toast = useToast();
   const { agent, refreshAgent } = useAgentContext();
@@ -213,7 +215,7 @@ export default function PerfilScreen() {
     <Screen>
       <TopBar
         title="Perfil y ajustes"
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{
           icon: editing ? 'Check' : 'Pencil',
           onPress: () => editing ? handleSave() : setEditing(true),

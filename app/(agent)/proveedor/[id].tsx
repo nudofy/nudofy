@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { confirmDestructive } from '@/lib/confirm';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,6 +21,7 @@ import type { Supplier, Catalog } from '@/hooks/useAgent';
 
 export default function ProveedorScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,7 +61,7 @@ export default function ProveedorScreen() {
         title={loadError ? t('supplier_detail.error_title') : t('supplier_detail.not_found_title')}
         message={loadError ? t('supplier_detail.error_message') : t('supplier_detail.not_found_message')}
         detail={loadError}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         onRetry={fetchSupplier}
       />
     );
@@ -115,7 +117,7 @@ export default function ProveedorScreen() {
       t('supplier_detail.delete_supplier_body', { name: supplier?.name }),
       async () => {
         await supabase.from('suppliers').delete().eq('id', id);
-        router.back();
+        goBack();
       }
     );
   }
@@ -124,7 +126,7 @@ export default function ProveedorScreen() {
     <Screen>
       <TopBar
         title={supplier?.name ?? '...'}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[
           { icon: 'ArrowUpDown', onPress: openReorder, accessibilityLabel: t('supplier_detail.reorder_catalogs') },
           { icon: 'Pencil', onPress: () => router.push(`/(agent)/proveedor/editar?id=${id}` as any), accessibilityLabel: t('supplier_detail.edit_supplier') },

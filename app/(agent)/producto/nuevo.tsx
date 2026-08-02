@@ -5,6 +5,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, space, radius } from '@/theme';
@@ -20,6 +21,7 @@ import { resizeForUpload } from '@/lib/imageResize';
 
 export default function NuevoProductoScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t } = useTranslation('agent');
   const { t: tv } = useTranslation('validation');
   const { catalogId } = useLocalSearchParams<{ catalogId: string }>();
@@ -159,7 +161,7 @@ export default function NuevoProductoScreen() {
       }
 
       toast.success(t('product_form.created_toast'));
-      router.back();
+      goBack();
     } catch (e: any) {
       toast.error(e?.message ?? t('product_form.retry'));
     } finally {
@@ -171,7 +173,7 @@ export default function NuevoProductoScreen() {
     <Screen>
       <TopBar
         title={t('product_form.title_new')}
-        onBack={() => router.back()}
+        onBack={() => goBack()}
         actions={[{ icon: 'Check', onPress: handleSave, accessibilityLabel: t('product_form.save'), disabled: !canSave || saving }]}
       />
 

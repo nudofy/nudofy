@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, Share, Linking, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
 import { colors, space, radius } from '@/theme';
 import { Screen, TopBar, Text, Button, Icon, Badge } from '@/components/ui';
@@ -59,6 +60,7 @@ function formatDateTime(iso: string, language: string) {
 
 export default function PedidoScreen() {
   const router = useRouter();
+  const goBack = useGoBack('/home');
   const { t, i18n } = useTranslation('agent');
   const { id } = useLocalSearchParams<{ id: string }>();
   const toast = useToast();
@@ -170,7 +172,7 @@ Un saludo.`;
     if (!order) return;
     await supabase.from('order_items').delete().eq('order_id', order.id);
     await supabase.from('orders').delete().eq('id', order.id);
-    router.back();
+    goBack();
   }
 
   function cancelOrder() {
@@ -524,7 +526,7 @@ Un saludo.`;
   if (loading || !order) {
     return (
       <Screen>
-        <TopBar title={t('order_detail.top_bar_title')} onBack={() => router.back()} />
+        <TopBar title={t('order_detail.top_bar_title')} onBack={() => goBack()} />
         <View style={styles.loadingWrap}>
           <Text variant="small" color="ink3">{t('order_detail.loading')}</Text>
         </View>
@@ -536,7 +538,7 @@ Un saludo.`;
 
   return (
     <Screen>
-      <TopBar title={t('order_detail.title')} onBack={() => router.back()} />
+      <TopBar title={t('order_detail.title')} onBack={() => goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Badge de estado */}
