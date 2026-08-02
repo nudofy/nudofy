@@ -121,7 +121,11 @@ export default function ImportarProductosScreen() {
       setHeaders(cols);
       setPreview(parsed.data.slice(0, 5));
 
-      if (!cols.includes('nombre')) {
+      // 'nombre' hace falta para crear productos nuevos, pero no para
+      // actualizar existentes por referencia (ej. un CSV diario de solo
+      // referencia+precio). Por eso el minimo real es nombre O referencia,
+      // no nombre siempre.
+      if (!cols.includes('nombre') && !cols.includes('referencia')) {
         toast.error(t('product_import.missing_column', { cols: cols.join(', ') }));
       }
     } catch (e: any) {
@@ -147,6 +151,7 @@ export default function ImportarProductosScreen() {
       });
 
       const rows = parsed.data;
+      const cols = parsed.meta.fields ?? [];
       const res: ImportResult[] = [];
 
       // Productos existentes de este catalogo con referencia, para poder
@@ -167,38 +172,65 @@ export default function ImportarProductosScreen() {
       const existingByRef = new Map((existing ?? []).map((p: any) => [p.reference, p.id]));
 
       for (const row of rows) {
+        const reference = row['referencia']?.trim() || null;
+        const existingId = reference ? existingByRef.get(reference) : undefined;
         const name = row['nombre']?.trim();
-        if (!name) { res.push({ name: t('product_import.no_name_placeholder'), ok: false, error: t('product_import.empty_name') }); continue; }
+
+        // Un producto nuevo necesita nombre si o si. Uno que ya existe no -
+        // si el CSV es solo referencia+precio (actualizacion rapida diaria),
+        // no hace falta repetir el nombre.
+        if (!existingId && !name) {
+          res.push({ name: reference || t('product_import.no_name_placeholder'), ok: false, error: t('product_import.empty_name') });
+          continue;
+        }
 
         const priceRaw = row['precio']?.replace(',', '.').trim();
         const price = priceRaw ? parseFloat(priceRaw) : 0;
         const pvprRaw = row['pvpr']?.replace(',', '.').trim();
         const pvpr = pvprRaw ? parseFloat(pvprRaw) : undefined;
-        const reference = row['referencia']?.trim() || null;
 
-        const payload = {
-          catalog_id: catalogId,
-          active: true,
-          name,
-          reference,
-          reference_2: row['referencia_2']?.trim() || null,
-          barcode: row['ean']?.trim() || null,
-          familia: row['familia']?.trim() || null,
-          subfamilia: row['subfamilia']?.trim() || null,
-          price: isNaN(price) ? 0 : price,
-          pvpr: pvpr && !isNaN(pvpr) ? pvpr : null,
-          description: row['descripcion']?.trim() || null,
-          measures: row['medidas']?.trim() || null,
-          stock: row['stock'] ? parseInt(row['stock']) : null,
-          standard_box: row['caja_estandar'] ? parseInt(row['caja_estandar']) : null,
-          min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
-        };
+        if (existingId) {
+          // Actualizacion PARCIAL: solo se tocan las columnas que trae el
+          // CSV. Si el archivo solo tiene referencia+precio, el resto de
+          // datos del producto (stock, familia, descripcion...) no se toca -
+          // antes se sobreescribia todo con vacio aunque no vinera en el CSV.
+          const partial: Record<string, any> = {};
+          if (cols.includes('nombre') && name) partial.name = name;
+          if (cols.includes('referencia_2')) partial.reference_2 = row['referencia_2']?.trim() || null;
+          if (cols.includes('ean')) partial.barcode = row['ean']?.trim() || null;
+          if (cols.includes('familia')) partial.familia = row['familia']?.trim() || null;
+          if (cols.includes('subfamilia')) partial.subfamilia = row['subfamilia']?.trim() || null;
+          if (cols.includes('precio')) partial.price = isNaN(price) ? 0 : price;
+          if (cols.includes('pvpr')) partial.pvpr = pvpr && !isNaN(pvpr) ? pvpr : null;
+          if (cols.includes('descripcion')) partial.description = row['descripcion']?.trim() || null;
+          if (cols.includes('medidas')) partial.measures = row['medidas']?.trim() || null;
+          if (cols.includes('stock')) partial.stock = row['stock'] ? parseInt(row['stock']) : null;
+          if (cols.includes('caja_estandar')) partial.standard_box = row['caja_estandar'] ? parseInt(row['caja_estandar']) : null;
+          if (cols.includes('unidades_minimas')) partial.min_units = row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null;
 
-        const existingId = reference ? existingByRef.get(reference) : undefined;
-        const { error } = existingId
-          ? await supabase.from('products').update(payload).eq('id', existingId)
-          : await supabase.from('products').insert(payload);
-        res.push({ name, ok: !error, error: error?.message });
+          const { error } = await supabase.from('products').update(partial).eq('id', existingId);
+          res.push({ name: name || reference || '—', ok: !error, error: error?.message });
+        } else {
+          const payload = {
+            catalog_id: catalogId,
+            active: true,
+            name: name!,
+            reference,
+            reference_2: row['referencia_2']?.trim() || null,
+            barcode: row['ean']?.trim() || null,
+            familia: row['familia']?.trim() || null,
+            subfamilia: row['subfamilia']?.trim() || null,
+            price: isNaN(price) ? 0 : price,
+            pvpr: pvpr && !isNaN(pvpr) ? pvpr : null,
+            description: row['descripcion']?.trim() || null,
+            measures: row['medidas']?.trim() || null,
+            stock: row['stock'] ? parseInt(row['stock']) : null,
+            standard_box: row['caja_estandar'] ? parseInt(row['caja_estandar']) : null,
+            min_units: row['unidades_minimas'] ? parseInt(row['unidades_minimas']) : null,
+          };
+          const { error } = await supabase.from('products').insert(payload);
+          res.push({ name: name!, ok: !error, error: error?.message });
+        }
       }
 
       setResults(res);
@@ -297,7 +329,7 @@ export default function ImportarProductosScreen() {
               label={t('product_import.import_all')}
               onPress={handleImportFromPreview}
               loading={importing}
-              disabled={!headers.includes('nombre')}
+              disabled={!headers.includes('nombre') && !headers.includes('referencia')}
               fullWidth
               style={{ marginTop: space[2] }}
             />
