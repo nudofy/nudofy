@@ -44,6 +44,7 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
             onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Volver"
+            {...({ title: 'Volver' } as any)}
             hitSlop={8}
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
           >
@@ -66,6 +67,7 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
             onPress={goHome}
             accessibilityRole="button"
             accessibilityLabel="Ir al inicio"
+            {...({ title: 'Ir al inicio' } as any)}
             hitSlop={8}
             style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}
           >
@@ -79,6 +81,7 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
             disabled={a.disabled}
             accessibilityRole="button"
             accessibilityLabel={a.accessibilityLabel}
+            {...(a.accessibilityLabel ? ({ title: a.accessibilityLabel } as any) : {})}
             hitSlop={8}
             style={({ pressed }) => [styles.actionBtn, (pressed || a.disabled) && { opacity: 0.6 }]}
           >
