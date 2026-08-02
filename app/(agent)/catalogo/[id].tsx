@@ -400,10 +400,12 @@ const styles = StyleSheet.create({
   chipsScroll: {
     backgroundColor: colors.white,
     borderBottomWidth: 1, borderBottomColor: colors.line,
+    flexShrink: 0,
   },
   subChipsScroll: {
     backgroundColor: colors.surface,
     borderBottomWidth: 1, borderBottomColor: colors.line,
+    flexShrink: 0,
   },
   chipsContent: {
     paddingHorizontal: space[4], paddingVertical: space[2],

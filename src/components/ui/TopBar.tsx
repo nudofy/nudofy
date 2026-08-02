@@ -2,11 +2,20 @@
 // Barra superior blanca con borde sutil. Sin fondo oscuro, sin rojos.
 
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, space, radius } from '@/theme';
 import Text from './Text';
 import Icon, { IconName } from './Icon';
+
+// react-native-web descarta el prop `title` en View/Pressable (no esta en su
+// lista de props permitidas) - por eso accessibilityLabel no basta para que
+// aparezca un tooltip nativo al pasar el raton en web. `display: contents`
+// para que el <span> no afecte el layout flex del Pressable que envuelve.
+function WebTitle({ label, children }: { label?: string; children: React.ReactNode }) {
+  if (Platform.OS !== 'web' || !label) return <>{children}</>;
+  return React.createElement('span', { title: label, style: { display: 'contents' } }, children);
+}
 
 type Action = {
   icon: IconName;
@@ -40,16 +49,17 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
     <View style={styles.bar}>
       <View style={styles.leftBlock}>
         {onBack && (
-          <Pressable
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-            {...({ title: 'Volver' } as any)}
-            hitSlop={8}
-            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-          >
-            <Icon name="ChevronLeft" size={24} color={colors.ink} />
-          </Pressable>
+          <WebTitle label="Volver">
+            <Pressable
+              onPress={onBack}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              hitSlop={8}
+              style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Icon name="ChevronLeft" size={24} color={colors.ink} />
+            </Pressable>
+          </WebTitle>
         )}
         {left ? (
           left
@@ -63,31 +73,32 @@ export default function TopBar({ title, subtitle, onBack, actions, left, hideHom
 
       <View style={styles.actions}>
         {showHome && (
-          <Pressable
-            onPress={goHome}
-            accessibilityRole="button"
-            accessibilityLabel="Ir al inicio"
-            {...({ title: 'Ir al inicio' } as any)}
-            hitSlop={8}
-            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}
-          >
-            <Icon name="LayoutGrid" size={20} color={colors.ink} />
-          </Pressable>
+          <WebTitle label="Ir al inicio">
+            <Pressable
+              onPress={goHome}
+              accessibilityRole="button"
+              accessibilityLabel="Ir al inicio"
+              hitSlop={8}
+              style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Icon name="LayoutGrid" size={20} color={colors.ink} />
+            </Pressable>
+          </WebTitle>
         )}
         {actions && actions.map((a, i) => (
-          <Pressable
-            key={i}
-            onPress={a.onPress}
-            disabled={a.disabled}
-            accessibilityRole="button"
-            accessibilityLabel={a.accessibilityLabel}
-            {...(a.accessibilityLabel ? ({ title: a.accessibilityLabel } as any) : {})}
-            hitSlop={8}
-            style={({ pressed }) => [styles.actionBtn, (pressed || a.disabled) && { opacity: 0.6 }]}
-          >
-            <Icon name={a.icon} size={20} color={a.disabled ? colors.ink3 : colors.ink} />
-            {a.badge && <View style={styles.badge} />}
-          </Pressable>
+          <WebTitle key={i} label={a.accessibilityLabel}>
+            <Pressable
+              onPress={a.onPress}
+              disabled={a.disabled}
+              accessibilityRole="button"
+              accessibilityLabel={a.accessibilityLabel}
+              hitSlop={8}
+              style={({ pressed }) => [styles.actionBtn, (pressed || a.disabled) && { opacity: 0.6 }]}
+            >
+              <Icon name={a.icon} size={20} color={a.disabled ? colors.ink3 : colors.ink} />
+              {a.badge && <View style={styles.badge} />}
+            </Pressable>
+          </WebTitle>
         ))}
       </View>
     </View>
