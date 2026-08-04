@@ -199,6 +199,7 @@ function ProductGrid({
   catalogId: string; catalogName: string;
   onGoCart: () => void;
 }) {
+  const router = useRouter();
   const { t, i18n } = useTranslation('catalog');
   const { numColumns, imageHeight } = useGridLayout();
   const { addToCart, updateQty, getItemQty, carts } = useCart();
@@ -299,36 +300,38 @@ function ProductGrid({
           const outOfStock = product.stock === 0;
           return (
             <View style={[styles.productCard, outOfStock && { opacity: 0.85 }]}>
-              <View style={[styles.productImg, { height: imageHeight }]}>
-                {product.image_url ? (
-                  <Image
-                    source={{ uri: product.image_url }}
-                    style={styles.productImage}
-                    contentFit="cover"
-                    cachePolicy="disk"
-                    recyclingKey={product.id}
-                  />
-                ) : (
-                  <Icon name="Package" size={24} color={colors.ink4} />
-                )}
-                {outOfStock && (
-                  <View style={styles.outOfStockOverlay} pointerEvents="none" />
-                )}
-              </View>
-              <View style={styles.productBody}>
-                <Text variant="smallMedium" numberOfLines={2}>{product.name}</Text>
-                {product.reference && (
-                  <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
-                    {t('client.ref_prefix', { ref: product.reference })}
-                  </Text>
-                )}
-                <Text variant="bodyMedium" style={{ marginTop: 4 }}>{formatEur(product.price, i18n.language)}</Text>
-                {outOfStock && (
-                  <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
-                    <Badge label={t('client.out_of_stock_badge')} variant="danger" />
-                  </View>
-                )}
-              </View>
+              <Pressable onPress={() => router.push(`/(client)/producto/${product.id}` as any)}>
+                <View style={[styles.productImg, { height: imageHeight }]}>
+                  {product.image_url ? (
+                    <Image
+                      source={{ uri: product.image_url }}
+                      style={styles.productImage}
+                      contentFit="cover"
+                      cachePolicy="disk"
+                      recyclingKey={product.id}
+                    />
+                  ) : (
+                    <Icon name="Package" size={24} color={colors.ink4} />
+                  )}
+                  {outOfStock && (
+                    <View style={styles.outOfStockOverlay} pointerEvents="none" />
+                  )}
+                </View>
+                <View style={styles.productBody}>
+                  <Text variant="smallMedium" numberOfLines={2}>{product.name}</Text>
+                  {product.reference && (
+                    <Text variant="caption" color="ink3" style={{ marginTop: 2 }}>
+                      {t('client.ref_prefix', { ref: product.reference })}
+                    </Text>
+                  )}
+                  <Text variant="bodyMedium" style={{ marginTop: 4 }}>{formatEur(product.price, i18n.language)}</Text>
+                  {outOfStock && (
+                    <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
+                      <Badge label={t('client.out_of_stock_badge')} variant="danger" />
+                    </View>
+                  )}
+                </View>
+              </Pressable>
               {outOfStock ? (
                 <View style={[styles.addBtn, { backgroundColor: colors.line }]}>
                   <Text variant="smallMedium" style={{ color: colors.ink3 }}>{t('client.not_available')}</Text>

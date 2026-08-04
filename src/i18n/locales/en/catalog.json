@@ -39,6 +39,25 @@
     "items_count_other": "{{count}} items",
     "view_cart": "View cart",
     "attr_modal_hint": "Select the options to add to cart",
-    "add_to_cart": "Add to cart"
+    "add_to_cart": "Add to cart",
+    "product_detail": {
+      "top_bar_title": "Product",
+      "error_title": "Connection error",
+      "not_found_title": "Product not found",
+      "error_message": "Could not load the product.",
+      "not_found_message": "It doesn't exist or you don't have permission to view it.",
+      "ean_prefix": "EAN: {{code}}",
+      "description_label": "Description",
+      "details_label": "Details",
+      "reference2_label": "Alternative reference",
+      "family_label": "Family",
+      "subfamily_label": "Subfamily",
+      "measures_label": "Measures",
+      "standard_box_label": "Standard box",
+      "min_units_label": "Minimum units",
+      "units_suffix": "{{count}} units",
+      "attributes_label": "Options",
+      "select_options": "Choose the options"
+    }
   }
 }

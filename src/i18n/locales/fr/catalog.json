@@ -39,6 +39,25 @@
     "items_count_other": "{{count}} articles",
     "view_cart": "Voir le panier",
     "attr_modal_hint": "Sélectionnez les options pour ajouter au panier",
-    "add_to_cart": "Ajouter au panier"
+    "add_to_cart": "Ajouter au panier",
+    "product_detail": {
+      "top_bar_title": "Produit",
+      "error_title": "Erreur de connexion",
+      "not_found_title": "Produit introuvable",
+      "error_message": "Impossible de charger le produit.",
+      "not_found_message": "Il n'existe pas ou vous n'avez pas les droits pour le voir.",
+      "ean_prefix": "EAN : {{code}}",
+      "description_label": "Description",
+      "details_label": "Détails",
+      "reference2_label": "Référence alternative",
+      "family_label": "Famille",
+      "subfamily_label": "Sous-famille",
+      "measures_label": "Dimensions",
+      "standard_box_label": "Carton standard",
+      "min_units_label": "Unités minimum",
+      "units_suffix": "{{count}} unités",
+      "attributes_label": "Options",
+      "select_options": "Choisissez les options"
+    }
   }
 }

@@ -39,6 +39,25 @@
     "items_count_other": "{{count}} artículos",
     "view_cart": "Ver carrito",
     "attr_modal_hint": "Selecciona las opciones para añadir al carrito",
-    "add_to_cart": "Añadir al carrito"
+    "add_to_cart": "Añadir al carrito",
+    "product_detail": {
+      "top_bar_title": "Producto",
+      "error_title": "Error de conexión",
+      "not_found_title": "Producto no encontrado",
+      "error_message": "No se pudo cargar el producto.",
+      "not_found_message": "No existe o no tienes permisos para verlo.",
+      "ean_prefix": "EAN: {{code}}",
+      "description_label": "Descripción",
+      "details_label": "Detalles",
+      "reference2_label": "Referencia alternativa",
+      "family_label": "Familia",
+      "subfamily_label": "Subfamilia",
+      "measures_label": "Medidas",
+      "standard_box_label": "Caja estándar",
+      "min_units_label": "Unidades mínimas",
+      "units_suffix": "{{count}} uds.",
+      "attributes_label": "Opciones",
+      "select_options": "Elige las opciones"
+    }
   }
 }
