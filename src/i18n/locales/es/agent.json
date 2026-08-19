@@ -758,7 +758,6 @@
     "title": "Tu período de prueba ha terminado",
     "subtitle": "Tu acceso gratuito a Nudofy ha expirado.\nPara seguir gestionando tus pedidos y clientes, elige un plan de pago.",
     "price_suffix": "{{price}} €/mes",
-    "view_plans": "Ver planes y precios",
     "sign_out": "Cerrar sesión",
     "questions": "¿Tienes dudas? Escríbenos a"
   }

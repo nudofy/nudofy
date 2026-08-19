@@ -1,6 +1,6 @@
 // Trial vencido — pantalla bloqueante cuando el período de prueba ha expirado
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
+import { View, StyleSheet, Linking, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -8,13 +8,18 @@ import { getPlanConfigs } from '@/lib/planConfig';
 import { openMailto } from '@/lib/mailto';
 import { colors, space, radius } from '@/theme';
 import { Text, Button, Icon } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 
 const PAID_PLANS = ['basic', 'pro', 'agency'];
 
 export default function TrialVencidoScreen() {
   const router = useRouter();
   const { t } = useTranslation('agent');
+  const { session } = useAuth();
+  const toast = useToast();
   const [plans, setPlans] = useState<{ id: string; name: string; price_monthly: number }[]>([]);
+  const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
 
   useEffect(() => {
     getPlanConfigs().then(all => {
@@ -30,8 +35,37 @@ export default function TrialVencidoScreen() {
     router.replace('/login' as any);
   }
 
-  function handleUpgrade() {
-    Linking.openURL('https://nudofy.com/precios');
+  // Mismo flujo que perfil.tsx:handleChangePlan — abre el checkout de Stripe
+  // directamente, sin salir a la web (antes mandaba a nudofy.com/precios, que
+  // solo ofrece dar de alta una cuenta NUEVA, así que un trial vencido no
+  // tenía ninguna forma real de pagar y reactivar su cuenta).
+  async function handleUpgrade(targetPlan: string) {
+    if (!session) return;
+    setLoadingCheckout(targetPlan);
+    const successUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/?checkout=success`
+      : 'nudofy://perfil?checkout=success';
+    const cancelUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/?checkout=cancel`
+      : 'nudofy://perfil';
+    try {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-billing-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ targetPlan, successUrl, cancelUrl }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) { toast.error(json.error ?? 'Error al iniciar el pago'); return; }
+      await Linking.openURL(json.url);
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setLoadingCheckout(null);
+    }
   }
 
   return (
@@ -50,7 +84,7 @@ export default function TrialVencidoScreen() {
           {t('trial.subtitle')}
         </Text>
 
-        {/* Planes resumen */}
+        {/* Planes — cada uno abre el checkout de Stripe directamente */}
         <View style={styles.plansRow}>
           {plans.map((p, i) => (
             <PlanChip
@@ -58,16 +92,14 @@ export default function TrialVencidoScreen() {
               name={p.name}
               price={t('trial.price_suffix', { price: p.price_monthly })}
               highlighted={i === 1}
+              loading={loadingCheckout === p.id}
+              disabled={loadingCheckout != null}
+              onPress={() => handleUpgrade(p.id)}
             />
           ))}
         </View>
 
         {/* CTAs */}
-        <Button
-          label={t('trial.view_plans')}
-          onPress={handleUpgrade}
-          fullWidth
-        />
         <Button
           label={t('trial.sign_out')}
           variant="secondary"
@@ -90,22 +122,38 @@ export default function TrialVencidoScreen() {
   );
 }
 
-function PlanChip({ name, price, highlighted }: { name: string; price: string; highlighted?: boolean }) {
+function PlanChip({ name, price, highlighted, loading, disabled, onPress }: {
+  name: string; price: string; highlighted?: boolean; loading?: boolean; disabled?: boolean; onPress: () => void;
+}) {
   return (
-    <View style={[styles.planChip, highlighted && styles.planChipHighlighted]}>
-      <Text
-        variant="smallMedium"
-        style={{ color: highlighted ? colors.white : colors.ink }}
-      >
-        {name}
-      </Text>
-      <Text
-        variant="caption"
-        style={{ color: highlighted ? colors.white : colors.ink3, marginTop: 2 }}
-      >
-        {price}
-      </Text>
-    </View>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.planChip,
+        highlighted && styles.planChipHighlighted,
+        (pressed || disabled) && { opacity: 0.7 },
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={highlighted ? colors.white : colors.ink} />
+      ) : (
+        <>
+          <Text
+            variant="smallMedium"
+            style={{ color: highlighted ? colors.white : colors.ink }}
+          >
+            {name}
+          </Text>
+          <Text
+            variant="caption"
+            style={{ color: highlighted ? colors.white : colors.ink3, marginTop: 2 }}
+          >
+            {price}
+          </Text>
+        </>
+      )}
+    </Pressable>
   );
 }
 

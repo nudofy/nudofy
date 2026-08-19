@@ -758,7 +758,6 @@
     "title": "Votre période d'essai est terminée",
     "subtitle": "Votre accès gratuit à Nudofy a expiré.\nPour continuer à gérer vos commandes et clients, choisissez une formule payante.",
     "price_suffix": "{{price}} €/mois",
-    "view_plans": "Voir les formules et tarifs",
     "sign_out": "Se déconnecter",
     "questions": "Des questions ? Écrivez-nous à"
   }

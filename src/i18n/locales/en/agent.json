@@ -758,7 +758,6 @@
     "title": "Your trial period has ended",
     "subtitle": "Your free access to Nudofy has expired.\nTo keep managing your orders and clients, choose a paid plan.",
     "price_suffix": "{{price}} €/mo",
-    "view_plans": "View plans and pricing",
     "sign_out": "Sign out",
     "questions": "Have questions? Email us at"
   }
