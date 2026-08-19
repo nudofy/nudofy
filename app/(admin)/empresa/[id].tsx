@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   breadcrumb: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  pageActions: { flexDirection: 'row', gap: space[1] },
+  pageActions: { flexDirection: 'row', gap: space[1], flexWrap: 'wrap' },
 
   planSelector: {
     flexDirection: 'row', flexWrap: 'wrap', gap: space[2],
